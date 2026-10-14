@@ -4,6 +4,12 @@ import { db } from '../data/db'
 import * as repository from '../data/profileRepository'
 import { ProfilePage } from './ProfilePage'
 
+const savedProfile = {
+  id: 'self' as const, name: 'Синтетический профиль', heightCm: 170,
+  birthDate: '2000-01-01', formulaSex: 'male' as const,
+}
+const savedWeight = { id: '00000000-0000-4000-8000-000000000001', date: '2010-01-01', kg: 70 }
+
 beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(2026, 9, 14, 12))
@@ -26,6 +32,14 @@ async function openForm() {
 function enterMeasurements() {
   fireEvent.change(screen.getByRole('textbox', { name: 'Рост, см' }), { target: { value: '170,5' } })
   fireEvent.change(screen.getByRole('textbox', { name: 'Вес, кг' }), { target: { value: '70.5' } })
+}
+
+async function openEditor() {
+  await repository.createProfile(savedProfile, savedWeight)
+  const view = render(<ProfilePage />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Редактировать профиль' }))
+  await screen.findByRole('form', { name: 'Редактирование профиля' })
+  return view
 }
 
 describe('Создание профиля', () => {
@@ -161,5 +175,105 @@ describe('Создание профиля', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Создать профиль' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Профиль и первое измерение сохранены')
     expect(await db.weights.count()).toBe(1)
+  })
+})
+
+describe('Редактирование профиля', () => {
+  it('заполняет форму текущими данными и сохраняет изменения без нового измерения', async () => {
+    const view = await openEditor()
+    expect(screen.getByRole('textbox', { name: 'Имя (необязательно)' })).toHaveValue(savedProfile.name)
+    expect(screen.getByRole('textbox', { name: 'Рост, см' })).toHaveValue('170')
+    expect(screen.getByLabelText('Дата рождения (необязательно)')).toHaveValue(savedProfile.birthDate)
+    expect(screen.getByRole('combobox')).toHaveValue('male')
+    expect(screen.queryByLabelText('Вес, кг')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Дата первого измерения')).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Имя (необязательно)' }), { target: { value: '' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Рост, см' }), { target: { value: '172,5' } })
+    fireEvent.change(screen.getByLabelText('Дата рождения (необязательно)'), { target: { value: '' } })
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'none' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить профиль' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Профиль обновлён')
+    expect(screen.getByText('Не указано')).toBeVisible()
+    expect(screen.getByText('Не указана')).toBeVisible()
+    expect(await db.weights.toArray()).toEqual([savedWeight])
+    view.unmount()
+    render(<ProfilePage />)
+    expect(await screen.findByText('172,5 см')).toBeVisible()
+    expect(await db.profiles.get('self')).toMatchObject({ name: '', birthDate: null, formulaSex: 'none' })
+  })
+
+  it('фокусирует ошибочное поле, а отмена удаляет ошибки и несохранённые изменения', async () => {
+    await openEditor()
+    const height = screen.getByRole('textbox', { name: 'Рост, см' })
+    fireEvent.change(height, { target: { value: '0' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить профиль' }))
+    expect(height).toHaveAccessibleDescription('Рост должен быть больше нуля')
+    expect(height).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: 'Отмена' }))
+
+    expect(screen.getByText('170 см')).toBeVisible()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(await db.profiles.get('self')).toEqual(savedProfile)
+    expect(await db.weights.toArray()).toEqual([savedWeight])
+    fireEvent.click(screen.getByRole('button', { name: 'Редактировать профиль' }))
+    expect(screen.getByRole('textbox', { name: 'Рост, см' })).toHaveValue('170')
+  })
+
+  it('сохраняет форму и старые данные при несовместимой дате рождения', async () => {
+    await openEditor()
+    fireEvent.change(screen.getByLabelText('Дата рождения (необязательно)'), { target: { value: '2011-01-01' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить профиль' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Дата рождения позже сохранённого измерения')
+    expect(screen.getByRole('form', { name: 'Редактирование профиля' })).toBeVisible()
+    expect(await db.profiles.get('self')).toEqual(savedProfile)
+    expect(await db.weights.toArray()).toEqual([savedWeight])
+  })
+
+  it('блокирует сохранение и отмену во время записи', async () => {
+    const original = repository.updateProfile
+    const signals: { complete?: () => void } = {}
+    const gate = new Promise<void>(resolve => {
+      signals.complete = resolve
+    })
+    const save = vi.spyOn(repository, 'updateProfile').mockImplementation(async (input, database) => {
+      await gate
+      await original(input, database)
+    })
+    await openEditor()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Рост, см' }), { target: { value: '175' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить профиль' }))
+    expect(screen.getByRole('button', { name: 'Сохраняем…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Отмена' })).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: 'Рост, см' })).toBeDisabled()
+    await waitFor(() => {
+      expect(save).toHaveBeenCalledTimes(1)
+    })
+    const complete = signals.complete
+    if (!complete) throw new Error('Сигнал завершения не установлен')
+    await act(async () => {
+      complete()
+      await gate
+    })
+    expect(await screen.findByRole('status')).toHaveTextContent('Профиль обновлён')
+    expect(await db.weights.toArray()).toEqual([savedWeight])
+  })
+
+  it('после ошибки хранилища оставляет редактирование доступным и позволяет повтор', async () => {
+    vi.spyOn(repository, 'updateProfile').mockRejectedValueOnce(
+      Object.assign(new Error('synthetic-private-storage-details'), { name: 'QuotaExceededError' }),
+    )
+    await openEditor()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Рост, см' }), { target: { value: '175' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить профиль' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось выполнить действие')
+    expect(screen.queryByText('synthetic-private-storage-details')).not.toBeInTheDocument()
+    expect(await db.profiles.get('self')).toEqual(savedProfile)
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить профиль' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Профиль обновлён')
+    expect(await screen.findByText('175 см')).toBeVisible()
+    expect(await db.weights.toArray()).toEqual([savedWeight])
   })
 })

@@ -21,3 +21,15 @@ export async function createProfile(profileInput: unknown, weightInput: unknown,
     await database.weights.add(weight)
   })
 }
+
+export async function updateProfile(input: unknown, database: DiaryDatabase = db): Promise<void> {
+  const profile = readProfile(input)
+  await database.transaction('rw', database.profiles, database.weights, async () => {
+    if (!await database.profiles.get('self')) throw new Error('Сначала создайте профиль')
+    const earliest = await database.weights.orderBy('date').first()
+    if (earliest && profile.birthDate && readWeight(earliest).date < profile.birthDate) {
+      throw new Error('Дата рождения позже сохранённого измерения')
+    }
+    await database.profiles.put(profile)
+  })
+}

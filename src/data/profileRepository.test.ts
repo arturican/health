@@ -2,7 +2,7 @@ import Dexie from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { type Profile, type Weight } from '../domain/profile'
 import { db, DiaryDatabase } from './db'
-import { createProfile, getProfile } from './profileRepository'
+import { createProfile, getProfile, updateProfile } from './profileRepository'
 
 const profile: Profile = {
   id: 'self', name: 'Синтетический профиль', heightCm: 170,
@@ -63,6 +63,70 @@ describe('Чтение профиля', () => {
     await createProfile(profile, weight)
     expect(await getProfile()).toEqual(profile)
     expect(await db.weights.toArray()).toEqual([weight])
+    await updateProfile({ ...profile, heightCm: 175 })
+    expect(await getProfile()).toEqual({ ...profile, heightCm: 175 })
+    expect(await db.weights.toArray()).toEqual([weight])
+  })
+})
+
+describe('Редактирование профиля', () => {
+  it('обновляет параметры и очищает необязательные данные без изменения истории веса', async () => {
+    const database = createDatabase()
+    await createProfile(profile, weight, database)
+    const next = { ...profile, name: '', heightCm: 172.5, birthDate: null, formulaSex: 'female' as const }
+    await updateProfile(next, database)
+
+    expect(await getProfile(database)).toEqual(next)
+    expect(await database.weights.toArray()).toEqual([weight])
+  })
+
+  it('требует существующий профиль и проверяет входные данные до обновления', async () => {
+    const database = createDatabase()
+    await expect(updateProfile(profile, database)).rejects.toThrow('Сначала создайте профиль')
+    await createProfile(profile, weight, database)
+    await expect(updateProfile(null, database)).rejects.toThrow(/[А-Яа-яЁё]/)
+    await expect(updateProfile({ ...profile, heightCm: '170' }, database)).rejects.toThrow(/рост числом/)
+
+    expect(await getProfile(database)).toEqual(profile)
+    expect(await database.weights.toArray()).toEqual([weight])
+  })
+
+  it('сравнивает дату рождения с самым ранним измерением и допускает равенство', async () => {
+    const database = createDatabase()
+    await createProfile(profile, weight, database)
+    const earliest = { ...weight, id: '00000000-0000-4000-8000-000000000002', date: '2010-01-01' }
+    await database.weights.add(earliest)
+    const weights = await database.weights.toArray()
+
+    await expect(updateProfile({ ...profile, birthDate: '2011-01-01' }, database))
+      .rejects.toThrow('Дата рождения позже сохранённого измерения')
+    expect(await getProfile(database)).toEqual(profile)
+    expect(await database.weights.toArray()).toEqual(weights)
+    await updateProfile({ ...profile, birthDate: earliest.date }, database)
+    expect((await getProfile(database))?.birthDate).toBe(earliest.date)
+    expect(await database.weights.toArray()).toEqual(weights)
+  })
+
+  it('допускает обновление существующего профиля без измерений', async () => {
+    const database = createDatabase()
+    await database.profiles.put(profile)
+    await updateProfile({ ...profile, heightCm: 175 }, database)
+
+    expect(await getProfile(database)).toEqual({ ...profile, heightCm: 175 })
+    expect(await database.weights.count()).toBe(0)
+  })
+
+  it('сохраняет прежний профиль и историю при ошибке обновления', async () => {
+    const database = createDatabase()
+    await createProfile(profile, weight, database)
+    database.profiles.hook('updating', () => {
+      throw new Error('Синтетическая ошибка обновления')
+    })
+    await expect(updateProfile({ ...profile, heightCm: 175 }, database))
+      .rejects.toThrow('Синтетическая ошибка обновления')
+
+    expect(await getProfile(database)).toEqual(profile)
+    expect(await database.weights.toArray()).toEqual([weight])
   })
 })
 
