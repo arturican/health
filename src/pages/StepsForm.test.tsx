@@ -20,7 +20,7 @@ function open() { render(<DayProvider><ActivityPage /></DayProvider>) }
 
 it('показывает отсутствие, записывает ноль, обновляет итог и удаляет только после подтверждения', async () => {
   open()
-  expect(screen.getByRole('status')).toHaveTextContent('Загружаем шаги')
+  expect(screen.getByText('Загружаем шаги…')).toHaveAttribute('role', 'status')
   expect(await screen.findByText('Шаги за этот день: нет данных')).toBeVisible()
   const input = screen.getByLabelText('Шаги за день')
   fireEvent.change(input, { target: { value: '0' } })
