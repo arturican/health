@@ -5,6 +5,8 @@ import { StorageBoundary } from './ui/StorageBoundary'
 import { ProfilePage } from './pages/ProfilePage'
 import { WeightPage } from './pages/WeightPage'
 import { NutritionPage } from './pages/NutritionPage'
+import { DayProvider } from './ui/DayContext'
+import { DayPicker } from './ui/DayPicker'
 
 export function App() {
   const [route, setRoute] = useState(() => getRoute(window.location.hash))
@@ -23,7 +25,7 @@ export function App() {
   }, [route])
 
   return (
-    <>
+    <DayProvider>
       <a className="skip-link" href="#main" onClick={event => { event.preventDefault(); main.current?.focus() }}>Перейти к содержимому</a>
       <header className="site-header">
         <span className="brand"><span className="brand-mark" aria-hidden="true">д.</span> Дневник здоровья</span>
@@ -31,6 +33,7 @@ export function App() {
       </header>
       <Navigation active={route} />
       <main id="main" tabIndex={-1} ref={main}>
+        {route === 'nutrition' && <DayPicker />}
         <StorageBoundary key={route}>
         {route === 'today' ? <Welcome /> : route === 'profile' ? <ProfilePage /> : route === 'weight' ? <WeightPage /> : route === 'nutrition' ? <NutritionPage /> : (
           <section className="page" aria-labelledby="page-title">
@@ -44,6 +47,6 @@ export function App() {
         <span>Наблюдать. Записывать. Заботиться о себе.</span>
         <span>Дневник не заменяет консультацию специалиста.</span>
       </footer>
-    </>
+    </DayProvider>
   )
 }

@@ -3,12 +3,13 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { db } from '../data/db'
 import * as repository from '../data/productRepository'
 import { NutritionPage } from './NutritionPage'
+import { DayProvider } from '../ui/DayContext'
 
-beforeEach(async () => { await Promise.all([db.products.clear(), db.metadata.clear()]) })
+beforeEach(async () => { await Promise.all([db.products.clear(), db.metadata.clear(), db.foodEntries.clear()]) })
 afterEach(async () => {
   cleanup()
   vi.restoreAllMocks()
-  await Promise.all([db.products.clear(), db.metadata.clear()])
+  await Promise.all([db.products.clear(), db.metadata.clear(), db.foodEntries.clear()])
 })
 
 function save(name = 'Синтетический продукт', kcal = '150,5') {
@@ -18,7 +19,7 @@ function save(name = 'Синтетический продукт', kcal = '150,5'
 }
 
 it('создаёт продукт с неизвестными БЖУ, явно введённым нулём и источником', async () => {
-  render(<NutritionPage />)
+  render(<DayProvider><NutritionPage /></DayProvider>)
   await screen.findByText('Активных продуктов: 0')
   fireEvent.change(screen.getByLabelText('Жиры на 100 г, г (необязательно)'), { target: { value: '0' } })
   fireEvent.change(screen.getByLabelText('Источник (необязательно)'), { target: { value: '  Тестовая этикетка  ' } })
@@ -30,7 +31,7 @@ it('создаёт продукт с неизвестными БЖУ, явно �
 })
 
 it('показывает ошибку и фокус, не записывает неизвестные или неверные данные', async () => {
-  render(<NutritionPage />)
+  render(<DayProvider><NutritionPage /></DayProvider>)
   save('', '-1')
   expect(screen.getByRole('alert')).toHaveTextContent('Проверьте отмеченные поля')
   expect(screen.getByLabelText('Название продукта')).toHaveFocus()
@@ -43,7 +44,7 @@ it('показывает ошибку и фокус, не записывает �
 })
 
 it('добавляет примеры явным действием и не дублирует их', async () => {
-  render(<NutritionPage />)
+  render(<DayProvider><NutritionPage /></DayProvider>)
   expect(await screen.findByText('Активных продуктов: 0')).toBeVisible()
   fireEvent.click(screen.getByRole('button', { name: 'Добавить примеры продуктов' }))
   expect(await screen.findByText('Активных продуктов: 2')).toBeVisible()
@@ -55,7 +56,7 @@ it('добавляет примеры явным действием и не ду
 
 it('оставляет ввод после ошибки хранилища и позволяет повторить сохранение', async () => {
   vi.spyOn(repository, 'addProduct').mockRejectedValueOnce(Object.assign(new Error('synthetic details'), { name: 'QuotaExceededError' }))
-  render(<NutritionPage />)
+  render(<DayProvider><NutritionPage /></DayProvider>)
   save()
   expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось выполнить действие')
   expect(screen.getByLabelText('Название продукта')).toHaveValue('Синтетический продукт')
@@ -65,7 +66,7 @@ it('оставляет ввод после ошибки хранилища и п
 
 it('ищет, правит и отменяет правку продукта через каталог', async () => {
   await db.products.put({ id: '00000000-0000-4000-8000-000000000001', name: 'Тестовый продукт', source: '', kcal: 150, protein: null, fat: 0, carbs: 25, archived: false })
-  render(<NutritionPage />)
+  render(<DayProvider><NutritionPage /></DayProvider>)
   await screen.findByRole('button', { name: 'Править продукт Тестовый продукт' })
   fireEvent.change(screen.getByLabelText('Поиск продукта'), { target: { value: 'НЕТ СОВПАДЕНИЙ' } })
   expect(screen.getByText(/Продукты не найдены/)).toBeVisible()
@@ -85,7 +86,7 @@ it('ищет, правит и отменяет правку продукта ч�
 
 it('архивирует без удаления и позволяет вернуть продукт', async () => {
   await db.products.put({ id: '00000000-0000-4000-8000-000000000001', name: 'Тестовый продукт', source: '', kcal: 150, protein: null, fat: 0, carbs: 25, archived: false })
-  render(<NutritionPage />)
+  render(<DayProvider><NutritionPage /></DayProvider>)
   fireEvent.click(await screen.findByRole('button', { name: 'Архивировать продукт Тестовый продукт' }))
   expect(await screen.findByText('Активных продуктов: 0')).toBeVisible()
   expect(await db.products.count()).toBe(1)
