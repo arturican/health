@@ -62,3 +62,4 @@ dd { margin: 0; overflow-wrap: anywhere; }
 meter { width: min(100%, 24rem); height: 1.4rem; }
 meter::-webkit-meter-optimum-value { background: #52636b; }
 meter::-moz-meter-bar { background: #52636b; }
+.weight-chart { display: block; width: 100%; max-width: 800px; height: auto; }

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { db } from '../data/db'
 import * as repository from '../data/weightRepository'
@@ -116,4 +116,11 @@ it('сообщает об ошибке хранилища и позволяет 
   expect(await db.weights.count()).toBe(0)
   fireEvent.click(screen.getByRole('button', { name: 'Сохранить вес' }))
   expect(await screen.findByText('70 кг')).toBeVisible()
+})
+
+it('сохраняет точный вес в доступных данных графика вместо округлённого нуля', async () => {
+  await openJournal()
+  save('0,0001')
+  expect(await within(await screen.findByRole('list', { name: 'История веса' })).findByText('0,0001 кг')).toBeVisible()
+  expect(screen.getByRole('img', { name: 'График веса' })).toHaveAccessibleDescription(/диапазон 0,0001–0,0001 кг/)
 })

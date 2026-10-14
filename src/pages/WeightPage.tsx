@@ -9,6 +9,7 @@ import { Field } from '../ui/Field'
 import { Feedback, readField, useAction } from '../ui/actions'
 import { Confirmation } from '../ui/Confirmation'
 import { BmiCard } from '../ui/BmiCard'
+import { WeightChart } from '../ui/WeightChart'
 
 export function WeightPage() {
   const data = useLiveQuery(async () => ({ profile: await getProfile(), weights: await listWeights() }), [])
@@ -51,6 +52,7 @@ export function WeightPage() {
       ) : (
         <>
           <BmiCard profile={data.profile} weight={data.weights[0] ?? null} />
+          <WeightChart weights={data.weights} />
           <form key={editing?.id ?? revision} className="form-grid" aria-label={editing ? 'Редактирование веса' : 'Новое измерение'} onSubmit={submit} noValidate aria-busy={action.pending}>
             <Field label="Дата измерения" name="date" type="date" defaultValue={editing?.date ?? localDate()} max={localDate()} required disabled={action.pending} error={errors['date']} />
             <Field label="Вес, кг" name="kg" inputMode="decimal" defaultValue={editing?.kg ?? ''} required disabled={action.pending} error={errors['kg']} />
@@ -68,7 +70,7 @@ export function WeightPage() {
                 const dateLabel = weight.date.split('-').reverse().join('.')
                 return <li key={weight.id}>
                   <time dateTime={weight.date}>{dateLabel}</time>
-                  <strong>{weight.kg.toLocaleString('ru-RU')} кг</strong>
+                  <strong>{String(weight.kg).replace('.', ',')} кг</strong>
                   <div className="actions">
                     <button type="button" className="secondary" disabled={action.pending} aria-label={`Изменить вес за ${dateLabel}`} onClick={() => { setEditing(weight); setErrors({}) }}>Изменить</button>
                     <button type="button" className="secondary" disabled={action.pending} aria-label={`Удалить вес за ${dateLabel}`} onClick={() => { setDeleting(weight) }}>Удалить</button>
