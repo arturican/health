@@ -178,3 +178,9 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 ## T030 — Атомарное восстановление текстовой копии с согласием
 
 Атомарное восстановление текстовой копии с согласием. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+После push до T030 [GitHub CI](https://github.com/arturican/health/actions/runs/38637957633) завершился success: воспроизводимая установка и полный check — OK.
+
+## T031 — Сохранение итога шагов с уникальной датой
+
+Сохранение итога шагов с уникальной датой. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
