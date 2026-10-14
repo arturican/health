@@ -1,5 +1,5 @@
 import { useState, type SyntheticEvent } from 'react'
-import { exportTextBackup } from '../data/backupRepository'
+import { exportTextBackup, restoreTextBackup } from '../data/backupRepository'
 import { serializeTextBackup, type TextBackup } from '../domain/backup'
 import { localDate } from '../domain/input'
 import { downloadJson } from '../ui/download'
@@ -10,15 +10,29 @@ import { Field } from '../ui/Field'
 export function SettingsPage() {
   const action = useAction()
   const importing = useAction()
+  const restoring = useAction()
   const [preview, setPreview] = useState<TextBackup | null>(null)
+  const [consent, setConsent] = useState(false)
   function checkFile(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
     const file = new FormData(event.currentTarget).get('backup')
     setPreview(null)
+    setConsent(false)
+    restoring.reset()
     importing.run(async () => {
       if (!(file instanceof File)) throw new Error('Выберите файл копии')
       setPreview(await readBackupFile(file))
     }, 'Файл проверен; база не изменена')
+  }
+  function restore(event: SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!preview || !consent) return
+    restoring.run(async () => {
+      await restoreTextBackup(preview)
+      importing.reset()
+      setPreview(null)
+      setConsent(false)
+    }, 'Текстовая копия восстановлена')
   }
   return (
     <section className="page" aria-labelledby="settings-title">
@@ -35,8 +49,8 @@ export function SettingsPage() {
       </div>
       <Feedback error={action.error} message={action.message} />
       <form aria-label="Импорт текстовой копии" onSubmit={checkFile}>
-        <Field label="Файл текстовой копии" name="backup" type="file" accept=".json,application/json" required disabled={importing.pending} onChange={() => { setPreview(null) }} />
-        <button type="submit" disabled={importing.pending}>{importing.pending ? 'Проверяем…' : 'Проверить файл'}</button>
+        <Field label="Файл текстовой копии" name="backup" type="file" accept=".json,application/json" required disabled={importing.pending || restoring.pending} onChange={() => { setPreview(null); setConsent(false); importing.reset(); restoring.reset() }} />
+        <button type="submit" disabled={importing.pending || restoring.pending}>{importing.pending ? 'Проверяем…' : 'Проверить файл'}</button>
       </form>
       <Feedback error={importing.error} message={importing.message} />
       {preview && <section className="card" aria-label="Предпросмотр текстовой копии">
@@ -44,8 +58,15 @@ export function SettingsPage() {
         <p>Версия: {preview.version}. Дата экспорта: {preview.exportedAt}.</p>
         <p>Профилей: {preview.profile ? 1 : 0}. Измерений веса: {preview.weights.length}. Продуктов: {preview.products.length}. Записей еды: {preview.foodEntries.length}. Отметок полноты: {preview.nutritionDays.length}.</p>
         <p>Восстановление заменяет перечисленные данные. Фото и документы сохраняются.</p>
-        <button type="button" onClick={() => { setPreview(null) }}>Отменить импорт</button>
+        <form aria-label="Подтверждение восстановления" onSubmit={restore}>
+          <Field label="Согласен заменить текстовые данные дневника" name="consent" type="checkbox" required checked={consent} disabled={restoring.pending} onChange={event => { setConsent(event.target.checked) }} />
+          <div className="actions">
+            <button type="submit" disabled={!consent || restoring.pending}>{restoring.pending ? 'Восстанавливаем…' : 'Восстановить текстовую копию'}</button>
+            <button type="button" disabled={restoring.pending} onClick={() => { setPreview(null); setConsent(false) }}>Отменить импорт</button>
+          </div>
+        </form>
       </section>}
+      <Feedback error={restoring.error} message={restoring.message} />
       <p>Копия не зашифрована. Данные приложения хранятся в этом браузере; очистка данных браузера удаляет дневник.</p>
     </section>
   )

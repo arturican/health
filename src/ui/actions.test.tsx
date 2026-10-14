@@ -89,6 +89,21 @@ describe('useAction', () => {
     expect(result.current.message).toBeNull()
   })
 
+  it('очищает завершённое сообщение, сохраняя блокировку ожидающего действия', async () => {
+    const { result } = renderHook(useAction)
+    const pending = pendingTask()
+    act(() => { result.current.run(pending.task) })
+    await waitFor(() => { expect(pending.task).toHaveBeenCalledTimes(1) })
+    act(() => { result.current.reset() })
+    expect(result.current.pending).toBe(true)
+    act(() => { pending.complete() })
+    await waitFor(() => { expect(result.current.message).toBe('Сохранено') })
+    act(() => { result.current.reset() })
+    expect(result.current.pending).toBe(false)
+    expect(result.current.message).toBeNull()
+    expect(result.current.error).toBeNull()
+  })
+
   it('не дублирует ожидающее действие и разрешает повтор после успеха', async () => {
     const pending = pendingTask()
     const { result } = renderHook(useAction)

@@ -1,7 +1,8 @@
 import Dexie from 'dexie'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { db, DiaryDatabase } from './db'
-import { exportTextBackup } from './backupRepository'
+import { exportTextBackup, restoreTextBackup } from './backupRepository'
+import { seedProducts } from './productRepository'
 import { BACKUP_MAX_RECORDS, serializeTextBackup, textBackupSchema, type TextBackup } from '../domain/backup'
 import { validate } from '../domain/schema'
 import type { Profile, Weight } from '../domain/profile'
@@ -20,6 +21,15 @@ const food: FoodEntry = {
 const nutritionDays = [{ date: '2026-10-13', complete: true }, { date: '2026-10-14', complete: false }]
 const empty: TextBackup = { format: 'health-diary-text', version: 1, exportedAt, profile: null, weights: [], products: [], foodEntries: [], nutritionDays: [] }
 const populated: TextBackup = { ...empty, profile, weights: [weight], products: [product, archived], foodEntries: [food], nutritionDays }
+const replacement: TextBackup = {
+  ...empty,
+  profile: { ...profile, name: 'Импортированный синтетический профиль', heightCm: 180, birthDate: '2000-01-01' },
+  weights: [{ ...weight, id: '00000000-0000-4000-8000-000000000401', date: '2026-10-12', kg: 75 }],
+  products: [{ ...archived, id: '00000000-0000-4000-8000-000000000501', name: 'Импортированный синтетический архив' }],
+  foodEntries: [{ ...food, id: '00000000-0000-4000-8000-000000000601', productId: '00000000-0000-4000-8000-000000000501', date: '2026-10-12', meal: 'snack', grams: 225, note: 'Импортированная синтетическая запись' }],
+  nutritionDays: [{ date: '2026-10-12', complete: false }],
+}
+const metadata = [{ id: 'catalog-seeded', value: 'done' }, { id: 'fixture', value: 'Синтетическая служебная запись' }]
 const connections: Dexie[] = []
 let sequence = 0
 function createDatabase() {
@@ -126,4 +136,74 @@ it('использует только тестовый singleton по умолч
   expect(await exportTextBackup()).toEqual(populated)
   expect(await db.products.toArray()).toEqual([product, archived])
   expect(await db.foodEntries.toArray()).toEqual([food])
+})
+
+it('заменяет все пять текстовых таблиц и удаляет только служебный флаг примеров', async () => {
+  const database = createDatabase()
+  await populate(database)
+  await database.metadata.bulkPut(metadata)
+  await restoreTextBackup(replacement, database)
+  expect(await exportTextBackup(database)).toEqual(replacement)
+  expect(await database.metadata.toArray()).toEqual([{ id: 'fixture', value: 'Синтетическая служебная запись' }])
+})
+
+it('восстанавливает пустую копию с null-профилем и позволяет снова добавить примеры по явному вызову', async () => {
+  const database = createDatabase()
+  await populate(database)
+  await database.metadata.bulkPut(metadata)
+  await restoreTextBackup(empty, database)
+  expect(await exportTextBackup(database)).toEqual(empty)
+  expect(await database.metadata.get('catalog-seeded')).toBeUndefined()
+  await seedProducts(database)
+  expect(await database.products.count()).toBe(2)
+  expect((await database.products.toArray()).every(value => value.name.startsWith('Пример:'))).toBe(true)
+  expect(await database.metadata.get('fixture')).toEqual({ id: 'fixture', value: 'Синтетическая служебная запись' })
+  expect(await database.metadata.get('catalog-seeded')).toEqual({ id: 'catalog-seeded', value: 'done' })
+})
+
+it('повторно валидирует неизвестный вход и связи до открытия транзакции, сохраняя всю базу', async () => {
+  const database = createDatabase()
+  await populate(database)
+  await database.metadata.bulkPut(metadata)
+  const transaction = vi.spyOn(database, 'transaction')
+  for (const input of [null, { ...populated, version: 2 }, { ...populated, products: [] }]) {
+    await expect(restoreTextBackup(input, database)).rejects.toThrow()
+  }
+  expect(transaction).not.toHaveBeenCalled()
+  transaction.mockRestore()
+  expect(await exportTextBackup(database)).toEqual(populated)
+  expect(await database.metadata.toArray()).toEqual(metadata)
+})
+
+it('откатывает уже заменённые таблицы и служебные данные при позднем отказе bulkAdd', async () => {
+  const database = createDatabase()
+  await populate(database)
+  await database.metadata.bulkPut(metadata)
+  const failure = vi.spyOn(database.nutritionDays, 'bulkAdd').mockImplementationOnce(() => Dexie.Promise.resolve().then(async () => {
+    expect(Dexie.currentTransaction.mode).toBe('readwrite')
+    expect(await database.profiles.get('self')).toEqual(replacement.profile)
+    expect(await database.weights.toArray()).toEqual(replacement.weights)
+    expect(await database.products.toArray()).toEqual(replacement.products)
+    expect(await database.foodEntries.toArray()).toEqual(replacement.foodEntries)
+    expect(await database.nutritionDays.count()).toBe(0)
+    await database.metadata.delete('catalog-seeded')
+    expect(await database.metadata.get('catalog-seeded')).toBeUndefined()
+    throw new Error('Синтетический поздний отказ записи')
+  }))
+  await expect(restoreTextBackup(replacement, database)).rejects.toThrow('Синтетический поздний отказ записи')
+  failure.mockRestore()
+  expect(await exportTextBackup(database)).toEqual(populated)
+  expect(await database.metadata.toArray()).toEqual(metadata)
+})
+
+it('восстанавливает через тестовый singleton после его повторного открытия', async () => {
+  expect(import.meta.env.MODE).toBe('test')
+  expect(db.name).toBe('health-diary-tests')
+  connections.push(db)
+  await db.open()
+  await populate(db)
+  await db.metadata.bulkPut(metadata)
+  await restoreTextBackup(replacement)
+  expect(await exportTextBackup()).toEqual(replacement)
+  expect(await db.metadata.toArray()).toEqual([{ id: 'fixture', value: 'Синтетическая служебная запись' }])
 })

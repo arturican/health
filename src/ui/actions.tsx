@@ -38,7 +38,11 @@ export function useAction() {
     })
   }
 
-  return { ...status, run }
+  function reset() {
+    if (!busy.current) setStatus({ pending: false, error: null, message: null })
+  }
+
+  return { ...status, run, reset }
 }
 
 export function Feedback({ error, message }: Pick<ActionStatus, 'error' | 'message'>) {
