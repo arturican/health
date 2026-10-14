@@ -9,6 +9,7 @@ import { DayProvider } from './ui/DayContext'
 import { DayPicker } from './ui/DayPicker'
 import { SettingsPage } from './pages/SettingsPage'
 import { ActivityPage } from './pages/ActivityPage'
+import { PhotosPage } from './pages/PhotosPage'
 
 export function App() {
   const [route, setRoute] = useState(() => getRoute(window.location.hash))
@@ -37,7 +38,7 @@ export function App() {
       <main id="main" tabIndex={-1} ref={main}>
         {(route === 'today' || route === 'nutrition' || route === 'activity') && <DayPicker />}
         <StorageBoundary key={route}>
-        {route === 'today' ? <TodayPage /> : route === 'profile' ? <ProfilePage /> : route === 'weight' ? <WeightPage /> : route === 'nutrition' ? <NutritionPage /> : route === 'activity' ? <ActivityPage /> : route === 'settings' ? <SettingsPage /> : (
+        {route === 'today' ? <TodayPage /> : route === 'profile' ? <ProfilePage /> : route === 'weight' ? <WeightPage /> : route === 'nutrition' ? <NutritionPage /> : route === 'activity' ? <ActivityPage /> : route === 'photos' ? <PhotosPage /> : route === 'settings' ? <SettingsPage /> : (
           <section className="page" aria-labelledby="page-title">
             <h1 id="page-title">{routes[route]}</h1>
             <p>Этот раздел готовится. Запись данных появится на следующих этапах.</p>
