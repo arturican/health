@@ -5,6 +5,7 @@ import { entityId, validate } from '../domain/schema'
 import { localDate, parseDate } from '../domain/input'
 
 const foodInputSchema = foodEntrySchema.pick({ date: true, meal: true, productId: true, grams: true, note: true }).extend({ productId: entityId })
+const foodEditSchema = foodEntrySchema.pick({ date: true, meal: true, grams: true, note: true })
 
 export async function listFood(dateInput = localDate(), database: DiaryDatabase = db): Promise<FoodEntry[]> {
   const date = parseDate(dateInput)
@@ -27,4 +28,19 @@ export async function addFood(input: unknown, database: DiaryDatabase = db): Pro
     await database.foodEntries.add(entry)
     return entry
   })
+}
+
+export async function updateFood(idInput: unknown, input: unknown, database: DiaryDatabase = db): Promise<void> {
+  const id = validate(entityId, idInput)
+  const changes = validate(foodEditSchema, input)
+  if (changes.date > localDate()) throw new Error('Дата записи еды не может быть в будущем')
+  await database.transaction('rw', database.foodEntries, async () => {
+    const original: unknown = await database.foodEntries.get(id)
+    if (original === undefined) throw new Error('Запись еды не найдена')
+    await database.foodEntries.put({ ...readFoodEntry(original), ...changes })
+  })
+}
+
+export async function deleteFood(idInput: unknown, database: DiaryDatabase = db): Promise<void> {
+  await database.foodEntries.delete(validate(entityId, idInput))
 }

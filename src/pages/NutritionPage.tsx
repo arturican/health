@@ -1,14 +1,16 @@
 import { seedProducts } from '../data/productRepository'
 import { ProductCatalog } from './ProductCatalog'
 import { Feedback, useAction } from '../ui/actions'
-import { FoodForm } from './FoodForm'
+import { FoodJournal } from './FoodJournal'
+import { useDay } from '../ui/DayContext'
 
 export function NutritionPage() {
+  const { day } = useDay()
   const action = useAction()
   return (
     <section className="page" aria-labelledby="nutrition-title">
       <h1 id="nutrition-title">Питание</h1>
-      <FoodForm />
+      <FoodJournal key={day} />
       <ProductCatalog />
       <div className="actions">
         <button type="button" className="secondary" disabled={action.pending} onClick={() => { action.run(() => seedProducts(), 'Примеры добавлены') }}>Добавить примеры продуктов</button>

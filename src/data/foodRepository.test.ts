@@ -1,7 +1,7 @@
 import Dexie from 'dexie'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { db, DiaryDatabase } from './db'
-import { addFood, listFood } from './foodRepository'
+import { addFood, deleteFood, listFood, updateFood } from './foodRepository'
 import { addProduct, archiveProduct, updateProduct } from './productRepository'
 import { portion, type Product } from '../domain/nutrition'
 
@@ -94,4 +94,29 @@ it('работает с тестовым singleton и текущей датой 
   await addProduct(product)
   const entry = await addFood(input)
   expect(await listFood()).toEqual([entry])
+  await updateFood(entry.id, { date: input.date, meal: 'dinner', grams: 200, note: 'Правка' })
+  expect(await listFood()).toEqual([{ ...entry, meal: 'dinner', grams: 200, note: 'Правка' }])
+  await deleteFood(entry.id)
+  await deleteFood(entry.id)
+  expect(await listFood()).toEqual([])
+})
+
+it('правит архивную запись без замены снимка и не принимает скрытую правку продукта', async () => {
+  const database = createDatabase()
+  await addProduct(product, database)
+  const entry = await addFood(input, database)
+  await archiveProduct(product.id, true, database)
+  const changes = { date: '2026-10-13', meal: 'dinner', grams: 200, note: '  Правка  ' }
+  await updateFood(entry.id, changes, database)
+  expect(await listFood('2026-10-13', database)).toEqual([{ ...entry, ...changes, note: 'Правка' }])
+  await expect(updateFood(entry.id, { ...changes, productId: product.id }, database)).rejects.toThrow('Неизвестные поля записи')
+  await expect(updateFood(entry.id, { ...changes, date: '2026-10-15' }, database)).rejects.toThrow(/в будущем/)
+  await expect(updateFood('00000000-0000-4000-8000-000000000003', changes, database)).rejects.toThrow('Запись еды не найдена')
+  await expect(deleteFood('bad', database)).rejects.toThrow(/идентификатор/)
+  database.foodEntries.hook('updating', () => { throw new Error('Синтетический отказ правки') })
+  await expect(updateFood(entry.id, { ...changes, grams: 300 }, database)).rejects.toThrow('Синтетический отказ правки')
+  expect(await listFood('2026-10-13', database)).toEqual([{ ...entry, ...changes, note: 'Правка' }])
+  await deleteFood(entry.id, database)
+  expect(await database.products.count()).toBe(1)
+  expect(await database.foodEntries.count()).toBe(0)
 })
