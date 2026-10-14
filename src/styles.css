@@ -43,6 +43,16 @@ h1 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(48px, 6.2v
 .navigation a[aria-current="page"] { background: #244b3e; color: white; }
 .page { padding-block: 36px; }
 .page h1 { font-family: inherit; font-size: 30px; letter-spacing: normal; margin: 0 0 24px; }
+.form-grid { display: grid; gap: 18px; max-width: 640px; margin-block: 24px; }
+.field { display: grid; gap: 6px; font-size: 14px; }
+input, select, textarea { font: inherit; width: 100%; padding: 10px 12px; border: 1px solid #849784; border-radius: 6px; background: #fff; color: #244b3e; }
+input[type="checkbox"] { width: auto; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 3px solid #946c31; outline-offset: 3px; }
+button { font: inherit; cursor: pointer; padding: 10px 16px; border: 1px solid #244b3e; border-radius: 6px; background: #244b3e; color: #fff; }
+button:disabled { cursor: wait; opacity: 0.65; }
+.field-error { color: #9d2b23; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-block: 18px; }
+.secondary { color: #244b3e; background: transparent; }
 
 @media (max-width: 720px) {
   .site-header, main, .site-footer { width: calc(100% - 40px); }
