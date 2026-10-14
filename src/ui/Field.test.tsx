@@ -1,8 +1,25 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { Field, SelectField } from './Field'
+import { parseNumber } from '../domain/input'
 
 describe('Общее поле формы', () => {
+  it.each([0, 0.125, 1e-7, Number.MIN_VALUE, 1e21, 1.2345678901234567])('открывает числовое значение %s десятичной записью, которую принимает разбор формы', value => {
+    render(<Field label="Числовое значение" defaultValue={value} />)
+    const input = screen.getByLabelText('Числовое значение')
+    if (!(input instanceof HTMLInputElement)) throw new Error('Ожидается поле ввода')
+    expect(input.value).not.toMatch(/[eE,]/)
+    expect(parseNumber(input.value)).toBe(value)
+  })
+
+  it('сохраняет числовое controlled value при обновлении и пользовательскую строку без преобразований', () => {
+    const view = render(<Field label="Число" value={1e-7} onChange={vi.fn()} />)
+    expect(screen.getByLabelText('Число')).toHaveValue('0.0000001')
+    view.rerender(<Field label="Число" value={0} onChange={vi.fn()} />)
+    expect(screen.getByLabelText('Число')).toHaveValue('0')
+    view.rerender(<Field label="Число" value="00,125" onChange={vi.fn()} />)
+    expect(screen.getByLabelText('Число')).toHaveValue('00,125')
+  })
   it('связывает подписи с разными автоматически созданными идентификаторами', () => {
     render(<><Field label="Имя" /><Field label="Заметка" /></>)
 

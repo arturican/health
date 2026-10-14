@@ -124,3 +124,16 @@ it('сохраняет точный вес в доступных данных г
   expect(await within(await screen.findByRole('list', { name: 'История веса' })).findByText('0,0001 кг')).toBeVisible()
   expect(screen.getByRole('img', { name: 'График веса' })).toHaveAccessibleDescription(/диапазон 0,0001–0,0001 кг/)
 })
+
+it('сохраняет малое измерение без изменений после повторного открытия редактора', async () => {
+  await openJournal()
+  save('0,0000001')
+  await screen.findByRole('button', { name: 'Изменить вес за 14.10.2026' })
+  const saved = await db.weights.where('date').equals('2026-10-14').first()
+  fireEvent.click(screen.getByRole('button', { name: 'Изменить вес за 14.10.2026' }))
+  expect(screen.getByLabelText('Вес, кг')).toHaveValue('0.0000001')
+  fireEvent.click(screen.getByRole('button', { name: 'Сохранить вес' }))
+  await screen.findByRole('form', { name: 'Новое измерение' })
+  expect(await db.weights.where('date').equals('2026-10-14').first()).toEqual(saved)
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+})

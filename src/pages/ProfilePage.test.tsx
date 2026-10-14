@@ -195,8 +195,8 @@ describe('Редактирование профиля', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Сохранить профиль' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('Профиль обновлён')
-    expect(screen.getByText('Не указано')).toBeVisible()
-    expect(screen.getByText('Не указана')).toBeVisible()
+    expect(await screen.findByText('Не указано')).toBeVisible()
+    expect(await screen.findByText('Не указана')).toBeVisible()
     expect(await db.weights.toArray()).toEqual([savedWeight])
     view.unmount()
     render(<ProfilePage />)
