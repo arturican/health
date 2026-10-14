@@ -6,6 +6,8 @@ import { downloadJson } from '../ui/download'
 import { Feedback, useAction } from '../ui/actions'
 import { readBackupFile } from '../ui/backupFile'
 import { Field } from '../ui/Field'
+import { EnergyPlanSettings } from './EnergyPlanSettings'
+import { StorageBoundary } from '../ui/StorageBoundary'
 
 export function SettingsPage() {
   const action = useAction()
@@ -37,6 +39,7 @@ export function SettingsPage() {
   return (
     <section className="page" aria-labelledby="settings-title">
       <h1 id="settings-title">Настройки</h1>
+      <StorageBoundary><EnergyPlanSettings /></StorageBoundary>
       <h2>Резервная копия</h2>
       <p>Текстовая копия содержит профиль, историю веса, каталог продуктов, записи еды и полноту дней. Файлы не включены.</p>
       <div className="actions">

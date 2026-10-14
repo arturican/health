@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { SettingsPage } from './SettingsPage'
 import { restoreTextBackup } from '../data/backupRepository'
 import { readBackupFile } from '../ui/backupFile'
+import * as energyRepository from '../data/energyPlanRepository'
 
 vi.mock('../data/backupRepository', () => ({ exportTextBackup: vi.fn(), restoreTextBackup: vi.fn() }))
 vi.mock('../ui/backupFile', () => ({ readBackupFile: vi.fn() }))
@@ -34,4 +35,19 @@ it('сохраняет предпросмотр при ошибке записи
   fireEvent.submit(screen.getByRole('form', { name: 'Импорт текстовой копии' }))
   expect(await screen.findByRole('button', { name: 'Восстановить текстовую копию' })).toBeDisabled()
   expect(screen.getByLabelText('Согласен заменить текстовые данные дневника')).not.toBeChecked()
+})
+
+it('оставляет резервное копирование доступным при ошибке чтения энергетических планов', async () => {
+  const read = vi.spyOn(energyRepository, 'listEnergyPlans').mockRejectedValue(new Error('synthetic-private-plan'))
+  const diagnostics = vi.spyOn(console, 'error').mockImplementation(() => { /* Ожидаемая ошибка дочернего раздела. */ })
+  try {
+    render(<SettingsPage />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось открыть данные')
+    expect(screen.getByRole('button', { name: 'Скачать текстовую копию' })).toBeEnabled()
+    expect(screen.getByRole('form', { name: 'Импорт текстовой копии' })).toBeVisible()
+    expect(screen.getByRole('alert')).not.toHaveTextContent('synthetic-private-plan')
+  } finally {
+    read.mockRestore()
+    diagnostics.mockRestore()
+  }
 })
