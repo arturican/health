@@ -52,3 +52,7 @@ Vitest 4.1.11, совместимая с типами jest-dom без отклю
 Dev создана от T001 и опубликована в origin/dev. Прямой запрос пользователя
 разрешает T002–T062 и browser runner T003a. Решения записаны в MVP.md.
 Проверки Markdown-ссылок и git diff --check проходят.
+
+## T002 — Строгие правила ESLint
+
+Строгие правила ESLint. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.

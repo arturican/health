@@ -11,7 +11,7 @@
 | React / React DOM | 19.3.1 | React DOM требует React ^19.3.1 |
 | Vite | 8.3.4 | Node ^20.19.0 или >=22.12.0 |
 | @vitejs/plugin-react | 6.1.2 | Vite ^8.0.0; дополнительные компиляторы optional |
-| TypeScript | 7.0.2 | Node >=16.20.0; CLI tsc |
+| TypeScript | 6.0.3 | Совместим с typescript-eslint 8.71.2 (>=4.8.4 <6.1) |
 | Vitest | 4.1.11 | Vite ^6 / ^7 / ^8; Node ^20 / ^22 / >=24 |
 | Testing Library React / DOM | 16.3.3 / 10.4.2 | React и его типы ^18 или ^19; DOM ^10 |
 | jest-dom | 7.0.1 | Node >=22; доступен экспорт ./vitest |
@@ -41,3 +41,9 @@
 - [Метаданные npm](https://docs.npmjs.com/cli/v11/commands/npm-view): проверены
   `dist-tags`, `engines`, `peerDependencies` и `peerDependenciesMeta`
   для конкретных версий таблицы.
+
+## T002: lint
+
+ESLint/@eslint/js 9.39.5, typescript-eslint 8.71.2, react-hooks 7.1.1,
+jsx-a11y 6.10.2 и globals 17.13.0. Проверены npm peerDependencies. Ветка ESLint 9
+выбрана для jsx-a11y, TypeScript 6.0.3 — для parser; строгие проверки сохранены.
