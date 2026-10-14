@@ -3,6 +3,7 @@ import { type Profile, type Weight } from '../domain/profile'
 import { type Product, type FoodEntry, type NutritionDay } from '../domain/nutrition'
 import { type Steps, type Workout } from '../domain/activity'
 import { type EnergyPlan } from '../domain/energyPlan'
+import { type StoredFile } from '../domain/storedFile'
 
 export interface Metadata {
   id: string
@@ -19,6 +20,7 @@ export class DiaryDatabase extends Dexie {
   declare steps: Table<Steps, string>
   declare workouts: Table<Workout, string>
   declare energyPlans: Table<EnergyPlan, string>
+  declare files: Table<StoredFile, string>
 
   constructor(name = 'health-diary') {
     super(name)
@@ -30,6 +32,7 @@ export class DiaryDatabase extends Dexie {
     this.version(6).stores({ steps: 'date' })
     this.version(7).stores({ workouts: 'id,date' })
     this.version(8).stores({ energyPlans: 'id,effectiveFrom,&revision' })
+    this.version(9).stores({ files: 'id,purpose' })
   }
 }
 
