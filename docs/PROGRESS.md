@@ -228,3 +228,9 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 ## T040a — текстовая копия дневников активности и энергетических планов
 
 текстовая копия дневников активности и энергетических планов. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+После push до T040a [GitHub CI](https://github.com/arturican/health/actions/runs/38647535210) завершился success: установка и полный check — OK.
+
+## T041 — сводка выбранного дня вместо стартовой заглушки
+
+сводка выбранного дня вместо стартовой заглушки. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.

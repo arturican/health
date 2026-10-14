@@ -1,22 +1,31 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 import axe from 'axe-core'
+import { db } from './data/db'
 
-beforeEach(() => {
+async function clear() { await db.transaction('rw', db.tables, async () => { await Promise.all(db.tables.map(table => table.clear())) }) }
+beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(2026, 9, 14, 12))
+  await clear()
   window.history.replaceState(null, '', '/')
 })
 
-afterEach(() => {
+afterEach(async () => {
+  cleanup()
+  await clear()
+  vi.useRealTimers()
   window.history.replaceState(null, '', '/')
 })
 
 describe('Стартовый экран', () => {
-  it('показывает дневник и объясняет, что запись данных ещё недоступна', () => {
+  it('показывает доступный дневник и предлагает заполнить отсутствующий профиль', async () => {
     render(<App />)
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Дневник здоровья' })).toBeVisible()
-    expect(screen.getByText(/Ведение записей появится на следующих этапах/)).toBeVisible()
+    expect(screen.getByRole('heading', { level: 1, name: 'Сегодня' })).toBeVisible()
+    expect(await screen.findByRole('link', { name: 'Заполнить профиль' })).toHaveAttribute('href', '#profile')
+    expect(await screen.findByText('Шаги: нет данных.')).toBeVisible()
   })
 
   it('проверка доступности обнаруживает кнопку без доступного имени', async () => {
@@ -30,15 +39,13 @@ describe('Стартовый экран', () => {
     }
   })
 
-  it('предлагает переход к существующему разделу будущих возможностей', () => {
+  it('предлагает быстрые переходы к доступным журналам', () => {
     render(<App />)
 
-    const link = screen.getByRole('link', { name: 'Что будет в дневнике' })
-    const region = screen.getByRole('region', { name: 'Что будет в дневнике' })
-    expect(link).toHaveAttribute('href', `#${region.id}`)
-    expect(within(region).getByRole('heading', { name: 'Профиль и измерения' })).toBeVisible()
-    expect(within(region).getByRole('heading', { name: 'Питание и активность' })).toBeVisible()
-    expect(within(region).getByRole('heading', { name: 'Фото и документы' })).toBeVisible()
+    const links = within(screen.getByRole('navigation', { name: 'Быстрые записи' }))
+    expect(links.getByRole('link', { name: 'Записать вес' })).toHaveAttribute('href', '#weight')
+    expect(links.getByRole('link', { name: 'Записать еду' })).toHaveAttribute('href', '#nutrition')
+    expect(links.getByRole('link', { name: 'Открыть активность' })).toHaveAttribute('href', '#activity')
   })
 })
 
@@ -58,14 +65,14 @@ describe('Переходы между разделами', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Вес' })).toBeVisible()
     expect(screen.getByRole('link', { name: 'Вес' })).toHaveAttribute('aria-current', 'page')
     expect(window.location.hash).toBe('#weight')
-    expect(screen.queryByRole('heading', { level: 1, name: 'Дневник здоровья' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 1, name: 'Сегодня' })).not.toBeInTheDocument()
   })
 
   it('показывает Сегодня при неизвестном hash', () => {
     window.history.replaceState(null, '', '/#missing')
     render(<App />)
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Дневник здоровья' })).toBeVisible()
+    expect(screen.getByRole('heading', { level: 1, name: 'Сегодня' })).toBeVisible()
     expect(screen.getByRole('link', { name: 'Сегодня' })).toHaveAttribute('aria-current', 'page')
   })
 
@@ -80,7 +87,7 @@ describe('Переходы между разделами', () => {
     expect(screen.getByRole('main')).toHaveFocus()
 
     fireEvent.click(screen.getByRole('link', { name: 'Сегодня' }))
-    expect(await screen.findByRole('heading', { level: 1, name: 'Дневник здоровья' })).toBeVisible()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Сегодня' })).toBeVisible()
     expect(window.location.hash).toBe('#today')
     expect(screen.getByRole('main')).toHaveFocus()
   })
@@ -92,7 +99,7 @@ describe('Переходы между разделами', () => {
 
     window.history.back()
     await waitFor(() => { expect(window.location.hash).toBe(''); })
-    expect(await screen.findByRole('heading', { level: 1, name: 'Дневник здоровья' })).toBeVisible()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Сегодня' })).toBeVisible()
     expect(screen.getByRole('link', { name: 'Сегодня' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('main')).toHaveFocus()
   })

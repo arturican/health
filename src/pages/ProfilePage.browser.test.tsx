@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, test } from 'vitest'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { cleanup, render } from 'vitest-browser-react'
 import axe from 'axe-core'
@@ -10,7 +10,14 @@ async function resetTestState() {
   await cleanup()
   expect(import.meta.env.MODE).toBe('test')
   expect(db.name).toBe('health-diary-tests')
-  await db.transaction('rw', db.profiles, db.weights, async () => {
+  await db.transaction('rw', [db.metadata, db.profiles, db.weights, db.products, db.foodEntries, db.nutritionDays, db.steps, db.workouts, db.energyPlans], async () => {
+    await db.metadata.clear()
+    await db.energyPlans.clear()
+    await db.workouts.clear()
+    await db.steps.clear()
+    await db.foodEntries.clear()
+    await db.nutritionDays.clear()
+    await db.products.clear()
     await db.weights.clear()
     await db.profiles.clear()
   })
@@ -19,15 +26,18 @@ async function resetTestState() {
 
 beforeEach(async () => {
   await resetTestState()
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-10-14T12:00:00.000Z'))
 })
 
 afterEach(async () => {
   await resetTestState()
+  vi.useRealTimers()
 })
 
 test('профиль создаётся через браузер после исправления ошибок и сохраняется при повторном открытии', async () => {
   const screen = await render(<App />)
-  await expect.element(page.getByRole('heading', { level: 1, name: 'Дневник здоровья' })).toBeVisible()
+  await expect.element(page.getByRole('heading', { level: 1, name: 'Сегодня' })).toBeVisible()
   await page.getByRole('link', { name: 'Профиль', exact: true }).click()
   await expect.element(page.getByRole('form', { name: 'Создание профиля' })).toBeVisible()
   expect(window.location.hash).toBe('#profile')

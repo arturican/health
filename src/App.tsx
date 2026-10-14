@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { getRoute, Navigation, routes } from './ui/Navigation'
-import { Welcome } from './ui/Welcome'
+import { TodayPage } from './pages/TodayPage'
 import { StorageBoundary } from './ui/StorageBoundary'
 import { ProfilePage } from './pages/ProfilePage'
 import { WeightPage } from './pages/WeightPage'
@@ -35,9 +35,9 @@ export function App() {
       </header>
       <Navigation active={route} />
       <main id="main" tabIndex={-1} ref={main}>
-        {(route === 'nutrition' || route === 'activity') && <DayPicker />}
+        {(route === 'today' || route === 'nutrition' || route === 'activity') && <DayPicker />}
         <StorageBoundary key={route}>
-        {route === 'today' ? <Welcome /> : route === 'profile' ? <ProfilePage /> : route === 'weight' ? <WeightPage /> : route === 'nutrition' ? <NutritionPage /> : route === 'activity' ? <ActivityPage /> : route === 'settings' ? <SettingsPage /> : (
+        {route === 'today' ? <TodayPage /> : route === 'profile' ? <ProfilePage /> : route === 'weight' ? <WeightPage /> : route === 'nutrition' ? <NutritionPage /> : route === 'activity' ? <ActivityPage /> : route === 'settings' ? <SettingsPage /> : (
           <section className="page" aria-labelledby="page-title">
             <h1 id="page-title">{routes[route]}</h1>
             <p>Этот раздел готовится. Запись данных появится на следующих этапах.</p>
