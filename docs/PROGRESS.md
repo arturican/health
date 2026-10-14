@@ -279,6 +279,12 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 
 локальный репозиторий проверенных документов. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
 
+После push до T049 [GitHub CI](https://github.com/arturican/health/actions/runs/38655954047) завершился success на 1081a3d: установка и полный check — OK.
+
 ## T050a — просмотр и скачивание вложений документов
 
 просмотр и скачивание вложений документов. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+## T050b — загрузка и поиск документов
+
+загрузка и поиск документов. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
