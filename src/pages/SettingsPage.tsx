@@ -41,7 +41,7 @@ export function SettingsPage() {
       <h1 id="settings-title">Настройки</h1>
       <StorageBoundary><EnergyPlanSettings /></StorageBoundary>
       <h2>Резервная копия</h2>
-      <p>Текстовая копия содержит профиль, историю веса, каталог продуктов, записи еды и полноту дней. Файлы не включены.</p>
+      <p>Текстовая копия содержит профиль, историю веса, каталог продуктов, записи еды, полноту дней, шаги, тренировки и версии энергетических планов. Файлы не включены.</p>
       <div className="actions">
         <button type="button" disabled={action.pending} onClick={() => {
           action.run(async () => {
@@ -60,7 +60,9 @@ export function SettingsPage() {
         <h3>Предпросмотр текстовой копии</h3>
         <p>Версия: {preview.version}. Дата экспорта: {preview.exportedAt}.</p>
         <p>Профилей: {preview.profile ? 1 : 0}. Измерений веса: {preview.weights.length}. Продуктов: {preview.products.length}. Записей еды: {preview.foodEntries.length}. Отметок полноты: {preview.nutritionDays.length}.</p>
+        <p>Итогов шагов: {preview.steps.length}. Тренировок: {preview.workouts.length}. Версий плана: {preview.energyPlans.length}.</p>
         <p>Восстановление заменяет перечисленные данные. Фото и документы сохраняются.</p>
+        <p>Пустой раздел в копии означает удаление текущих записей этого раздела.</p>
         <form aria-label="Подтверждение восстановления" onSubmit={restore}>
           <Field label="Согласен заменить текстовые данные дневника" name="consent" type="checkbox" required checked={consent} disabled={restoring.pending} onChange={event => { setConsent(event.target.checked) }} />
           <div className="actions">

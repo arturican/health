@@ -7,6 +7,8 @@ import { BACKUP_MAX_RECORDS, serializeTextBackup, textBackupSchema, type TextBac
 import { validate } from '../domain/schema'
 import type { Profile, Weight } from '../domain/profile'
 import type { FoodEntry, Product } from '../domain/nutrition'
+import type { Steps, Workout } from '../domain/activity'
+import type { EnergyPlan } from '../domain/energyPlan'
 
 const exportedAt = '2026-10-14T12:34:56.000Z'
 const profile: Profile = { id: 'self', name: 'Синтетический профиль', heightCm: 170, birthDate: null, formulaSex: 'none' }
@@ -19,8 +21,20 @@ const food: FoodEntry = {
   note: 'Синтетическая запись еды',
 }
 const nutritionDays = [{ date: '2026-10-13', complete: true }, { date: '2026-10-14', complete: false }]
-const empty: TextBackup = { format: 'health-diary-text', version: 1, exportedAt, profile: null, weights: [], products: [], foodEntries: [], nutritionDays: [] }
-const populated: TextBackup = { ...empty, profile, weights: [weight], products: [product, archived], foodEntries: [food], nutritionDays }
+const steps: Steps[] = [{ date: '2026-10-13', count: 0 }, { date: '2026-10-14', count: 1234 }]
+const workout: Workout = {
+  id: '00000000-0000-4000-8000-000000000701', date: '2026-10-13', kind: 'Синтетическая прогулка', minutes: 20,
+  kcal: null, source: 'Синтетический дневник', note: 'Оценка расхода неизвестна',
+}
+const workouts: Workout[] = [workout, { ...workout, id: '00000000-0000-4000-8000-000000000702', date: '2026-10-14', kcal: 0, note: '' }]
+const plan: EnergyPlan = {
+  id: '00000000-0000-4000-8000-000000000801', revision: 1, createdOn: '2026-10-14', effectiveFrom: '2026-10-14',
+  goalKcal: 0, method: 'manual', manualKcal: 0, factor: null, source: 'Синтетический план', restingFormula: 'mifflin-st-jeor-1990',
+  snapshot: { kg: weight.kg, weightDate: weight.date, heightCm: profile.heightCm, age: null, formulaSex: 'none' },
+}
+const energyPlans: EnergyPlan[] = [plan, { ...plan, id: '00000000-0000-4000-8000-000000000802', revision: 2, effectiveFrom: '2026-10-16', goalKcal: null, method: 'factor', manualKcal: null, factor: 1.4 }]
+const empty: TextBackup = { format: 'health-diary-text', version: 1, exportedAt, profile: null, weights: [], products: [], foodEntries: [], nutritionDays: [], steps: [], workouts: [], energyPlans: [] }
+const populated: TextBackup = { ...empty, profile, weights: [weight], products: [product, archived], foodEntries: [food], nutritionDays, steps, workouts, energyPlans }
 const replacement: TextBackup = {
   ...empty,
   profile: { ...profile, name: 'Импортированный синтетический профиль', heightCm: 180, birthDate: '2000-01-01' },
@@ -28,6 +42,9 @@ const replacement: TextBackup = {
   products: [{ ...archived, id: '00000000-0000-4000-8000-000000000501', name: 'Импортированный синтетический архив' }],
   foodEntries: [{ ...food, id: '00000000-0000-4000-8000-000000000601', productId: '00000000-0000-4000-8000-000000000501', date: '2026-10-12', meal: 'snack', grams: 225, note: 'Импортированная синтетическая запись' }],
   nutritionDays: [{ date: '2026-10-12', complete: false }],
+  steps: [{ date: '2026-10-12', count: 15 }],
+  workouts: [{ ...workout, id: '00000000-0000-4000-8000-000000000703', date: '2026-10-12', minutes: 30, kcal: 42 }],
+  energyPlans: [{ ...plan, id: '00000000-0000-4000-8000-000000000803', revision: 5, effectiveFrom: '2026-10-15', goalKcal: 1800, manualKcal: 2300, snapshot: { kg: 75, weightDate: '2026-10-12', heightCm: 180, age: 26, formulaSex: 'none' } }],
 }
 const metadata = [{ id: 'catalog-seeded', value: 'done' }, { id: 'fixture', value: 'Синтетическая служебная запись' }]
 const connections: Dexie[] = []
@@ -43,6 +60,9 @@ async function populate(database: DiaryDatabase) {
   await database.products.bulkAdd([product, archived])
   await database.foodEntries.add(food)
   await database.nutritionDays.bulkAdd(nutritionDays)
+  await database.steps.bulkAdd(steps)
+  await database.workouts.bulkAdd(workouts)
+  await database.energyPlans.bulkAdd(energyPlans)
 }
 
 beforeEach(() => {
@@ -78,12 +98,18 @@ it('читает все данные одной readonly-транзакцией,
   database.products.hook('reading', observe)
   database.foodEntries.hook('reading', observe)
   database.nutritionDays.hook('reading', observe)
+  database.steps.hook('reading', observe)
+  database.workouts.hook('reading', observe)
+  database.energyPlans.hook('reading', observe)
   const backup = await exportTextBackup(database)
   database.profiles.hook('reading').unsubscribe(observe)
   database.weights.hook('reading').unsubscribe(observe)
   database.products.hook('reading').unsubscribe(observe)
   database.foodEntries.hook('reading').unsubscribe(observe)
   database.nutritionDays.hook('reading').unsubscribe(observe)
+  database.steps.hook('reading').unsubscribe(observe)
+  database.workouts.hook('reading').unsubscribe(observe)
+  database.energyPlans.hook('reading').unsubscribe(observe)
   expect(transactions.size).toBe(1)
   expect(backup).toEqual(populated)
   const parsed: unknown = JSON.parse(serializeTextBackup(backup))
@@ -93,6 +119,9 @@ it('читает все данные одной readonly-транзакцией,
   expect(await database.products.toArray()).toEqual([product, archived])
   expect(await database.foodEntries.toArray()).toEqual([food])
   expect(await database.nutritionDays.toArray()).toEqual(nutritionDays)
+  expect(await database.steps.toArray()).toEqual(steps)
+  expect(await database.workouts.toArray()).toEqual(workouts)
+  expect(await database.energyPlans.toArray()).toEqual(energyPlans)
   expect(await database.metadata.toArray()).toEqual([{ id: 'fixture', value: 'Синтетическая служебная запись' }])
 })
 
@@ -105,6 +134,9 @@ it('отклоняет повреждённые записи всех табли
     ['products', product, { ...product, unknown: true }],
     ['foodEntries', food, { ...food, snapshot: { ...food.snapshot, kcal: NaN } }],
     ['nutritionDays', nutritionDays[0], { date: '2026-10-13', complete: 'true' }],
+    ['steps', steps[0], { date: '2026-10-13', count: -1 }],
+    ['workouts', workout, { ...workout, minutes: 0 }],
+    ['energyPlans', plan, { ...plan, manualKcal: null }],
   ]
   for (const [name, original, corrupted] of cases) {
     const table = database.table<unknown, string>(name)
@@ -138,13 +170,38 @@ it('использует только тестовый singleton по умолч
   expect(await db.foodEntries.toArray()).toEqual([food])
 })
 
-it('заменяет все пять текстовых таблиц и удаляет только служебный флаг примеров', async () => {
+it('заменяет все восемь текстовых таблиц и удаляет только служебный флаг примеров', async () => {
   const database = createDatabase()
   await populate(database)
   await database.metadata.bulkPut(metadata)
   await restoreTextBackup(replacement, database)
   expect(await exportTextBackup(database)).toEqual(replacement)
   expect(await database.metadata.toArray()).toEqual([{ id: 'fixture', value: 'Синтетическая служебная запись' }])
+})
+
+it('восстанавливает старую v1 без активности и планов как пустые новые таблицы', async () => {
+  const database = createDatabase()
+  await populate(database)
+  const legacy = {
+    format: replacement.format, version: replacement.version, exportedAt: replacement.exportedAt,
+    profile: replacement.profile, weights: replacement.weights, products: replacement.products,
+    foodEntries: replacement.foodEntries, nutritionDays: replacement.nutritionDays,
+  }
+  await restoreTextBackup(legacy, database)
+  expect(await exportTextBackup(database)).toEqual({ ...replacement, steps: [], workouts: [], energyPlans: [] })
+})
+
+it('отвергает дополнительный или единственный чужой профиль, не пропуская повреждённые данные при экспорте', async () => {
+  const database = createDatabase()
+  await populate(database)
+  const table = database.table<unknown, string>('profiles')
+  const foreign = { ...profile, id: 'foreign' }
+  await table.add(foreign)
+  await expect(exportTextBackup(database)).rejects.toThrow('В дневнике поддерживается один профиль')
+  expect(await table.count()).toBe(2)
+  await database.profiles.delete('self')
+  await expect(exportTextBackup(database)).rejects.toThrow()
+  expect(await table.toArray()).toEqual([foreign])
 })
 
 it('восстанавливает пустую копию с null-профилем и позволяет снова добавить примеры по явному вызову', async () => {
@@ -166,7 +223,13 @@ it('повторно валидирует неизвестный вход и с�
   await populate(database)
   await database.metadata.bulkPut(metadata)
   const transaction = vi.spyOn(database, 'transaction')
-  for (const input of [null, { ...populated, version: 2 }, { ...populated, products: [] }]) {
+  for (const input of [
+    null, { ...populated, version: 2 }, { ...populated, products: [] },
+    { ...populated, steps: [{ date: '2026-10-15', count: 0 }] },
+    { ...populated, workouts: [{ ...workout, date: '2026-10-15' }] },
+    { ...populated, energyPlans: [{ ...plan, factor: 1.4 }] },
+    { ...populated, energyPlans: [{ ...plan, createdOn: '2026-10-15', effectiveFrom: '2026-10-16' }] },
+  ]) {
     await expect(restoreTextBackup(input, database)).rejects.toThrow()
   }
   expect(transaction).not.toHaveBeenCalled()
@@ -179,13 +242,16 @@ it('откатывает уже заменённые таблицы и служ�
   const database = createDatabase()
   await populate(database)
   await database.metadata.bulkPut(metadata)
-  const failure = vi.spyOn(database.nutritionDays, 'bulkAdd').mockImplementationOnce(() => Dexie.Promise.resolve().then(async () => {
+  const failure = vi.spyOn(database.energyPlans, 'bulkAdd').mockImplementationOnce(() => Dexie.Promise.resolve().then(async () => {
     expect(Dexie.currentTransaction.mode).toBe('readwrite')
     expect(await database.profiles.get('self')).toEqual(replacement.profile)
     expect(await database.weights.toArray()).toEqual(replacement.weights)
     expect(await database.products.toArray()).toEqual(replacement.products)
     expect(await database.foodEntries.toArray()).toEqual(replacement.foodEntries)
-    expect(await database.nutritionDays.count()).toBe(0)
+    expect(await database.nutritionDays.toArray()).toEqual(replacement.nutritionDays)
+    expect(await database.steps.toArray()).toEqual(replacement.steps)
+    expect(await database.workouts.toArray()).toEqual(replacement.workouts)
+    expect(await database.energyPlans.count()).toBe(0)
     await database.metadata.delete('catalog-seeded')
     expect(await database.metadata.get('catalog-seeded')).toBeUndefined()
     throw new Error('Синтетический поздний отказ записи')

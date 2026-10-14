@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { readTextBackup, serializeTextBackup, type TextBackup } from './backup'
 import type { Profile, Weight } from './profile'
 import type { FoodEntry, Product } from './nutrition'
+import type { EnergyPlan } from './energyPlan'
 
 const sharedId = '00000000-0000-4000-8000-000000000001'
 const otherId = '00000000-0000-4000-8000-000000000002'
@@ -15,10 +16,17 @@ const food: FoodEntry = {
 const empty: TextBackup = {
   format: 'health-diary-text', version: 1, exportedAt: '2026-10-14T12:00:00.000Z',
   profile: null, weights: [], products: [], foodEntries: [], nutritionDays: [],
+  steps: [], workouts: [], energyPlans: [],
 }
 const backup: TextBackup = {
   ...empty, profile, weights: [weight], products: [product], foodEntries: [food],
   nutritionDays: [{ date: '2026-10-14', complete: true }],
+}
+const workout = { id: sharedId, date: '2026-10-14', kind: 'Синтетическая прогулка', minutes: 30, kcal: null, source: '', note: '' }
+const plan: EnergyPlan = {
+  id: sharedId, revision: 1, createdOn: '2026-10-14', effectiveFrom: '2026-10-20',
+  goalKcal: 0, method: 'manual', manualKcal: 0, factor: null, source: '', restingFormula: 'mifflin-st-jeor-1990',
+  snapshot: { kg: null, weightDate: null, heightCm: null, age: null, formulaSex: 'none' },
 }
 
 beforeEach(() => {
@@ -93,4 +101,27 @@ it('не сериализует структурно корректные коп
   ]) {
     expect(() => serializeTextBackup(input)).toThrow()
   }
+})
+
+it('читает старую v1 без новых массивов как пустые и сериализует полную новую область', () => {
+  const legacy = Object.fromEntries<unknown>(Object.entries(empty).filter(([key]) => !['steps', 'workouts', 'energyPlans'].includes(key)))
+  expect(readTextBackup(legacy)).toEqual(empty)
+  const all = { ...backup, steps: [{ date: '2026-10-14', count: 0 }], workouts: [workout], energyPlans: [plan] }
+  expect(readTextBackup(JSON.parse(serializeTextBackup(all)))).toEqual(all)
+})
+
+it.each([
+  { steps: [{ date: '2026-10-14', count: 0 }, { date: '2026-10-14', count: 1 }] },
+  { steps: [{ date: '2026-10-15', count: 0 }] },
+  { steps: [{ date: '2026-10-14', count: -1 }] },
+  { workouts: [workout, workout] },
+  { workouts: [{ ...workout, date: '2026-10-15' }] },
+  { energyPlans: [plan, plan] },
+  { energyPlans: [plan, { ...plan, id: otherId }] },
+  { energyPlans: [{ ...plan, method: 'factor', factor: 1.4 }] },
+  { energyPlans: [{ ...plan, createdOn: '2026-10-15' }] },
+  { energyPlans: [{ ...plan, snapshot: { ...plan.snapshot, kg: 70 } }] },
+  { energyPlans: [{ ...plan, snapshot: { ...plan.snapshot, kg: 70, weightDate: '2026-10-15' } }] },
+])('отклоняет повреждённую активность или версии плана до восстановления', fields => {
+  expect(() => readTextBackup({ ...empty, ...fields })).toThrow()
 })

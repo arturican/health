@@ -7,7 +7,7 @@ import * as energyRepository from '../data/energyPlanRepository'
 
 vi.mock('../data/backupRepository', () => ({ exportTextBackup: vi.fn(), restoreTextBackup: vi.fn() }))
 vi.mock('../ui/backupFile', () => ({ readBackupFile: vi.fn() }))
-const backup = { format: 'health-diary-text', version: 1, exportedAt: '2026-10-14T12:00:00Z', profile: null, weights: [], products: [], foodEntries: [], nutritionDays: [] }
+const backup = { format: 'health-diary-text', version: 1, exportedAt: '2026-10-14T12:00:00Z', profile: null, weights: [], products: [], foodEntries: [], nutritionDays: [], steps: [], workouts: [], energyPlans: [] }
 
 beforeEach(() => { vi.resetAllMocks() })
 

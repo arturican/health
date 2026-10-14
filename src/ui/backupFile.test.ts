@@ -12,7 +12,7 @@ function file(bytes: Uint8Array) {
 }
 
 it('читает UTF-8 JSON и возвращает полностью проверенные данные', async () => {
-  expect(await readBackupFile(file(new TextEncoder().encode(JSON.stringify(empty))).result)).toEqual(empty)
+  expect(await readBackupFile(file(new TextEncoder().encode(JSON.stringify(empty))).result)).toEqual({ ...empty, steps: [], workouts: [], energyPlans: [] })
 })
 
 it('не читает пустой или превышающий лимит файл', async () => {
