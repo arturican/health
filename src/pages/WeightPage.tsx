@@ -8,6 +8,7 @@ import { validate } from '../domain/schema'
 import { Field } from '../ui/Field'
 import { Feedback, readField, useAction } from '../ui/actions'
 import { Confirmation } from '../ui/Confirmation'
+import { BmiCard } from '../ui/BmiCard'
 
 export function WeightPage() {
   const data = useLiveQuery(async () => ({ profile: await getProfile(), weights: await listWeights() }), [])
@@ -49,6 +50,7 @@ export function WeightPage() {
         <p>Для измерений <a href="#profile">создайте профиль</a>.</p>
       ) : (
         <>
+          <BmiCard profile={data.profile} weight={data.weights[0] ?? null} />
           <form key={editing?.id ?? revision} className="form-grid" aria-label={editing ? 'Редактирование веса' : 'Новое измерение'} onSubmit={submit} noValidate aria-busy={action.pending}>
             <Field label="Дата измерения" name="date" type="date" defaultValue={editing?.date ?? localDate()} max={localDate()} required disabled={action.pending} error={errors['date']} />
             <Field label="Вес, кг" name="kg" inputMode="decimal" defaultValue={editing?.kg ?? ''} required disabled={action.pending} error={errors['kg']} />
