@@ -120,3 +120,7 @@ Dev создана от T001 и опубликована в origin/dev. Прям
 ## T017 — Сквозная проверка профиля и веса на production-сборке
 
 Сквозная проверка профиля и веса на production-сборке. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+## T018 — CI с закреплённым Node и браузерными quality gates
+
+CI с закреплённым Node и браузерными quality gates. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.

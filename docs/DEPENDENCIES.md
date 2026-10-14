@@ -55,3 +55,11 @@ Dexie 4.4.6, fake-indexeddb 6.2.5, Zod 4.6.7. dexie-react-hooks 1.1.7
 полную проверку типов с выбранным стеком. Ветка hooks 4 экспортирует декларации
 неустановленных y-dexie/yjs; для локального приложения выбран совместимый 1.1.7,
 без добавления ненужных зависимостей синхронизации и без отключения проверки типов.
+
+## T018: GitHub Actions
+
+Официальные refs/tags/v6 проверены через git ls-remote 14 октября 2026:
+actions/checkout d23441a48e516b6c34aea4fa41551a30e30af803,
+actions/setup-node 249970729cb0ef3589644e2896645e5dc5ba9c38,
+actions/upload-artifact b7c566a772e6b6bfb58ed0dc250532a479d7789f.
+Workflow использует SHA вместо изменяемого тега.
