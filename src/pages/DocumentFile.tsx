@@ -1,0 +1,31 @@
+import { useLiveQuery } from 'dexie-react-hooks'
+import { getFile } from '../data/fileRepository'
+import { FileImage } from '../ui/FileImage'
+import { downloadBlob } from '../ui/download'
+import { Feedback, useAction } from '../ui/actions'
+
+const extensions = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as const
+interface DocumentFileProps { fileId: string; title: string }
+
+export function DocumentFile({ fileId, title }: DocumentFileProps) {
+  const result = useLiveQuery(async () => {
+    try { return { fileId, file: await getFile(fileId) } }
+    catch { return { fileId, file: null } }
+  }, [fileId])
+  const action = useAction()
+  if (result?.fileId !== fileId) return <p role="status">Загружаем вложение…</p>
+  const file = result.file
+  if (!file || file.purpose !== 'document') return <p role="alert">Не удалось открыть вложение документа.</p>
+  return <>
+    {file.mime === 'application/pdf' ? <p>PDF доступен для скачивания. Откройте его в своей программе просмотра.</p> : <FileImage fileId={fileId} alt={`Документ: ${title}`} />}
+    <div className="actions">
+      <button type="button" disabled={action.pending} aria-label={`Скачать оригинал: ${title}`} onClick={() => {
+        action.run(() => {
+          try { downloadBlob(file.blob, `health-document-${file.id}.${extensions[file.mime]}`) }
+          catch { throw new Error('Не удалось скачать файл документа') }
+        }, 'Скачивание оригинала начато')
+      }}>{action.pending ? 'Готовим файл…' : 'Скачать оригинал'}</button>
+    </div>
+    <Feedback error={action.error} message={action.message} />
+  </>
+}
