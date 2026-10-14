@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { type Photo } from '../domain/photo'
 import { PhotoForm } from './PhotoForm'
 import { PhotoGallery } from './PhotoGallery'
+import { PhotoComparison } from './PhotoComparison'
 
 export function PhotosPage() {
   const [editing, setEditing] = useState<Photo | null>(null)
@@ -21,6 +22,7 @@ export function PhotosPage() {
       else setNotice(null)
     }} onCancel={() => { focusAfterEdit.current = true; setEditing(null); setNotice(null) }} />
     {notice && <p role="status">{notice}</p>}
+    <PhotoComparison />
     <PhotoGallery blocked={formBusy || editing !== null} onBusyChange={setGalleryBusy} onEdit={photo => { setNotice(null); setEditing(photo) }} />
   </section>
 }
