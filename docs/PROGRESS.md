@@ -204,3 +204,7 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 ## T036 — Оценка расхода в покое по Mifflin–St Jeor
 
 Оценка расхода в покое по Mifflin–St Jeor. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+## T037 — Неизменяемые версии энергетического плана со снимком параметров
+
+Неизменяемые версии энергетического плана со снимком параметров. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
