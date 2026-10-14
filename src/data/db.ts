@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import { type Profile, type Weight } from '../domain/profile'
-import { type Product, type FoodEntry } from '../domain/nutrition'
+import { type Product, type FoodEntry, type NutritionDay } from '../domain/nutrition'
 
 export interface Metadata {
   id: string
@@ -13,6 +13,7 @@ export class DiaryDatabase extends Dexie {
   declare weights: Table<Weight, string>
   declare products: Table<Product, string>
   declare foodEntries: Table<FoodEntry, string>
+  declare nutritionDays: Table<NutritionDay, string>
 
   constructor(name = 'health-diary') {
     super(name)
@@ -20,6 +21,7 @@ export class DiaryDatabase extends Dexie {
     this.version(2).stores({ profiles: 'id', weights: 'id,&date' })
     this.version(3).stores({ products: 'id,name' })
     this.version(4).stores({ foodEntries: 'id,date,[date+meal]' })
+    this.version(5).stores({ nutritionDays: 'date' })
   }
 }
 

@@ -30,6 +30,9 @@ export type Nutrients = z.infer<typeof nutrientsSchema>
 export type ProductSnapshot = z.infer<typeof snapshotSchema>
 export type Product = z.infer<typeof productSchema>
 export type FoodEntry = z.infer<typeof foodEntrySchema>
+export const nutritionDaySchema = z.strictObject({ date: calendarDate, complete: z.boolean() })
+export type NutritionDay = z.infer<typeof nutritionDaySchema>
+export type FoodTotals = { [Key in keyof Nutrients]: number | null }
 
 export function readProduct(input: unknown): Product { return validate(productSchema, input) }
 export function readFoodEntry(input: unknown): FoodEntry { return validate(foodEntrySchema, input) }
@@ -44,4 +47,19 @@ export function portion(input: unknown, gramsInput: unknown): Nutrients {
     fat: values.fat === null ? null : values.fat * ratio,
     carbs: values.carbs === null ? null : values.carbs * ratio,
   }
+}
+
+export function foodTotals(entries: readonly FoodEntry[], complete: boolean): FoodTotals {
+  if (entries.length === 0 && !complete) return { kcal: null, protein: null, fat: null, carbs: null }
+  const total: FoodTotals = { kcal: 0, protein: 0, fat: 0, carbs: 0 }
+  for (const entry of entries) {
+    const values = portion(entry.snapshot, entry.grams)
+    total.kcal = (total.kcal ?? 0) + values.kcal
+    for (const key of ['protein', 'fat', 'carbs'] as const) {
+      const previous = total[key]
+      const value = values[key]
+      total[key] = previous === null || value === null ? null : previous + value
+    }
+  }
+  return total
 }

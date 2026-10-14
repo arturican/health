@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { portion, readFoodEntry, readProduct } from './nutrition'
+import { foodTotals, portion, readFoodEntry, readProduct } from './nutrition'
 
 const snapshot = { name: 'Синтетический продукт', source: 'Тестовая этикетка', kcal: 250, protein: 12, fat: 10, carbs: 28 }
 const product = { ...snapshot, id: '00000000-0000-4000-8000-000000000001', archived: false }
@@ -32,4 +32,17 @@ it('валидирует продукт и запись строго, сохра
   }
   expect(readFoodEntry({ ...entry, productId: null }).productId).toBeNull()
   expect(portion(snapshot, 100000).kcal).toBe(250000)
+})
+
+it('различает пустой неполный день и подтверждённый день без еды', () => {
+  expect(foodTotals([], false)).toEqual({ kcal: null, protein: null, fat: null, carbs: null })
+  expect(foodTotals([], true)).toEqual({ kcal: 0, protein: 0, fat: 0, carbs: 0 })
+})
+
+it('суммирует только записанные порции и распространяет неизвестные БЖУ', () => {
+  const first = readFoodEntry(entry)
+  const second = readFoodEntry({ ...entry, id: product.id, grams: 50, snapshot: { ...snapshot, protein: null, fat: 0, carbs: null } })
+  expect(foodTotals([first], false)).toEqual({ kcal: 375, protein: 18, fat: 15, carbs: 42 })
+  expect(foodTotals([first, second], true)).toEqual({ kcal: 500, protein: null, fat: 15, carbs: null })
+  expect(foodTotals([second, first], false)).toEqual({ kcal: 500, protein: null, fat: 15, carbs: null })
 })
