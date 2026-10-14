@@ -1,7 +1,7 @@
 import Dexie from 'dexie'
 import { afterEach, expect, it } from 'vitest'
 import { db, DiaryDatabase } from './db'
-import { addProduct, getProduct, listProducts, seedProducts } from './productRepository'
+import { addProduct, archiveProduct, getProduct, listProducts, seedProducts, updateProduct } from './productRepository'
 import type { Product } from '../domain/nutrition'
 
 const product: Product = { id: '00000000-0000-4000-8000-000000000001', name: 'Синтетический продукт', source: '', kcal: 150, protein: null, fat: 0, carbs: 25, archived: false }
@@ -98,4 +98,35 @@ it('использует тестовую базу по умолчанию', asy
   expect(await listProducts()).toEqual([product])
   await seedProducts()
   expect(await db.products.count()).toBe(3)
+  const updated = { name: 'Исправленный пример', source: 'Тест', kcal: 120, protein: 5, fat: null, carbs: 10 }
+  await archiveProduct(product.id, true)
+  await updateProduct(product.id, updated)
+  expect(await getProduct(product.id)).toEqual({ ...updated, id: product.id, archived: true })
+  await archiveProduct(product.id, false)
+  expect((await getProduct(product.id))?.archived).toBe(false)
+})
+
+it('сохраняет независимость статуса архива и параметров при конкурентных изменениях', async () => {
+  const database = createDatabase()
+  await addProduct(product, database)
+  const updated = { name: 'Правка', source: '', kcal: 200, protein: null, fat: 0, carbs: 30 }
+  await Promise.all([updateProduct(product.id, updated, database), archiveProduct(product.id, true, database)])
+  expect(await getProduct(product.id, database)).toEqual({ ...updated, id: product.id, archived: true })
+  expect(await listProducts(false, database)).toEqual([])
+  await archiveProduct(product.id, false, database)
+  expect(await listProducts(false, database)).toEqual([{ ...updated, id: product.id, archived: false }])
+})
+
+it('отклоняет неизвестный продукт и невалидную правку без перезаписи', async () => {
+  const database = createDatabase()
+  const snapshot = { name: product.name, source: product.source, kcal: product.kcal, protein: product.protein, fat: product.fat, carbs: product.carbs }
+  await expect(updateProduct(product.id, snapshot, database)).rejects.toThrow('Продукт не найден')
+  await expect(archiveProduct(product.id, true, database)).rejects.toThrow('Продукт не найден')
+  await addProduct(product, database)
+  await expect(updateProduct(product.id, { ...snapshot, archived: true }, database)).rejects.toThrow('Неизвестные поля записи')
+  await expect(archiveProduct(product.id, 'true', database)).rejects.toThrow()
+  database.products.hook('updating', () => { throw new Error('Синтетический отказ правки') })
+  await expect(updateProduct(product.id, { ...snapshot, kcal: 200 }, database)).rejects.toThrow('Синтетический отказ правки')
+  await expect(archiveProduct(product.id, true, database)).rejects.toThrow('Синтетический отказ правки')
+  expect(await getProduct(product.id, database)).toEqual(product)
 })

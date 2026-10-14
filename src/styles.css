@@ -55,6 +55,7 @@ button:disabled { cursor: wait; opacity: 0.65; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-block: 18px; }
 .secondary { color: #244b3e; background: transparent; }
 .record-list { list-style: none; padding: 0; margin-block: 18px; }
+.record-list li { overflow-wrap: anywhere; }
 .record-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; padding-block: 14px; border-bottom: 1px solid #d7ddd4; }
 .record-list .actions { margin: 0; margin-left: auto; }
 .confirmation { padding: 20px; margin-block: 20px; border: 2px solid #946c31; border-radius: 8px; }

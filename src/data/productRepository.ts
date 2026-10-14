@@ -1,5 +1,5 @@
 import { db, type DiaryDatabase } from './db'
-import { readProduct, type Product } from '../domain/nutrition'
+import { readProduct, snapshotSchema, productSchema, type Product } from '../domain/nutrition'
 import { entityId, validate } from '../domain/schema'
 
 export async function listProducts(includeArchived = false, database: DiaryDatabase = db): Promise<Product[]> {
@@ -16,6 +16,26 @@ export async function getProduct(idInput: unknown, database: DiaryDatabase = db)
 
 export async function addProduct(input: unknown, database: DiaryDatabase = db): Promise<void> {
   await database.products.add(readProduct(input))
+}
+
+export async function updateProduct(idInput: unknown, input: unknown, database: DiaryDatabase = db): Promise<void> {
+  const id = validate(entityId, idInput)
+  const snapshot = validate(snapshotSchema, input)
+  await database.transaction('rw', database.products, async () => {
+    const existing = await getProduct(id, database)
+    if (!existing) throw new Error('Продукт не найден')
+    await database.products.put({ ...snapshot, id, archived: existing.archived })
+  })
+}
+
+export async function archiveProduct(idInput: unknown, archivedInput: unknown, database: DiaryDatabase = db): Promise<void> {
+  const id = validate(entityId, idInput)
+  const archived = validate(productSchema.shape.archived, archivedInput)
+  await database.transaction('rw', database.products, async () => {
+    const existing = await getProduct(id, database)
+    if (!existing) throw new Error('Продукт не найден')
+    await database.products.put({ ...existing, archived })
+  })
 }
 
 const examples: Product[] = [

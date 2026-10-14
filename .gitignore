@@ -2,6 +2,8 @@ node_modules/
 dist/
 coverage/
 .vitest/
+.vitest-attachments/
+**/__screenshots__/
 playwright-report/
 test-results/
 *.tsbuildinfo
