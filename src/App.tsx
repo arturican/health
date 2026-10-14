@@ -4,6 +4,7 @@ import { Welcome } from './ui/Welcome'
 import { StorageBoundary } from './ui/StorageBoundary'
 import { ProfilePage } from './pages/ProfilePage'
 import { WeightPage } from './pages/WeightPage'
+import { NutritionPage } from './pages/NutritionPage'
 
 export function App() {
   const [route, setRoute] = useState(() => getRoute(window.location.hash))
@@ -31,7 +32,7 @@ export function App() {
       <Navigation active={route} />
       <main id="main" tabIndex={-1} ref={main}>
         <StorageBoundary key={route}>
-        {route === 'today' ? <Welcome /> : route === 'profile' ? <ProfilePage /> : route === 'weight' ? <WeightPage /> : (
+        {route === 'today' ? <Welcome /> : route === 'profile' ? <ProfilePage /> : route === 'weight' ? <WeightPage /> : route === 'nutrition' ? <NutritionPage /> : (
           <section className="page" aria-labelledby="page-title">
             <h1 id="page-title">{routes[route]}</h1>
             <p>Этот раздел готовится. Запись данных появится на следующих этапах.</p>
