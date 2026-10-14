@@ -4,6 +4,7 @@ import { cleanup, render } from 'vitest-browser-react'
 import axe from 'axe-core'
 import { App } from '../App'
 import { db } from '../data/db'
+import type { TextBackup } from '../domain/backup'
 import type { FoodEntry, NutritionDay, Product } from '../domain/nutrition'
 import type { Profile, Weight } from '../domain/profile'
 import '../styles.css'
@@ -99,4 +100,81 @@ test('настройки скачивают локальный JSON со все�
     ['http:', 'https:'].includes(url.protocol) && url.origin !== window.location.origin,
   )
   expect(externalRequests).toEqual([])
+}, 15000)
+
+test('проверка файла отвергает неверные копии и показывает отменяемый предпросмотр без изменения базы', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-10-14T12:00:00.000Z'))
+  const profile: Profile = { id: 'self', name: 'Синтетический профиль из файла', heightCm: 170, birthDate: '2000-02-29', formulaSex: 'none' }
+  const weight: Weight = { id: '00000000-0000-4000-8000-000000000001', date: '2026-10-01', kg: 68 }
+  const product: Product = { id: '00000000-0000-4000-8000-000000000002', name: 'Синтетический продукт из файла', source: 'Синтетическая этикетка', kcal: 200, protein: 8, fat: null, carbs: 0, archived: true }
+  const food: FoodEntry = {
+    id: '00000000-0000-4000-8000-000000000003', date: '2026-10-01', meal: 'lunch', productId: product.id, grams: 150, note: 'Синтетическая запись из файла',
+    snapshot: { name: product.name, source: product.source, kcal: product.kcal, protein: product.protein, fat: product.fat, carbs: product.carbs },
+  }
+  const nutritionDay: NutritionDay = { date: '2026-10-01', complete: true }
+  const backup: TextBackup = {
+    format: 'health-diary-text', version: 1, exportedAt: '2026-10-14T12:00:00.000Z',
+    profile, weights: [weight], products: [product], foodEntries: [food], nutritionDays: [nutritionDay],
+  }
+  const baseline = {
+    profiles: [{ ...profile, name: 'Локальный синтетический профиль' }], weights: [{ ...weight, kg: 72 }],
+    products: [{ ...product, name: 'Локальный синтетический продукт' }],
+    foodEntries: [{ ...food, note: 'Локальная синтетическая запись' }], nutritionDays: [{ ...nutritionDay, complete: false }],
+  }
+  await db.transaction('rw', db.profiles, db.weights, db.products, db.foodEntries, db.nutritionDays, async () => {
+    await db.profiles.bulkAdd(baseline.profiles)
+    await db.weights.bulkAdd(baseline.weights)
+    await db.products.bulkAdd(baseline.products)
+    await db.foodEntries.bulkAdd(baseline.foodEntries)
+    await db.nutritionDays.bulkAdd(baseline.nutritionDays)
+  })
+  async function expectBaseline() {
+    const records = await db.transaction('r', db.profiles, db.weights, db.products, db.foodEntries, db.nutritionDays, async () => ({
+      profiles: await db.profiles.toArray(), weights: await db.weights.toArray(), products: await db.products.toArray(),
+      foodEntries: await db.foodEntries.toArray(), nutritionDays: await db.nutritionDays.toArray(),
+    }))
+    expect(records).toEqual(baseline)
+  }
+  const view = await render(<App />)
+  await page.getByRole('link', { name: 'Настройки', exact: true }).click()
+  const file = page.getByLabelText('Файл текстовой копии', { exact: true })
+  const check = page.getByRole('button', { name: 'Проверить файл', exact: true })
+  const preview = page.getByRole('region', { name: 'Предпросмотр текстовой копии', exact: true })
+  const privateText = 'Синтетическое содержимое закрытого поля'
+  const invalidFiles = [
+    { text: '{', error: 'Не удалось прочитать JSON в кодировке UTF-8' },
+    { text: JSON.stringify({ ...backup, extra: privateText }), error: 'Неизвестные поля записи' },
+    { text: JSON.stringify({ ...backup, version: 2 }), error: /1/ },
+    { text: JSON.stringify({ ...backup, products: [product, product] }), error: 'Повторяющиеся идентификаторы' },
+    { text: JSON.stringify({ ...backup, weights: [weight, { ...weight, id: '00000000-0000-4000-8000-000000000004' }] }), error: 'Повторяющиеся даты веса' },
+    { text: JSON.stringify({ ...backup, nutritionDays: [nutritionDay, nutritionDay] }), error: 'Повторяющиеся даты полноты питания' },
+    { text: JSON.stringify({ ...backup, products: [] }), error: 'Запись еды ссылается на отсутствующий продукт' },
+    { text: JSON.stringify({ ...backup, weights: [{ ...weight, date: '2026-10-15' }] }), error: 'Записи дневника не могут быть в будущем' },
+    { text: JSON.stringify({ ...backup, foodEntries: [{ ...food, date: '2026-10-15' }] }), error: 'Записи дневника не могут быть в будущем' },
+    { text: JSON.stringify({ ...backup, nutritionDays: [{ ...nutritionDay, date: '2026-10-15' }] }), error: 'Записи дневника не могут быть в будущем' },
+  ]
+  for (const [index, input] of invalidFiles.entries()) {
+    await file.upload(new File([input.text], `synthetic-invalid-${String(index)}.json`, { type: 'application/json' }))
+    await check.click()
+    await expect.element(page.getByRole('alert')).toHaveTextContent(input.error)
+    await expect.element(page.getByRole('alert')).not.toHaveTextContent(privateText)
+    await expect.element(preview).not.toBeInTheDocument()
+    await expect.element(check).toBeEnabled()
+    await expectBaseline()
+  }
+
+  await file.upload(new File([JSON.stringify(backup)], 'synthetic-valid.json', { type: 'application/json' }))
+  await check.click()
+  await expect.element(page.getByRole('status')).toHaveTextContent('Файл проверен; база не изменена')
+  await expect.element(preview).toBeVisible()
+  await expect.element(preview.getByText('Профилей: 1. Измерений веса: 1. Продуктов: 1. Записей еды: 1. Отметок полноты: 1.', { exact: true })).toBeVisible()
+  await expect.element(preview.getByText('Восстановление заменяет перечисленные данные. Фото и документы сохраняются.', { exact: true })).toBeVisible()
+  await expectBaseline()
+  expect((await axe.run(view.container)).violations).toEqual([])
+  await preview.getByRole('button', { name: 'Отменить импорт', exact: true }).click()
+  await expect.element(preview).not.toBeInTheDocument()
+  await expectBaseline()
+  expect(window.innerWidth).toBe(375)
+  expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
 }, 15000)
