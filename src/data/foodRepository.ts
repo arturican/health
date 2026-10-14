@@ -1,7 +1,7 @@
 import { db, type DiaryDatabase } from './db'
 import { getProduct } from './productRepository'
 import { foodEntrySchema, mealSchema, readFoodEntry, type FoodEntry } from '../domain/nutrition'
-import { entityId, validate } from '../domain/schema'
+import { calendarDate, entityId, validate } from '../domain/schema'
 import { localDate, parseDate } from '../domain/input'
 
 const foodInputSchema = foodEntrySchema.pick({ date: true, meal: true, productId: true, grams: true, note: true }).extend({ productId: entityId })
@@ -43,4 +43,20 @@ export async function updateFood(idInput: unknown, input: unknown, database: Dia
 
 export async function deleteFood(idInput: unknown, database: DiaryDatabase = db): Promise<void> {
   await database.foodEntries.delete(validate(entityId, idInput))
+}
+
+export async function copyMeal(sourceInput: unknown, mealInput: unknown, targetInput: unknown, database: DiaryDatabase = db): Promise<number> {
+  const source = validate(calendarDate, sourceInput)
+  const meal = validate(mealSchema, mealInput)
+  const target = validate(calendarDate, targetInput)
+  if (source > localDate() || target > localDate()) throw new Error('Дата записи еды не может быть в будущем')
+  if (source === target) throw new Error('Выберите другую дату для копии')
+  return database.transaction('rw', database.foodEntries, async () => {
+    const input: unknown[] = await database.foodEntries.where('[date+meal]').equals([source, meal]).toArray()
+    const entries = input.map(readFoodEntry)
+    if (entries.length === 0) throw new Error('В выбранном приёме пищи нет записей')
+    const copies = entries.map(entry => ({ ...entry, id: crypto.randomUUID(), date: target }))
+    await database.foodEntries.bulkAdd(copies)
+    return copies.length
+  })
 }

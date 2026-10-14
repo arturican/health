@@ -6,6 +6,7 @@ import { useDay } from '../ui/DayContext'
 import { Confirmation } from '../ui/Confirmation'
 import { Feedback, useAction } from '../ui/actions'
 import { FoodForm } from './FoodForm'
+import { CopyMealForm } from './CopyMealForm'
 
 export function FoodJournal() {
   const { day } = useDay()
@@ -40,6 +41,7 @@ export function FoodJournal() {
         action.run(async () => { await deleteFood(deleting.id); setDeleting(null); setEditing(null) }, 'Запись еды удалена')
       }} />}
       {!editing && <Feedback error={action.error} message={notice ?? action.message} />}
+      {entries && <CopyMealForm entries={entries} />}
     </>
   )
 }
