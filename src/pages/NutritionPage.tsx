@@ -4,6 +4,7 @@ import { Feedback, useAction } from '../ui/actions'
 import { FoodJournal } from './FoodJournal'
 import { useDay } from '../ui/DayContext'
 import { NutritionSummary } from '../ui/NutritionSummary'
+import { EnergySummary } from '../ui/EnergySummary'
 
 export function NutritionPage() {
   const { day } = useDay()
@@ -12,6 +13,7 @@ export function NutritionPage() {
     <section className="page" aria-labelledby="nutrition-title">
       <h1 id="nutrition-title">Питание</h1>
       <NutritionSummary />
+      <EnergySummary />
       <FoodJournal key={day} />
       <ProductCatalog />
       <div className="actions">

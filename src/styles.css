@@ -80,3 +80,6 @@ dd { margin: 0; overflow-wrap: anywhere; }
   .feature-list p { max-width: none; }
   .section-heading, .site-footer { align-items: flex-start; flex-direction: column; gap: 8px; }
 }
+meter { width: min(100%, 24rem); height: 1.4rem; }
+meter::-webkit-meter-optimum-value { background: #52636b; }
+meter::-moz-meter-bar { background: #52636b; }
