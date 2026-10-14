@@ -264,3 +264,9 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 ## T046b — загрузка и галерея фото
 
 загрузка и галерея фото. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+После push до T046b [GitHub CI](https://github.com/arturican/health/actions/runs/38653661813) завершился success на b28e0dd: установка и полный check — OK.
+
+## T047 — редактирование и подтверждённое удаление фото
+
+редактирование и подтверждённое удаление фото. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.

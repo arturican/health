@@ -2,7 +2,7 @@ import { Blob as NativeBlob } from 'node:buffer'
 import Dexie from 'dexie'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { db, DiaryDatabase } from './db'
-import { addPhoto, listPhotos } from './photoRepository'
+import { addPhoto, deletePhoto, listPhotos, updatePhoto } from './photoRepository'
 import { preparePhoto } from '../media/preparePhoto'
 import { prepareFile } from './fileRepository'
 import { DOCUMENT_MAX_BYTES } from '../domain/attachment'
@@ -143,4 +143,100 @@ it('добавляет и читает фото только через default 
   const photo = await addPhoto(values, new NativeBlob([jpeg]))
   expect(await listPhotos()).toEqual([photo])
   expect(await db.files.count()).toBe(1)
+})
+
+it('правит только метаданные фото, сохраняя fileId, размеры, байты и соседнюю карточку', async () => {
+  const database = createDatabase()
+  const neighbor = await addPhoto({ ...values, date: '2026-10-13', title: 'Соседний синтетический снимок' }, new NativeBlob([jpeg]), database)
+  const photo = await addPhoto({ ...values, date: '2026-10-12' }, new NativeBlob([jpeg]), database)
+  const changed = { date: '2026-10-14', title: 'Исправленный синтетический снимок', note: '' }
+  await updatePhoto(photo.id, { ...changed, title: `  ${changed.title}  ` }, database)
+  expect(await listPhotos(database)).toEqual([{ ...photo, ...changed }, neighbor])
+  expect(preparePhoto).toHaveBeenCalledTimes(2)
+  expect(await database.files.count()).toBe(2)
+  const file = await database.files.get(photo.fileId)
+  if (!file) throw new Error('Синтетический файл утрачен при правке')
+  expect(file).toMatchObject({ id: photo.fileId, purpose: 'photo', mime: 'image/jpeg', size: jpeg.length })
+  expect(Array.from(new Uint8Array(await file.blob.arrayBuffer()))).toEqual(Array.from(jpeg))
+})
+
+it('отвергает неверный ID, будущую дату и чужие поля до транзакции, а отсутствующую карточку — без изменений', async () => {
+  const database = createDatabase()
+  const photo = await addPhoto(values, new NativeBlob([jpeg]), database)
+  const transaction = vi.spyOn(database, 'transaction')
+  for (const invalid of [null, 'unknown', 1, {}]) {
+    await expect(updatePhoto(invalid, values, database)).rejects.toThrow()
+    await expect(deletePhoto(invalid, database)).rejects.toThrow()
+  }
+  for (const input of [{ ...values, date: '2026-10-15' }, { ...values, fileId: photo.fileId }, { ...values, width: 100 }]) {
+    await expect(updatePhoto(photo.id, input, database)).rejects.toThrow()
+  }
+  expect(transaction).not.toHaveBeenCalled()
+  transaction.mockRestore()
+  const missing = '00000000-0000-4000-8000-000000000999'
+  await expect(updatePhoto(missing, values, database)).rejects.toThrow('Фотография не найдена')
+  await expect(deletePhoto(missing, database)).rejects.toThrow('Фотография не найдена')
+  expect(await listPhotos(database)).toEqual([photo])
+  expect(await database.files.count()).toBe(1)
+})
+
+it('удаляет только выбранное фото с его файлом и допускает очистку карточки с отсутствующим файлом', async () => {
+  const database = createDatabase()
+  const selected = await addPhoto(values, new NativeBlob([jpeg]), database)
+  const neighbor = await addPhoto({ ...values, date: '2026-10-13' }, new NativeBlob([jpeg]), database)
+  const unrelated = await prepareFile(new NativeBlob(['%PDF-1.7\nSynthetic\n%%EOF\n'], { type: 'application/pdf' }), 'document')
+  await database.files.add(unrelated)
+  await deletePhoto(selected.id, database)
+  expect(await listPhotos(database)).toEqual([neighbor])
+  expect(await database.files.get(selected.fileId)).toBeUndefined()
+  expect((await database.files.toArray()).map(file => file.id).sort()).toEqual([neighbor.fileId, unrelated.id].sort())
+  await database.files.delete(neighbor.fileId)
+  await deletePhoto(neighbor.id, database)
+  expect(await listPhotos(database)).toEqual([])
+  expect((await database.files.toArray()).map(file => file.id)).toEqual([unrelated.id])
+})
+
+it('откатывает удаление карточки и файла при позднем отказе files deleting-hook', async () => {
+  const database = createDatabase()
+  const photo = await addPhoto(values, new NativeBlob([jpeg]), database)
+  let photoDeleteStarted = false
+  function observePhotoDelete() { photoDeleteStarted = true }
+  function failFileDelete() {
+    expect(photoDeleteStarted).toBe(true)
+    expect(Dexie.currentTransaction.mode).toBe('readwrite')
+    throw new Error('Синтетический поздний отказ удаления файла')
+  }
+  database.photos.hook('deleting', observePhotoDelete)
+  database.files.hook('deleting', failFileDelete)
+  await expect(deletePhoto(photo.id, database)).rejects.toThrow('Синтетический поздний отказ удаления файла')
+  database.photos.hook('deleting').unsubscribe(observePhotoDelete)
+  database.files.hook('deleting').unsubscribe(failFileDelete)
+  expect(await listPhotos(database)).toEqual([photo])
+  expect(await database.files.count()).toBe(1)
+  const file = await database.files.get(photo.fileId)
+  if (!file) throw new Error('Синтетический файл не восстановлен при откате')
+  expect(Array.from(new Uint8Array(await file.blob.arrayBuffer()))).toEqual(Array.from(jpeg))
+})
+
+it('не правит и не удаляет повреждённую карточку, сохраняя исходный файл', async () => {
+  const database = createDatabase()
+  const photo = await addPhoto(values, new NativeBlob([jpeg]), database)
+  const corrupted = { ...photo, height: 0 }
+  await database.table<unknown, string>('photos').put(corrupted)
+  await expect(updatePhoto(photo.id, values, database)).rejects.toThrow()
+  await expect(deletePhoto(photo.id, database)).rejects.toThrow()
+  expect(await database.table<unknown, string>('photos').get(photo.id)).toEqual(corrupted)
+  expect(await database.files.count()).toBe(1)
+})
+
+it('правит и удаляет фото через default singleton после его повторного открытия', async () => {
+  expect(db.name).toBe('health-diary-tests')
+  connections.push(db)
+  await db.open()
+  const photo = await addPhoto(values, new NativeBlob([jpeg]))
+  await updatePhoto(photo.id, { ...values, title: 'Изменённый синтетический снимок', note: '' })
+  expect((await listPhotos())[0]).toEqual({ ...photo, title: 'Изменённый синтетический снимок', note: '' })
+  await deletePhoto(photo.id)
+  expect(await listPhotos()).toEqual([])
+  expect(await db.files.count()).toBe(0)
 })
