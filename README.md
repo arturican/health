@@ -50,3 +50,9 @@ npm run check
 - [DEPENDENCIES.md](docs/DEPENDENCIES.md) — версии и проверенные источники совместимости.
 - [START_ONE_TASK.md](START_ONE_TASK.md) — повторяемый запрос для одной задачи.
 - [IDEAS.md](IDEAS.md) — несогласованные возможности за пределами MVP.
+
+## Проверки в браузере
+
+`npm run test:browser` — интерактивный Vitest Browser UI.
+`npm run build`, затем `npm run test:e2e:ui` — Playwright с просмотром кликов.
+Для автоматического прогона без графического окна: `npm run check`.

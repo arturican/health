@@ -23,6 +23,12 @@ export default defineConfig([
     },
   },
   {
+    files: ['**/*.browser.test.tsx', '*config.ts'],
+    languageOptions: {
+      parserOptions: { projectService: false, project: ['./tsconfig.browser.json'] },
+    },
+  },
+  {
     files: ['**/*.mjs'],
     extends: [js.configs.recommended],
     languageOptions: { globals: globals.node },
