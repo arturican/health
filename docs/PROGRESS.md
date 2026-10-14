@@ -124,3 +124,7 @@ Dev создана от T001 и опубликована в origin/dev. Прям
 ## T018 — CI с закреплённым Node и браузерными quality gates
 
 CI с закреплённым Node и браузерными quality gates. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+## T018a — Точное описание артефактов CI
+
+Уточнено сохранение Playwright traces. Workflow YAML разобран успешно; review сверил SHA официальных actions. Проверки документации и diff — OK. Первый удалённый CI запущен после push, статус пока in_progress.

@@ -106,6 +106,6 @@ Workflow [.github/workflows/check.yml](../.github/workflows/check.yml) пров�
 push и pull request в dev/master; доступен ручной запуск. Ubuntu 24.04 устанавливает
 Node из .nvmrc, npm ci и Chromium с системными библиотеками, затем выполняет полный
 npm run check. Actions закреплены по проверенным SHA; права contents: read,
-credential persistence отключён. Trace и скриншоты проваленных браузерных сценариев
+credential persistence отключён. Traces проваленных Playwright E2E-сценариев
 с синтетическими данными сохраняются на 7 дней. Успех локального check не означает
 успех удалённого workflow: его состояние проверяется отдельно после push.
