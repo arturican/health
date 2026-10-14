@@ -2,6 +2,7 @@ import { db, type DiaryDatabase } from './db'
 import { readDocument, readDocumentInput, type DiaryDocument } from '../domain/document'
 import { prepareDocument } from '../media/prepareDocument'
 import { savePreparedFile } from './fileRepository'
+import { entityId, validate } from '../domain/schema'
 
 export async function listDocuments(database: DiaryDatabase = db): Promise<DiaryDocument[]> {
   const records: unknown[] = await database.documents.toArray()
@@ -16,4 +17,24 @@ export async function addDocument(input: unknown, fileInput: unknown, database: 
     await database.documents.add(document)
   })
   return document
+}
+
+export async function updateDocument(idInput: unknown, input: unknown, database: DiaryDatabase = db): Promise<void> {
+  const id = validate(entityId, idInput)
+  const values = readDocumentInput(input)
+  await database.transaction('rw', database.documents, async () => {
+    const old: unknown = await database.documents.get(id)
+    if (old === undefined) throw new Error('Документ не найден')
+    await database.documents.put(readDocument({ ...readDocument(old), ...values }))
+  })
+}
+export async function deleteDocument(idInput: unknown, database: DiaryDatabase = db): Promise<void> {
+  const id = validate(entityId, idInput)
+  await database.transaction('rw', database.documents, database.files, async () => {
+    const value: unknown = await database.documents.get(id)
+    if (value === undefined) throw new Error('Документ не найден')
+    const document = readDocument(value)
+    await database.documents.delete(document.id)
+    await database.files.delete(document.fileId)
+  })
 }

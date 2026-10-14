@@ -2,7 +2,8 @@ import { Blob as NativeBlob } from 'node:buffer'
 import Dexie from 'dexie'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { db, DiaryDatabase } from './db'
-import { addDocument, listDocuments } from './documentRepository'
+import { addDocument, deleteDocument, listDocuments, updateDocument } from './documentRepository'
+import { prepareFile } from './fileRepository'
 import { DOCUMENT_MAX_BYTES } from '../domain/attachment'
 import { FILE_STORAGE_MAX_BYTES } from '../domain/storedFile'
 
@@ -143,4 +144,104 @@ it('читает и добавляет документы через default sin
   const document = await addDocument({ ...values, kind: 'other' }, new NativeBlob([pdf]))
   expect(await listDocuments()).toEqual([document])
   expect((await db.files.get(document.fileId))?.purpose).toBe('document')
+})
+
+it('правит дату, название, категорию и заметку без изменения fileId или оригинальных байтов', async () => {
+  const database = createDatabase()
+  const neighbor = await addDocument({ ...values, date: '2026-10-13', title: 'Соседний синтетический документ' }, new NativeBlob([pdf]), database)
+  const document = await addDocument({ ...values, date: '2026-10-12' }, new NativeBlob([pdf]), database)
+  const changed = { date: '2026-10-14', title: 'Изменённый синтетический документ', kind: 'report', note: '' }
+  await updateDocument(document.id, { ...changed, title: `  ${changed.title}  ` }, database)
+  expect(await listDocuments(database)).toEqual([{ ...document, ...changed }, neighbor])
+  expect(await database.files.count()).toBe(2)
+  const file = await database.files.get(document.fileId)
+  if (!file) throw new Error('Синтетический файл утрачен при правке')
+  expect(file).toMatchObject({ id: document.fileId, purpose: 'document', mime: 'application/pdf', size: pdf.length })
+  expect(Array.from(new Uint8Array(await file.blob.arrayBuffer()))).toEqual(Array.from(pdf))
+})
+
+it('валидирует ID и метаданные до RW, а отсутствующая карточка не меняет остальные записи', async () => {
+  const database = createDatabase()
+  const document = await addDocument(values, new NativeBlob([pdf]), database)
+  const transaction = vi.spyOn(database, 'transaction')
+  for (const invalid of [null, 'unknown', 1, {}]) {
+    await expect(updateDocument(invalid, values, database)).rejects.toThrow()
+    await expect(deleteDocument(invalid, database)).rejects.toThrow()
+  }
+  for (const input of [{ ...values, date: '2026-10-15' }, { ...values, kind: 'unknown' }, { ...values, fileId: document.fileId }]) {
+    await expect(updateDocument(document.id, input, database)).rejects.toThrow()
+  }
+  expect(transaction).not.toHaveBeenCalled()
+  transaction.mockRestore()
+  const missing = '00000000-0000-4000-8000-000000000999'
+  await expect(updateDocument(missing, values, database)).rejects.toThrow('Документ не найден')
+  await expect(deleteDocument(missing, database)).rejects.toThrow('Документ не найден')
+  expect(await listDocuments(database)).toEqual([document])
+  expect(await database.files.count()).toBe(1)
+})
+
+it('удаляет документ и его файл, сохраняя соседний документ и отдельную фотографию', async () => {
+  const database = createDatabase()
+  const selected = await addDocument(values, new NativeBlob([pdf]), database)
+  const neighbor = await addDocument({ ...values, date: '2026-10-13' }, new NativeBlob([pdf]), database)
+  const photoBytes = new Uint8Array([255, 216, 255, 224, 0, 4, 1, 2, 255, 217])
+  const photoFile = await prepareFile(new NativeBlob([photoBytes], { type: 'image/jpeg' }), 'photo')
+  await database.files.add(photoFile)
+  const photo = { id: '00000000-0000-4000-8000-000000000888', fileId: photoFile.id, date: '2026-10-14', title: 'Синтетическое фото', note: '', width: 320, height: 240 }
+  await database.photos.add(photo)
+  await deleteDocument(selected.id, database)
+  expect(await listDocuments(database)).toEqual([neighbor])
+  expect(await database.files.get(selected.fileId)).toBeUndefined()
+  expect((await database.files.toArray()).map(file => file.id).sort()).toEqual([neighbor.fileId, photoFile.id].sort())
+  expect(await database.photos.toArray()).toEqual([photo])
+  await database.files.delete(neighbor.fileId)
+  await deleteDocument(neighbor.id, database)
+  expect(await listDocuments(database)).toEqual([])
+  expect((await database.files.toArray()).map(file => file.id)).toEqual([photoFile.id])
+  expect(await database.photos.toArray()).toEqual([photo])
+})
+
+it('откатывает уже начатое удаление документа при позднем отказе files deleting-hook', async () => {
+  const database = createDatabase()
+  const document = await addDocument(values, new NativeBlob([pdf]), database)
+  let documentDeleteStarted = false
+  function observeDocumentDelete() { documentDeleteStarted = true }
+  function failFileDelete() {
+    expect(documentDeleteStarted).toBe(true)
+    expect(Dexie.currentTransaction.mode).toBe('readwrite')
+    throw new Error('Синтетический поздний отказ удаления файла')
+  }
+  database.documents.hook('deleting', observeDocumentDelete)
+  database.files.hook('deleting', failFileDelete)
+  await expect(deleteDocument(document.id, database)).rejects.toThrow('Синтетический поздний отказ удаления файла')
+  database.documents.hook('deleting').unsubscribe(observeDocumentDelete)
+  database.files.hook('deleting').unsubscribe(failFileDelete)
+  expect(await listDocuments(database)).toEqual([document])
+  const file = await database.files.get(document.fileId)
+  if (!file) throw new Error('Синтетический файл не восстановлен при откате')
+  expect(Array.from(new Uint8Array(await file.blob.arrayBuffer()))).toEqual(Array.from(pdf))
+  expect(await database.files.count()).toBe(1)
+})
+
+it('не правит и не удаляет повреждённую карточку, сохраняя её файл', async () => {
+  const database = createDatabase()
+  const document = await addDocument(values, new NativeBlob([pdf]), database)
+  const corrupted = { ...document, kind: 'unknown' }
+  await database.table<unknown, string>('documents').put(corrupted)
+  await expect(updateDocument(document.id, values, database)).rejects.toThrow()
+  await expect(deleteDocument(document.id, database)).rejects.toThrow()
+  expect(await database.table<unknown, string>('documents').get(document.id)).toEqual(corrupted)
+  expect(await database.files.count()).toBe(1)
+})
+
+it('правит и удаляет документ через default singleton после его повторного открытия', async () => {
+  expect(db.name).toBe('health-diary-tests')
+  connections.push(db)
+  await db.open()
+  const document = await addDocument(values, new NativeBlob([pdf]))
+  await updateDocument(document.id, { ...values, title: 'Изменённый синтетический документ', kind: 'other', note: '' })
+  expect(await listDocuments()).toEqual([{ ...document, title: 'Изменённый синтетический документ', kind: 'other', note: '' }])
+  await deleteDocument(document.id)
+  expect(await listDocuments()).toEqual([])
+  expect(await db.files.count()).toBe(0)
 })
