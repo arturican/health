@@ -242,3 +242,9 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 ## T042a — десятичные значения в редакторах без потери точности
 
 десятичные значения в редакторах без потери точности. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+После push до T042a [GitHub CI](https://github.com/arturican/health/actions/runs/38649600964) завершился success: установка и полный check — OK.
+
+## T043 — проверка содержимого и размера вложений
+
+проверка содержимого и размера вложений. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
