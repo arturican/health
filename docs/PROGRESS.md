@@ -200,3 +200,7 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 ## T035 — Правка и подтверждённое удаление тренировок
 
 Правка и подтверждённое удаление тренировок. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+## T036 — Оценка расхода в покое по Mifflin–St Jeor
+
+Оценка расхода в покое по Mifflin–St Jeor. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
