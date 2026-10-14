@@ -1,7 +1,7 @@
 import Dexie from 'dexie'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { db, DiaryDatabase } from './db'
-import { addWorkout, listWorkouts } from './workoutRepository'
+import { addWorkout, deleteWorkout, listWorkouts, updateWorkout } from './workoutRepository'
 import type { Workout } from '../domain/activity'
 import type { Profile, Weight } from '../domain/profile'
 import type { FoodEntry, Product } from '../domain/nutrition'
@@ -121,4 +121,86 @@ it('работает с тестовым singleton и местной текущ�
   const previousDay = await addWorkout({ ...input, date: '2026-10-13', kcal: 0 })
   expect(await listWorkouts()).toEqual([workout])
   expect(await listWorkouts('2026-10-13')).toEqual([previousDay])
+})
+
+it('переносит тренировку и меняет все поля с прежним ID, сохраняя соседние записи и шаги', async () => {
+  const database = createDatabase()
+  const original = await addWorkout(input, database)
+  const neighbor = await addWorkout({ ...input, kind: 'Синтетический сосед' }, database)
+  const destination = await addWorkout({ ...input, date: '2026-10-13', kind: 'Синтетический прежний итог' }, database)
+  const steps = [{ date: today, count: 5000 }, { date: destination.date, count: 0 }]
+  await database.steps.bulkAdd(steps)
+  const changed = { date: destination.date, kind: '  Синтетическая правка  ', minutes: 45.5, kcal: 0, source: '  Синтетический новый источник  ', note: '  Синтетический новый комментарий  ' }
+  await updateWorkout(original.id, changed, database)
+  const expected = { ...changed, id: original.id, kind: 'Синтетическая правка', source: 'Синтетический новый источник', note: 'Синтетический новый комментарий' }
+  expect(await listWorkouts(today, database)).toEqual([neighbor])
+  expect(await listWorkouts(destination.date, database)).toEqual(expect.arrayContaining([expected, destination]))
+  expect(await database.workouts.count()).toBe(3)
+  expect(await database.steps.toArray()).toEqual([steps[1], steps[0]])
+  await updateWorkout(original.id, { ...changed, kcal: null }, database)
+  expect(await database.workouts.get(original.id)).toEqual({ ...expected, kcal: null })
+  expect(await database.workouts.get(destination.id)).toEqual(destination)
+})
+
+it('проверяет ID и неизвестный ввод до транзакции, отклоняет отсутствие и повреждение записи', async () => {
+  const database = createDatabase()
+  const original = await addWorkout(input, database)
+  const transaction = vi.spyOn(database, 'transaction')
+  const invalid: [unknown, unknown][] = [
+    [null, input], ['не UUID', input], [original.id, null], [original.id, { ...input, extra: true }],
+    [original.id, { ...input, id: original.id }], [original.id, { ...input, minutes: 0 }],
+    [original.id, { ...input, kcal: Infinity }], [original.id, { ...input, date: '2026-02-29' }],
+  ]
+  for (const [id, value] of invalid) await expect(updateWorkout(id, value, database)).rejects.toThrow()
+  await expect(updateWorkout(original.id, { ...input, date: '2026-10-15' }, database)).rejects.toThrow(/в будущем/)
+  expect(transaction).not.toHaveBeenCalled()
+  transaction.mockRestore()
+  const remove = vi.spyOn(database.workouts, 'delete')
+  for (const id of [null, 1, {}, 'не UUID']) await expect(deleteWorkout(id, database)).rejects.toThrow()
+  expect(remove).not.toHaveBeenCalled()
+  remove.mockRestore()
+  await expect(updateWorkout('00000000-0000-4000-8000-000000000099', input, database)).rejects.toThrow('Тренировка не найдена')
+  expect(await listWorkouts(today, database)).toEqual([original])
+  const corrupt = { ...original, minutes: '30' }
+  await database.table<unknown, string>('workouts').put(corrupt)
+  await expect(updateWorkout(original.id, input, database)).rejects.toThrow()
+  expect(await database.table<unknown, string>('workouts').get(original.id)).toEqual(corrupt)
+})
+
+it('читает исходную запись в rw и сохраняет данные при отказе правки или удаления', async () => {
+  const database = createDatabase()
+  const original = await addWorkout(input, database)
+  const neighbor = await addWorkout({ ...input, kind: 'Синтетический сосед' }, database)
+  await database.steps.add({ date: today, count: 1234 })
+  const modes: string[] = []
+  const observe = (record: Workout) => { modes.push(Dexie.currentTransaction.mode); return record }
+  const failure = () => { throw new Error('Синтетический отказ изменения') }
+  database.workouts.hook('reading', observe)
+  database.workouts.hook('updating', failure)
+  await expect(updateWorkout(original.id, { ...input, date: '2026-10-13', kind: 'Синтетическая правка' }, database)).rejects.toThrow('Синтетический отказ изменения')
+  database.workouts.hook('reading').unsubscribe(observe)
+  database.workouts.hook('updating').unsubscribe(failure)
+  expect(modes).toEqual(['readwrite'])
+  database.workouts.hook('deleting', failure)
+  await expect(deleteWorkout(original.id, database)).rejects.toThrow('Синтетический отказ изменения')
+  database.workouts.hook('deleting').unsubscribe(failure)
+  expect(await listWorkouts(today, database)).toEqual(expect.arrayContaining([original, neighbor]))
+  expect(await listWorkouts('2026-10-13', database)).toEqual([])
+  expect(await database.steps.toArray()).toEqual([{ date: today, count: 1234 }])
+})
+
+it('правит и идемпотентно удаляет через singleton после повторного открытия', async () => {
+  expect(import.meta.env.MODE).toBe('test')
+  expect(db.name).toBe('health-diary-tests')
+  connections.push(db)
+  await db.open()
+  const original = await addWorkout(input)
+  const neighbor = await addWorkout({ ...input, kind: 'Синтетический сосед' })
+  await updateWorkout(original.id, { ...input, date: '2026-10-13', minutes: 1.25, kcal: 0 })
+  expect(await listWorkouts('2026-10-13')).toEqual([{ ...original, date: '2026-10-13', minutes: 1.25, kcal: 0 }])
+  await deleteWorkout(original.id)
+  await deleteWorkout(original.id)
+  await deleteWorkout('00000000-0000-4000-8000-000000000099')
+  expect(await listWorkouts('2026-10-13')).toEqual([])
+  expect(await listWorkouts()).toEqual([neighbor])
 })

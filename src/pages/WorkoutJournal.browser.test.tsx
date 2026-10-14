@@ -4,6 +4,7 @@ import { cleanup, render } from 'vitest-browser-react'
 import axe from 'axe-core'
 import { App } from '../App'
 import { db } from '../data/db'
+import type { Workout } from '../domain/activity'
 import '../styles.css'
 
 async function resetTestState() {
@@ -128,4 +129,110 @@ test('журнал сохраняет несколько тренировок, �
     ['http:', 'https:'].includes(url.protocol) && url.origin !== window.location.origin,
   )
   expect(externalRequests).toEqual([])
+}, 15000)
+
+test('правка переносит тренировку с прежним ID, отмена сохраняет данные, а удаление требует подтверждения', async () => {
+  const original: Workout = {
+    id: '00000000-0000-4000-8000-000000000001', date: '2026-10-01', kind: 'Синтетическая прогулка',
+    minutes: 30.5, kcal: 0, source: 'Синтетический источник', note: 'Синтетический комментарий',
+  }
+  const neighbor: Workout = { ...original, id: '00000000-0000-4000-8000-000000000002', kind: 'Соседняя синтетическая тренировка', minutes: 5, kcal: null, source: '', note: '' }
+  const steps = [{ date: '2026-10-01', count: 4321 }, { date: '2026-10-02', count: 7 }]
+  await db.transaction('rw', db.workouts, db.steps, async () => {
+    await db.workouts.bulkAdd([original, neighbor])
+    await db.steps.bulkAdd(steps)
+  })
+  const view = await render(<App />)
+  await page.getByRole('link', { name: 'Активность', exact: true }).click()
+  await page.getByLabelText('День дневника').fill('2026-10-01')
+  await page.getByRole('button', { name: 'Открыть день' }).click()
+  const journal = page.getByRole('list', { name: 'Тренировки выбранного дня', exact: true })
+  const edit = journal.getByRole('button', { name: `Изменить тренировку 1: ${original.kind}`, exact: true })
+  const form = page.getByRole('form', { name: 'Редактирование тренировки', exact: true })
+  const addForm = page.getByRole('form', { name: 'Добавление тренировки', exact: true })
+  await edit.click()
+  await expect.element(form).toBeVisible()
+  await expect.element(form.getByLabelText('Дата тренировки')).toHaveFocus()
+  await expect.element(form.getByLabelText('Дата тренировки')).toHaveValue('2026-10-01')
+  await expect.element(form.getByLabelText('Длительность, мин')).toHaveValue('30.5')
+  await expect.element(form.getByLabelText('Ручная оценка расхода, ккал (необязательно)')).toHaveValue('0')
+  await form.getByLabelText('Дата тренировки').fill('2026-10-03')
+  await form.getByLabelText('Вид тренировки').fill('Несохранённая синтетическая правка')
+  await form.getByRole('button', { name: 'Отменить правку тренировки', exact: true }).click()
+  await expect.element(form).not.toBeInTheDocument()
+  await expect.element(addForm.getByLabelText('Вид тренировки')).toHaveFocus()
+  expect(await db.workouts.toArray()).toEqual([original, neighbor])
+  await edit.click()
+  await form.getByLabelText('Дата тренировки').fill('2026-10-15')
+  await form.getByRole('button', { name: 'Сохранить тренировку', exact: true }).click()
+  await expect.element(form.getByLabelText('Дата тренировки')).toHaveAccessibleDescription('Дата тренировки не может быть в будущем')
+  await expect.element(form.getByLabelText('Дата тренировки')).toHaveFocus()
+  expect(await db.workouts.toArray()).toEqual([original, neighbor])
+  await form.getByLabelText('Дата тренировки').fill('2026-10-01')
+  await form.getByLabelText('Длительность, мин').fill('0')
+  await form.getByRole('button', { name: 'Сохранить тренировку', exact: true }).click()
+  await expect.element(form.getByLabelText('Длительность, мин')).toHaveAccessibleDescription('Длительность должна быть больше нуля')
+  await expect.element(form.getByLabelText('Длительность, мин')).toHaveFocus()
+  expect(await db.workouts.toArray()).toEqual([original, neighbor])
+  const updated: Workout = {
+    ...original, date: '2026-10-02', kind: 'Изменённая синтетическая тренировка', minutes: 45.25,
+    kcal: null, source: 'Обновлённый синтетический источник', note: 'Обновлённый синтетический комментарий',
+  }
+  await form.getByLabelText('Дата тренировки').fill(updated.date)
+  await form.getByLabelText('Вид тренировки').fill(updated.kind)
+  await form.getByLabelText('Длительность, мин').fill('45,25')
+  await form.getByLabelText('Ручная оценка расхода, ккал (необязательно)').fill('')
+  await form.getByLabelText('Источник оценки (необязательно)').fill(`  ${updated.source}  `)
+  await form.getByLabelText('Комментарий к тренировке (необязательно)').fill(`  ${updated.note}  `)
+  await form.getByRole('button', { name: 'Сохранить тренировку', exact: true }).click()
+  await expect.element(page.getByRole('status').filter({ hasText: 'Тренировка обновлена' })).toHaveTextContent('Тренировка обновлена')
+  await expect.element(addForm.getByLabelText('Вид тренировки')).toHaveFocus()
+  await expect.element(journal.getByText(neighbor.kind, { exact: true })).toBeVisible()
+  await expect.element(journal.getByText(original.kind, { exact: true })).not.toBeInTheDocument()
+  expect(await db.workouts.toArray()).toEqual([updated, neighbor])
+  expect(await db.steps.toArray()).toEqual(steps)
+  await page.getByLabelText('День дневника').fill(updated.date)
+  await page.getByRole('button', { name: 'Открыть день' }).click()
+  await expect.element(journal.getByText(updated.kind, { exact: true })).toBeVisible()
+  await expect.element(journal.getByText('45,25 мин. Расход: нет данных', { exact: true })).toBeVisible()
+  await expect.element(journal.getByText(`Источник: ${updated.source}`, { exact: true })).toBeVisible()
+  await expect.element(journal.getByText(updated.note, { exact: true })).toBeVisible()
+
+  await view.unmount()
+  const reopened = await render(<App />)
+  await page.getByLabelText('День дневника').fill(updated.date)
+  await page.getByRole('button', { name: 'Открыть день' }).click()
+  await expect.element(journal.getByText(updated.kind, { exact: true })).toBeVisible()
+  expect(await db.workouts.toArray()).toEqual([updated, neighbor])
+  const remove = journal.getByRole('button', { name: `Удалить тренировку 1: ${updated.kind}`, exact: true })
+  const rowEdit = journal.getByRole('button', { name: `Изменить тренировку 1: ${updated.kind}`, exact: true })
+  const dialog = page.getByRole('alertdialog', { name: `Удалить тренировку «${updated.kind}» за ${updated.date}?`, exact: true })
+  await remove.click()
+  await expect.element(dialog).toBeVisible()
+  await expect.element(remove).toBeDisabled()
+  await expect.element(rowEdit).toBeDisabled()
+  await expect.element(dialog.getByRole('button', { name: 'Отмена', exact: true })).toHaveFocus()
+  expect((await axe.run(reopened.container)).violations).toEqual([])
+  await userEvent.keyboard('{Enter}')
+  await expect.element(dialog).not.toBeInTheDocument()
+  await expect.element(remove).toHaveFocus()
+  await expect.element(rowEdit).toBeEnabled()
+  expect(await db.workouts.toArray()).toEqual([updated, neighbor])
+  await remove.click()
+  await dialog.getByRole('button', { name: 'Подтвердить удаление', exact: true }).click()
+  await expect.element(page.getByRole('status').filter({ hasText: 'Тренировка удалена' })).toHaveTextContent('Тренировка удалена')
+  await expect.element(page.getByText('За этот день нет записей тренировок.', { exact: true })).toBeVisible()
+  await expect.element(addForm.getByLabelText('Вид тренировки')).toHaveValue('')
+  await expect.element(addForm.getByLabelText('Вид тренировки')).toHaveFocus()
+  expect(await db.workouts.toArray()).toEqual([neighbor])
+  expect(await db.steps.toArray()).toEqual(steps)
+  await reopened.unmount()
+  const deleted = await render(<App />)
+  await page.getByLabelText('День дневника').fill(updated.date)
+  await page.getByRole('button', { name: 'Открыть день' }).click()
+  await expect.element(page.getByText('За этот день нет записей тренировок.', { exact: true })).toBeVisible()
+  expect(await db.workouts.toArray()).toEqual([neighbor])
+  expect(window.innerWidth).toBe(375)
+  expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
+  expect((await axe.run(deleted.container)).violations).toEqual([])
 }, 15000)
