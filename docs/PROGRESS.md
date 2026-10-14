@@ -128,3 +128,9 @@ CI с закреплённым Node и браузерными quality gates. П�
 ## T018a — Точное описание артефактов CI
 
 Уточнено сохранение Playwright traces. Workflow YAML разобран успешно; review сверил SHA официальных actions. Проверки документации и diff — OK. Первый удалённый CI запущен после push, статус пока in_progress.
+
+CI T018: [первый запуск](https://github.com/arturican/health/actions/runs/38628078959) завершился success; npm ci, установка Chromium и полный npm run check — OK на GitHub runner.
+
+## T019 — Модели питания и расчёт порций в граммах
+
+Модели питания и расчёт порций в граммах. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
