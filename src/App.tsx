@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getRoute, Navigation, routes } from './ui/Navigation'
 import { Welcome } from './ui/Welcome'
 import { StorageBoundary } from './ui/StorageBoundary'
+import { ProfilePage } from './pages/ProfilePage'
 
 export function App() {
   const [route, setRoute] = useState(() => getRoute(window.location.hash))
@@ -21,7 +22,7 @@ export function App() {
 
   return (
     <>
-      <a className="skip-link" href="#main">Перейти к содержимому</a>
+      <a className="skip-link" href="#main" onClick={event => { event.preventDefault(); main.current?.focus() }}>Перейти к содержимому</a>
       <header className="site-header">
         <span className="brand"><span className="brand-mark" aria-hidden="true">д.</span> Дневник здоровья</span>
         <span className="edition">Личный дневник</span>
@@ -29,7 +30,7 @@ export function App() {
       <Navigation active={route} />
       <main id="main" tabIndex={-1} ref={main}>
         <StorageBoundary key={route}>
-        {route === 'today' ? <Welcome /> : (
+        {route === 'today' ? <Welcome /> : route === 'profile' ? <ProfilePage /> : (
           <section className="page" aria-labelledby="page-title">
             <h1 id="page-title">{routes[route]}</h1>
             <p>Этот раздел готовится. Запись данных появится на следующих этапах.</p>

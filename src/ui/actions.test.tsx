@@ -1,6 +1,6 @@
 import { act, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { Feedback, formText, useAction } from './actions'
+import { Feedback, formText, readField, useAction } from './actions'
 
 function pendingTask() {
   const signals: { complete?: () => void } = {}
@@ -34,6 +34,49 @@ describe('formText', () => {
 
     expect(() => formText(form, 'missing')).toThrow(/Поле не заполнено/)
     expect(() => formText(form, 'file')).toThrow(/Поле не заполнено/)
+  })
+})
+
+describe('Чтение поля формы', () => {
+  it('передаёт reader обрезанный текст и возвращает проверенное значение', () => {
+    const form = new FormData()
+    form.set('height', ' 170 ')
+    const errors: Record<string, string> = {}
+    expect(readField(form, 'height', Number, errors)).toBe(170)
+    expect(errors).toEqual({})
+  })
+
+  it('привязывает ожидаемую ошибку проверки к полю', () => {
+    const form = new FormData()
+    form.set('height', 'fixture')
+    const errors: Record<string, string> = {}
+    const reader = vi.fn(() => {
+      throw new Error('Введите рост числом')
+    })
+    expect(readField(form, 'height', reader, errors)).toBeNull()
+    expect(errors).toEqual({ height: 'Введите рост числом' })
+  })
+
+  it('отклоняет файл вместо текста без вызова reader', () => {
+    const form = new FormData()
+    form.set('height', new File(['synthetic'], 'fixture.txt'))
+    const errors: Record<string, string> = {}
+    const reader = vi.fn(Number)
+    expect(readField(form, 'height', reader, errors)).toBeNull()
+    expect(reader).not.toHaveBeenCalled()
+    expect(errors).toEqual({ height: 'Поле не заполнено' })
+  })
+
+  it('заменяет неизвестную причину сбоя общим сообщением', () => {
+    const form = new FormData()
+    form.set('height', 'fixture')
+    const errors: Record<string, string> = {}
+    const reason: unknown = { synthetic: true }
+    const reader = vi.fn(() => {
+      throw reason
+    })
+    expect(readField(form, 'height', reader, errors)).toBeNull()
+    expect(errors).toEqual({ height: 'Проверьте значение поля' })
   })
 })
 
@@ -115,6 +158,7 @@ describe('useAction', () => {
   it.each<{ reason: unknown; expected: string }>([
     { reason: new Error('Хранилище недоступно'), expected: 'Хранилище недоступно' },
     { reason: 'неизвестный ответ', expected: 'Не удалось выполнить действие' },
+    { reason: Object.assign(new Error('synthetic-private-storage-details'), { name: 'QuotaExceededError' }), expected: 'Не удалось выполнить действие' },
   ])('сообщает об отклонённом асинхронном действии: $expected', async ({ reason, expected }) => {
     const task = vi.fn<() => Promise<void>>().mockRejectedValue(reason)
     const { result } = renderHook(useAction)

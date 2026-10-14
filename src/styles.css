@@ -45,6 +45,7 @@ h1 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(48px, 6.2v
 .page h1 { font-family: inherit; font-size: 30px; letter-spacing: normal; margin: 0 0 24px; }
 .form-grid { display: grid; gap: 18px; max-width: 640px; margin-block: 24px; }
 .field { display: grid; gap: 6px; font-size: 14px; }
+.field input, .field select { font-size: 16px; }
 input, select, textarea { font: inherit; width: 100%; padding: 10px 12px; border: 1px solid #849784; border-radius: 6px; background: #fff; color: #244b3e; }
 input[type="checkbox"] { width: auto; }
 input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 3px solid #946c31; outline-offset: 3px; }

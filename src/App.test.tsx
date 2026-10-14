@@ -43,6 +43,14 @@ describe('Стартовый экран', () => {
 })
 
 describe('Переходы между разделами', () => {
+  it('переход к содержимому сохраняет текущий раздел', () => {
+    window.history.replaceState(null, '', '/#profile')
+    render(<App />)
+    fireEvent.click(screen.getByRole('link', { name: 'Перейти к содержимому' }))
+    expect(window.location.hash).toBe('#profile')
+    expect(screen.getByRole('main')).toHaveFocus()
+    expect(screen.getByRole('heading', { level: 1, name: 'Профиль' })).toBeVisible()
+  })
   it('открывает начальный раздел по hash', () => {
     window.history.replaceState(null, '', '/#weight')
     render(<App />)

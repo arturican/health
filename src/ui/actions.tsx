@@ -12,6 +12,15 @@ export function formText(form: FormData, name: string): string {
   return value.trim()
 }
 
+export function readField<T>(form: FormData, name: string, reader: (value: string) => T, errors: Record<string, string>): T | null {
+  try {
+    return reader(formText(form, name))
+  } catch (reason: unknown) {
+    errors[name] = reason instanceof Error ? reason.message : 'Проверьте значение поля'
+    return null
+  }
+}
+
 export function useAction() {
   const [status, setStatus] = useState<ActionStatus>({ pending: false, error: null, message: null })
   const busy = useRef(false)
@@ -23,7 +32,7 @@ export function useAction() {
     void Promise.resolve().then(task).then(() => {
       setStatus({ pending: false, error: null, message })
     }).catch((reason: unknown) => {
-      setStatus({ pending: false, error: reason instanceof Error ? reason.message : 'Не удалось выполнить действие', message: null })
+      setStatus({ pending: false, error: reason instanceof Error && reason.name === 'Error' ? reason.message : 'Не удалось выполнить действие', message: null })
     }).finally(() => {
       busy.current = false
     })

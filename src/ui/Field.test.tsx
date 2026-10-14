@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { Field } from './Field'
+import { Field, SelectField } from './Field'
 
 describe('Общее поле формы', () => {
   it('связывает подписи с разными автоматически созданными идентификаторами', () => {
@@ -64,5 +64,44 @@ describe('Общее поле формы', () => {
     const input = screen.getByRole('textbox', { name: /^Дата/ })
     expect(input).toHaveAttribute('aria-invalid', 'true')
     expect(input).toHaveAccessibleDescription('Выберите дату')
+  })
+})
+
+describe('Общий список выбора', () => {
+  it('создаёт уникальные идентификаторы и передаёт значение, name и обработчик', () => {
+    const onChange = vi.fn()
+    render(<><SelectField label="Параметр" name="parameter" defaultValue="none" onChange={onChange}>
+      <option value="none">Не указан</option><option value="male">Мужской</option>
+    </SelectField><SelectField label="Другой параметр"><option value="none">Не указан</option></SelectField></>)
+
+    const select = screen.getByRole('combobox', { name: 'Параметр' })
+    const other = screen.getByRole('combobox', { name: 'Другой параметр' })
+    expect(select.id).not.toBe('')
+    expect(other.id).not.toBe(select.id)
+    expect(select).toHaveAttribute('name', 'parameter')
+    expect(select).toHaveAttribute('aria-invalid', 'false')
+    expect(select).not.toHaveAttribute('aria-describedby')
+    expect(select).toHaveValue('none')
+    fireEvent.change(select, { target: { value: 'male' } })
+    expect(select).toHaveValue('male')
+    expect(onChange).toHaveBeenCalledTimes(1)
+  })
+
+  it('сохраняет явный id, доступное имя и внешнее описание вместе с ошибкой', () => {
+    const { rerender } = render(<><p id="parameter-help">Необязательный параметр</p>
+      <SelectField label="Параметр" id="parameter" error="Выберите значение" aria-describedby="parameter-help">
+        <option value="none">Не указан</option>
+      </SelectField></>)
+
+    const select = screen.getByRole('combobox', { name: 'Параметр' })
+    expect(select).toHaveAttribute('id', 'parameter')
+    expect(select).toHaveAttribute('aria-invalid', 'true')
+    expect(select).toHaveAccessibleDescription('Необязательный параметр Выберите значение')
+    rerender(<><p id="parameter-help">Необязательный параметр</p>
+      <SelectField label="Параметр" id="parameter" aria-describedby="parameter-help">
+        <option value="none">Не указан</option>
+      </SelectField></>)
+    expect(select).toHaveAttribute('aria-invalid', 'false')
+    expect(select).toHaveAccessibleDescription('Необязательный параметр')
   })
 })
