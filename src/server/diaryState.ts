@@ -19,7 +19,7 @@ export async function saveSettings(client: PoolClient, owner: string, input: unk
   const { value, revision } = inputValue(() => z.strictObject({ value: visibilitySchema, revision: revisionInput }).parse(input))
   const previous = await ensureDiaryState(client, owner)
   if (previous.revision !== revision) throw new DataError(409)
-  const result = await client.query(`UPDATE health.settings SET show_photos=$1,show_documents=$2,revision=revision+1,updated_at=now()
+  const result = await client.query(`UPDATE health.settings SET show_photos=$1,show_documents=$2,visibility_defined=true,revision=revision+1,updated_at=now()
     WHERE revision=$3`, [value.showPhotos, value.showDocuments, revision])
   if (result.rowCount !== 1) throw new DataError(409)
   return ensureDiaryState(client, owner)
