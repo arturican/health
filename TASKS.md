@@ -299,7 +299,7 @@ Desktop-концепт по новому референсу; следующим 
 | [T137](docs/tasks/T137.md) | done | Desktop: активность и состояния | T136 |
 | [T138](docs/tasks/T138.md) | done | Desktop: вес и состояния | T137 |
 | [T139](docs/tasks/T139.md) | done | Desktop: фото и состояния | T138 |
-| T140 | todo | Desktop: документы и состояния | T139 |
+| [T140](docs/tasks/T140.md) | done | Desktop: документы и состояния | T139 |
 | T141 | todo | Desktop: профиль и состояния | T140 |
 | T142 | todo | Desktop: настройки и состояния | T141 |
 
