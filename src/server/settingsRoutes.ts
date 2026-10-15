@@ -3,6 +3,7 @@ import type { Pool } from 'pg'
 import type { registerAuthentication } from './auth.js'
 import { ensureDiaryState, saveSettings } from './diaryState.js'
 import { withUser } from './userTransaction.js'
+import { withCommand } from './writeCommand.js'
 
 export function registerSettings(app: FastifyInstance, pool: Pool, authorize: Awaited<ReturnType<typeof registerAuthentication>>) {
   app.get('/api/v1/diary-state', async (request, reply) => {
@@ -13,6 +14,6 @@ export function registerSettings(app: FastifyInstance, pool: Pool, authorize: Aw
   app.put('/api/v1/settings', async (request, reply) => {
     const account = await authorize(request, reply)
     if (!account) return
-    return withUser(pool, account, client => saveSettings(client, account.id, request.body), true)
+    return withCommand(pool, account, request, client => saveSettings(client, account.id, request.body))
   })
 }

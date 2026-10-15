@@ -6,6 +6,8 @@ import { registerAuthentication } from '../src/server/auth'
 import { createAccount } from '../src/server/accounts'
 import { migrate, readMigrations } from '../src/server/migrations'
 import { testDatabase } from './serverDatabase'
+import { ensureDiaryState } from '../src/server/diaryState'
+import { withUser } from '../src/server/userTransaction'
 
 type Feature = (app: FastifyInstance, pool: Pool, authorize: Awaited<ReturnType<typeof registerAuthentication>>, clock: () => Date) => void
 export async function testApi(register: Feature) {
@@ -25,7 +27,9 @@ export async function testApi(register: Feature) {
       const cookie = response.headers['set-cookie']
       if (response.statusCode !== 200 || typeof cookie !== 'string') throw new Error('Нет тестовой сессии')
       const csrf = z.object({ csrf: z.string() }).parse(response.json<unknown>()).csrf
-      return { cookie, origin, 'x-csrf-token': csrf }
+      const account = login === 'alice' ? alice : bob
+      const state = await withUser(database.runtime, account, client => ensureDiaryState(client, account.id), true)
+      return { cookie, origin, 'x-csrf-token': csrf, 'x-diary-generation': state.generation }
     }, async close() { await app.close(); await database.close() } }
   } catch (error) { await app.close(); await database.close(); throw error }
 }
