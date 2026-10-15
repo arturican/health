@@ -91,6 +91,10 @@ Europe/Moscow. Команда не печатает пароль или хеш. 
 Лимит попыток находится в памяти одного API и сбрасывается при перезапуске;
 X-Forwarded-For не доверяется, поэтому за proxy лимит IP общий.
 
+Тренировки: GET `/api/v1/workouts?date=YYYY-MM-DD&after=UUID&limit=100`
+возвращает `{ items, nextAfter }`. POST принимает `{ value: Workout, revision: null }`,
+PUT `/:id` — полный Workout и текущую revision; DELETE `/:id` — `{ revision }`.
+
 Шаги: GET `/api/v1/steps?from=YYYY-MM-DD&to=YYYY-MM-DD&before=YYYY-MM-DD&limit=100`
 возвращает `{ items, nextBefore }`. GET `/:date` возвращает null либо запись;
 PUT `/:date` принимает `{ value: { date, count }, revision }` (null при создании),
