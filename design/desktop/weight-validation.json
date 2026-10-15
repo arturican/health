@@ -1,0 +1,26 @@
+[
+  {
+    "screen": "weight-desktop",
+    "overflow": [],
+    "overlaps": [],
+    "texts": 104,
+    "images": 0,
+    "panels": 8,
+    "fontLoaded": true,
+    "structural": true,
+    "minTextContrast": 5.16,
+    "lowContrast": []
+  },
+  {
+    "screen": "weight-states",
+    "overflow": [],
+    "overlaps": [],
+    "texts": 65,
+    "images": 0,
+    "panels": 11,
+    "fontLoaded": true,
+    "structural": true,
+    "minTextContrast": 5.16,
+    "lowContrast": []
+  }
+]
