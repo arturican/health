@@ -12,11 +12,13 @@ import { FullBackupExport } from './FullBackupExport'
 import { FullBackupImport } from './FullBackupImport'
 import { PrivacySettings } from './PrivacySettings'
 import { DeleteDiary } from './DeleteDiary'
+import '../settings.css'
 
 export function SettingsPage() {
   const [resetVersion, setResetVersion] = useState(0)
-  return <section className="page" aria-labelledby="settings-title">
+  return <section className="page settings-page" aria-labelledby="settings-title">
     <h1 id="settings-title">Настройки</h1>
+    <p>План дневника, видимость разделов и управление вашими данными.</p>
     <SettingsContent key={resetVersion} />
     <DeleteDiary onCleared={() => { setResetVersion(version => version + 1) }} />
   </section>
@@ -51,10 +53,20 @@ function SettingsContent() {
   }
   return (
     <>
+      <div className="settings-layout">
+      <div className="settings-privacy">
       <PrivacySettings />
+      <section className="card"><h2>Параметры профиля</h2><p>Рост, дата рождения и параметр формулы доступны в профиле.</p><a href="#profile">Открыть профиль</a></section>
+      </div>
+      <div className="settings-plan">
       <StorageBoundary><EnergyPlanSettings /></StorageBoundary>
+      </div>
+      </div>
+      <div className="settings-backups">
       <FullBackupExport />
       <FullBackupImport />
+      </div>
+      <section className="card text-backup" aria-label="Текстовые резервные копии">
       <h2>Резервная копия</h2>
       <p>Текстовая копия содержит профиль, историю веса, каталог продуктов, записи еды, полноту дней, шаги, тренировки и версии энергетических планов. Фото, документы, их файлы и показатели не включены.</p>
       <div className="actions">
@@ -88,6 +100,7 @@ function SettingsContent() {
       </section>}
       <Feedback error={restoring.error} message={restoring.message} />
       <p>Копия не зашифрована. Данные приложения хранятся в этом браузере; очистка данных браузера удаляет дневник.</p>
+      </section>
     </>
   )
 }

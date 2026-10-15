@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { listEnergyPlans } from '../data/energyPlanRepository'
 import { calculateRestingEnergy } from '../domain/restingEnergy'
 import { EnergyPlanForm } from './EnergyPlanForm'
+import { Icon } from '../ui/Icon'
 
 const sexNames = { none: 'не выбран', male: 'мужской', female: 'женский' }
 function amount(value: number | null) { return value === null ? 'нет данных' : value.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) }
@@ -10,7 +11,7 @@ function precise(value: number | null) { return value === null ? 'нет дан�
 export function EnergyPlanSettings() {
   const plans = useLiveQuery(() => listEnergyPlans(), [])
   return <section className="card" aria-labelledby="energy-settings-title">
-    <h2 id="energy-settings-title">Цель и оценка расхода</h2>
+    <h2 id="energy-settings-title"><Icon name="nutrition" /> Цель и оценка расхода</h2>
     <p>Новая версия действует с указанной даты. Прежние версии сохраняются вместе с параметрами расчёта.</p>
     <p>Общая оценка расхода включает активность; ручные оценки тренировок сохраняются отдельно в журнале.</p>
     <EnergyPlanForm />

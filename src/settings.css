@@ -1,0 +1,21 @@
+.settings-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; align-items: start; margin: 24px 0; }
+.settings-privacy { grid-column: 2; grid-row: 1; min-width: 0; }
+.settings-plan { grid-column: 1; grid-row: 1; min-width: 0; }
+.settings-page .settings-plan > .card, .settings-page .settings-privacy > .card:first-child { margin: 0; }
+.settings-page .card > p { color: var(--muted); font-size: 14px; }
+.settings-page .settings-privacy fieldset { margin: 24px 0 16px; border: 0; background: #F6F8FA; padding: 16px; border-radius: 12px; }
+.settings-page .settings-privacy .field { display: flex; flex-direction: row; align-items: center; gap: 12px; margin-block: 12px; }
+.settings-page .settings-privacy .field input { flex: 0 0 20px; }
+.settings-privacy a { display: inline-flex; align-items: center; min-height: 44px; margin-top: 12px; }
+.settings-page .settings-plan .form-grid { border: 0; background: #F6F8FA; padding: 20px; max-width: none; }
+.settings-page .settings-plan .record-list > li { background: #F6F8FA; border: 0; }
+.settings-page .settings-plan .record-list p { font-size: 13px; color: var(--muted); }
+.settings-backups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 24px 0; align-items: start; }
+.settings-page .settings-backups > .card { margin: 0; }
+.settings-page .settings-backups > section { margin: 0; padding: 28px; border-radius: 20px; background: var(--surface); min-width: 0; }
+.settings-page .settings-backups > section > h2 { margin-top: 0; }
+.settings-page .text-backup form { margin-top: 24px; }
+.settings-page .text-backup form > button, .settings-page .settings-backups form > button { margin-top: 16px; }
+.settings-page > section[aria-labelledby="delete-diary-title"] { margin-top: 24px; padding: 28px; border-radius: 20px; border: 1px solid #EDCCD8; background: #FFF9FB; }
+.settings-page > section[aria-labelledby="delete-diary-title"] > h2 { margin-top: 0; }
+@media (max-width: 1199px) { .settings-layout, .settings-backups { grid-template-columns: minmax(0, 1fr); } .settings-privacy, .settings-plan { grid-column: auto; grid-row: auto; } }

@@ -265,7 +265,7 @@ it('отмена правки/удаления сохраняет докумен
   remove.focus()
   fireEvent.click(remove)
   expect(await screen.findByRole('alertdialog')).toHaveTextContent('и его файл?')
-  expect(screen.getByRole('button', { name: 'Отмена' })).toHaveFocus()
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Отмена' })).toHaveFocus())
   expect(screen.getByLabelText('Файл документа')).toBeDisabled()
   fireEvent.click(screen.getByRole('button', { name: 'Отмена' }))
   expect(remove).toHaveFocus()

@@ -3,6 +3,7 @@ import { saveVisibility } from '../data/visibilityRepository'
 import { useVisibility } from '../ui/useVisibility'
 import { Field } from '../ui/Field'
 import { Feedback, useAction } from '../ui/actions'
+import { Icon } from '../ui/Icon'
 
 export function PrivacySettings() {
   const settings = useVisibility()
@@ -14,8 +15,8 @@ export function PrivacySettings() {
     const form = new FormData(event.currentTarget)
     action.run(() => saveVisibility({ version: 1, showPhotos: form.has('showPhotos'), showDocuments: form.has('showDocuments') }), 'Видимость разделов сохранена')
   }
-  return <section aria-labelledby="visibility-title">
-    <h2 id="visibility-title">Видимость разделов</h2>
+  return <section className="card" aria-labelledby="visibility-title">
+    <h2 id="visibility-title"><Icon name="settings" /> Видимость разделов</h2>
     <p>Скрытие убирает раздел из интерфейса. Записи и файлы сохраняются и входят в полную копию. Это не защита доступа и не шифрование.</p>
     {!settings ? <p role="status">Загружаем настройки видимости…</p> : <>
       {settings.failed && <p role="alert">Не удалось прочитать настройки видимости. Фото и документы скрыты. Выберите нужные разделы и сохраните настройки, чтобы восстановить доступ.</p>}
