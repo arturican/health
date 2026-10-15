@@ -7,6 +7,7 @@ import { Confirmation } from '../ui/Confirmation'
 import { Feedback, useAction } from '../ui/actions'
 import { FoodForm } from './FoodForm'
 import { CopyMealForm } from './CopyMealForm'
+import { exactNumber } from '../ui/exactNumber'
 
 export function FoodJournal() {
   const { day } = useDay()
@@ -26,7 +27,7 @@ export function FoodJournal() {
           return <li key={entry.id}>
             <div>
               <strong>{entry.snapshot.name}</strong>
-              <p>{mealNames[entry.meal]} · {entry.grams.toLocaleString('ru-RU')} г · {nutrients.kcal.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} ккал</p>
+              <p>{mealNames[entry.meal]} · {exactNumber(entry.grams)} г · {nutrients.kcal.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} ккал</p>
               <p>Источник: {entry.snapshot.source || 'не указан'}</p>
               {entry.note && <p>{entry.note}</p>}
             </div>

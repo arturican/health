@@ -6,6 +6,7 @@ import { localDate, parseDate, parseNumber } from '../domain/input'
 import { validate } from '../domain/schema'
 import { Field, SelectField } from '../ui/Field'
 import { Feedback, readField, useAction } from '../ui/actions'
+import { exactNumber } from '../ui/exactNumber'
 
 const coefficientNames = { none: 'Не указан', male: 'Мужской', female: 'Женский' }
 
@@ -83,7 +84,7 @@ export function ProfilePage() {
         <>
           <dl>
             <dt>Имя</dt><dd>{profile.name || 'Не указано'}</dd>
-            <dt>Рост</dt><dd>{profile.heightCm.toLocaleString('ru-RU')} см</dd>
+            <dt>Рост</dt><dd>{exactNumber(profile.heightCm)} см</dd>
             <dt>Дата рождения</dt><dd>{profile.birthDate?.split('-').reverse().join('.') ?? 'Не указана'}</dd>
             <dt>Параметр формулы расхода</dt><dd>{coefficientNames[profile.formulaSex]}</dd>
           </dl>

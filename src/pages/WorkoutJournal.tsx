@@ -6,6 +6,7 @@ import { useDay } from '../ui/DayContext'
 import { WorkoutForm } from './WorkoutForm'
 import { Confirmation } from '../ui/Confirmation'
 import { Feedback, useAction } from '../ui/actions'
+import { exactNumber } from '../ui/exactNumber'
 
 export function WorkoutJournal() {
   const { day } = useDay()
@@ -34,7 +35,7 @@ export function WorkoutJournal() {
     {workouts === undefined ? <p role="status">Загружаем тренировки…</p> : workouts.length === 0 ? <p>За этот день нет записей тренировок.</p> : <ul className="record-list" aria-label="Тренировки выбранного дня">
       {workouts.map((workout, index) => <li key={workout.id}>
         <strong>{workout.kind}</strong>
-        <p>{workout.minutes.toLocaleString('ru-RU')} мин. {workout.kcal === null ? 'Расход: нет данных' : `Ручная оценка: ${workout.kcal.toLocaleString('ru-RU')} ккал`}</p>
+        <p>{exactNumber(workout.minutes)} мин. {workout.kcal === null ? 'Расход: нет данных' : `Ручная оценка: ${exactNumber(workout.kcal)} ккал`}</p>
         {workout.source && <p>Источник: {workout.source}</p>}
         {workout.note && <p>{workout.note}</p>}
         <div className="actions">

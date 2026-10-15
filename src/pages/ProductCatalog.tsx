@@ -5,9 +5,10 @@ import type { Product } from '../domain/nutrition'
 import { Field } from '../ui/Field'
 import { Feedback, useAction } from '../ui/actions'
 import { ProductForm } from './ProductForm'
+import { exactNumber } from '../ui/exactNumber'
 
 function macroLabel(value: number | null) {
-  return value === null ? 'неизвестно' : `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} г`
+  return value === null ? 'неизвестно' : `${exactNumber(value)} г`
 }
 
 export function ProductCatalog() {
@@ -33,7 +34,7 @@ export function ProductCatalog() {
             {filtered?.map(product => <li key={product.id}>
               <div>
                 <strong>{product.name}</strong>{product.archived && <span> · В архиве</span>}
-                <p>{product.kcal.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} ккал/100 г · Белки: {macroLabel(product.protein)} · Жиры: {macroLabel(product.fat)} · Углеводы: {macroLabel(product.carbs)}</p>
+                <p>{exactNumber(product.kcal)} ккал/100 г · Белки: {macroLabel(product.protein)} · Жиры: {macroLabel(product.fat)} · Углеводы: {macroLabel(product.carbs)}</p>
                 <p>Источник: {product.source || 'не указан'}</p>
               </div>
               <div className="actions">
