@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
-import { addWorkout, updateWorkout } from '../data/workoutRepository'
+import { addWorkout, updateWorkout } from '../dataAccess'
 import { workoutInputSchema, type Workout } from '../domain/activity'
 import { localDate, parseNumber } from '../domain/input'
 import { validate } from '../domain/schema'
@@ -45,7 +45,7 @@ export function WorkoutForm({ entry, onSaved, onCancel }: WorkoutFormProps = {})
     }
     action.run(async () => {
       const values = { date, kind, minutes, kcal, source, note }
-      if (entry) await updateWorkout(entry.id, values)
+      if (entry) await updateWorkout(entry, values)
       else {
         await addWorkout(values)
         focusAfterSave.current = true

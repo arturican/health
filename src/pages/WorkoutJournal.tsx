@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { deleteWorkout, listWorkouts } from '../data/workoutRepository'
+import { useDiaryQuery, deleteWorkout, listWorkouts } from '../dataAccess'
 import type { Workout } from '../domain/activity'
 import { useDay } from '../ui/DayContext'
 import { WorkoutForm } from './WorkoutForm'
@@ -10,7 +9,7 @@ import { exactNumber } from '../ui/exactNumber'
 
 export function WorkoutJournal() {
   const { day } = useDay()
-  const workouts = useLiveQuery(() => listWorkouts(day), [day])
+  const workouts = useDiaryQuery(() => listWorkouts(day), [day])
   const [editing, setEditing] = useState<Workout | null>(null)
   const [deleting, setDeleting] = useState<Workout | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -46,7 +45,7 @@ export function WorkoutJournal() {
     </ul>}
     {deleting && <Confirmation question={`Удалить тренировку «${deleting.kind}» за ${deleting.date}?`} pending={action.pending} onCancel={() => { setDeleting(null) }} onConfirm={() => {
       action.run(async () => {
-        await deleteWorkout(deleting.id)
+        await deleteWorkout(deleting)
         focusAfterChange.current = true
         setDeleting(null)
       }, 'Тренировка удалена')

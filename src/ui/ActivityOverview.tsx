@@ -1,16 +1,10 @@
-import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../data/db'
-import { listWorkouts } from '../data/workoutRepository'
-import { activityDates, activityOverview } from '../domain/activityOverview'
+import { useDiaryQuery, getActivityOverview } from '../dataAccess'
 import { useDay } from './DayContext'
 import { Icon } from './Icon'
 
 export function ActivityOverview() {
   const { day } = useDay()
-  const result = useLiveQuery(() => db.transaction('r', db.steps, db.workouts, async () => {
-    const dates = activityDates(day)
-    return { day, value: activityOverview(day, await db.steps.where('date').between(dates[0] ?? day, day, true, true).toArray(), await listWorkouts(day)) }
-  }), [day])
+  const result = useDiaryQuery(() => getActivityOverview(day), [day])
   const data = result?.day === day ? result.value : undefined
   if (!data) return <p role="status">Загружаем сводку активности…</p>
   return <>

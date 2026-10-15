@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { deleteSteps, getSteps, saveSteps } from '../data/stepsRepository'
-import { stepsSchema } from '../domain/activity'
+import { useDiaryQuery, deleteSteps, getSteps, saveSteps } from '../dataAccess'
+import { stepsSchema, type Steps } from '../domain/activity'
 import { parseNumber } from '../domain/input'
 import { validate } from '../domain/schema'
 import { useDay } from '../ui/DayContext'
@@ -11,11 +10,12 @@ import { Feedback, readField, useAction } from '../ui/actions'
 
 export function StepsForm() {
   const { day } = useDay()
-  const steps = useLiveQuery(() => getSteps(day), [day])
+  const steps = useDiaryQuery(() => getSteps(day), [day])
   const action = useAction()
   const form = useRef<HTMLFormElement>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [deleting, setDeleting] = useState(false)
+  const [deleting, setDeleting] = useState<Steps | null>(null)
+  const draft = useRef<Steps | null | undefined>(undefined)
   useEffect(() => {
     if (steps === null && action.message === 'Итог шагов удалён') form.current?.querySelector<HTMLInputElement>('[name="count"]')?.focus()
   }, [steps, action.message])
@@ -29,7 +29,9 @@ export function StepsForm() {
       event.currentTarget.querySelector<HTMLInputElement>('[name="count"]')?.focus()
       return
     }
-    action.run(() => saveSteps({ date: day, count }), 'Итог шагов сохранён')
+    if (draft.current === undefined) draft.current = steps ?? null
+    const original = draft.current
+    action.run(async () => { await saveSteps({ date: day, count }, original); draft.current = undefined }, 'Итог шагов сохранён')
   }
 
   if (steps === undefined) return <p role="status">Загружаем шаги…</p>
@@ -38,16 +40,23 @@ export function StepsForm() {
     <p>{steps === null ? 'Шаги за этот день: нет данных' : `Шаги за этот день: ${steps.count.toLocaleString('ru-RU')}`}</p>
     <form ref={form} aria-label="Итог шагов" noValidate onSubmit={submit}>
       <p>Введите общий итог за день {day}. Повторный ввод заменит сохранённое значение.</p>
-      <Field label="Шаги за день" name="count" inputMode="numeric" maxLength={12} required defaultValue={steps?.count ?? ''} error={errors['count']} disabled={action.pending} />
+      <Field label="Шаги за день" name="count" inputMode="numeric" maxLength={12} required defaultValue={steps?.count ?? ''} error={errors['count']} disabled={action.pending}
+        onChange={() => { if (draft.current === undefined) draft.current = steps }} />
       <div className="actions">
         <button type="submit" disabled={action.pending}>{action.pending ? 'Сохраняем…' : 'Сохранить шаги'}</button>
-        {steps !== null && <button type="button" disabled={action.pending} onClick={() => { setDeleting(true) }}>Удалить итог шагов</button>}
+        {steps !== null && <button type="button" disabled={action.pending} onClick={() => { setDeleting(steps) }}>Удалить итог шагов</button>}
+        {action.error && <button type="button" disabled={action.pending} onClick={() => {
+          draft.current = undefined; setDeleting(null); setErrors({}); action.reset()
+          const control = form.current?.elements.namedItem('count')
+          if (control instanceof HTMLInputElement) { control.value = steps ? String(steps.count) : ''; control.focus() }
+        }}>Загрузить сохранённый итог</button>}
       </div>
     </form>
-    {deleting && <Confirmation question={`Удалить итог шагов за ${day}?`} pending={action.pending} onCancel={() => { setDeleting(false) }} onConfirm={() => {
+    {deleting && <Confirmation question={`Удалить итог шагов за ${deleting.date}?`} pending={action.pending} onCancel={() => { setDeleting(null) }} onConfirm={() => {
       action.run(async () => {
-        await deleteSteps(day)
-        setDeleting(false)
+        await deleteSteps(deleting)
+        setDeleting(null)
+        draft.current = undefined
         setErrors({})
         const control = form.current?.elements.namedItem('count')
         if (control instanceof HTMLInputElement) control.value = ''
