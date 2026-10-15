@@ -91,6 +91,11 @@ Europe/Moscow. Команда не печатает пароль или хеш. 
 Лимит попыток находится в памяти одного API и сбрасывается при перезапуске;
 X-Forwarded-For не доверяется, поэтому за proxy лимит IP общий.
 
+Питание: GET `/api/v1/food?date=YYYY-MM-DD&after=UUID&limit=100` возвращает
+`{ items, nextAfter }`. POST принимает `{ value: { id, date, meal, productId,
+grams, note }, revision: null }`; снимок формирует сервер. PUT `/:id` принимает
+текущую revision и value без productId; DELETE `/:id` — `{ revision }`.
+
 Каталог: GET `/api/v1/products?archived=true&after=UUID&limit=100` возвращает
 `{ items, nextAfter }`; без archived показывает активные продукты. GET `/:id`
 возвращает `{ value, revision }`. POST принимает полный продукт с revision=null,
