@@ -3,24 +3,24 @@
     "screen": "documents-desktop",
     "overflow": [],
     "overlaps": [],
-    "texts": 74,
+    "texts": 100,
     "images": 0,
-    "panels": 6,
+    "panels": 8,
     "fontLoaded": true,
     "structural": true,
-    "minTextContrast": 5.16,
+    "minTextContrast": 5.1,
     "lowContrast": []
   },
   {
     "screen": "documents-states",
     "overflow": [],
     "overlaps": [],
-    "texts": 97,
+    "texts": 105,
     "images": 0,
     "panels": 14,
     "fontLoaded": true,
     "structural": true,
-    "minTextContrast": 5.16,
+    "minTextContrast": 5.02,
     "lowContrast": []
   }
 ]
