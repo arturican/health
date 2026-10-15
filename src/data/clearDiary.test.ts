@@ -5,6 +5,7 @@ import { db, DiaryDatabase } from './db'
 import { clearDiary } from './clearDiary'
 import { getVisibility } from './visibilityRepository'
 import { DEFAULT_VISIBILITY, VISIBILITY_SETTING_ID } from '../domain/visibility'
+import { expectDiaryUserDataEmpty } from '../../tests/generationAssertions'
 
 const id = (value: number) => `00000000-0000-4000-8000-${String(value).padStart(12, '0')}`
 const jpeg = new Uint8Array([255, 216, 255, 192, 0, 11, 8, 0, 2, 0, 1, 1, 1, 17, 0, 255, 217])
@@ -71,12 +72,12 @@ it('очищает 13 непустых таблиц одной физическ�
   database.close()
   const reopened = new DiaryDatabase(database.name)
   connections.push(reopened)
-  expect(await counts(reopened)).toEqual(Array.from({ length: 13 }, () => 0))
+  await expectDiaryUserDataEmpty(reopened)
   expect(await getVisibility(reopened)).toEqual(DEFAULT_VISIBILITY)
   await reopened.steps.add({ date: '2000-01-02', count: 1 })
   expect(await reopened.steps.get('2000-01-02')).toEqual({ date: '2000-01-02', count: 1 })
   await clearDiary(reopened)
-  expect(await counts(reopened)).toEqual(Array.from({ length: 13 }, () => 0))
+  await expectDiaryUserDataEmpty(reopened)
 })
 
 it('поздний отказ очистки показателей откатывает все 13 таблиц и исходные байты файлов', async () => {
@@ -110,7 +111,7 @@ it('не затрагивает отдельную базу браузера', a
   const note = { id: 'fixture', value: 'Синтетическая запись другой базы' }
   await notes.add(note)
   await clearDiary(database)
-  expect(await counts(database)).toEqual(Array.from({ length: 13 }, () => 0))
+  await expectDiaryUserDataEmpty(database)
   expect(await notes.toArray()).toEqual([note])
 })
 
@@ -122,7 +123,7 @@ it('очищает повреждённые metadata, Blob и лишний пр�
   await database.table<unknown, string>('profiles').put({ id: 'foreign', heightCm: 'invalid' })
   await expect(getVisibility(database)).rejects.toThrow()
   await clearDiary(database)
-  expect(await counts(database)).toEqual(Array.from({ length: 13 }, () => 0))
+  await expectDiaryUserDataEmpty(database)
   expect(await getVisibility(database)).toEqual(DEFAULT_VISIBILITY)
 })
 
@@ -133,5 +134,5 @@ it('по умолчанию очищает только singleton тестово
   await db.open()
   await populate(db)
   await clearDiary()
-  expect(await counts(db)).toEqual(Array.from({ length: 13 }, () => 0))
+  await expectDiaryUserDataEmpty(db)
 })

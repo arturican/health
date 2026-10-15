@@ -3,6 +3,7 @@ import { readPhoto, readPhotoInput, type Photo } from '../domain/photo'
 import { preparePhoto } from '../media/preparePhoto'
 import { prepareFile, savePreparedFile } from './fileRepository'
 import { entityId, validate } from '../domain/schema'
+import { assertDiaryGeneration, readDiaryGeneration } from './clearDiary'
 
 export async function listPhotos(database: DiaryDatabase = db): Promise<Photo[]> {
   const records: unknown[] = await database.photos.toArray()
@@ -11,10 +12,12 @@ export async function listPhotos(database: DiaryDatabase = db): Promise<Photo[]>
 
 export async function addPhoto(input: unknown, fileInput: unknown, database: DiaryDatabase = db): Promise<Photo> {
   const values = readPhotoInput(input)
+  const generation = await readDiaryGeneration(database)
   const prepared = await preparePhoto(fileInput)
   const file = await prepareFile(prepared.blob, 'photo')
   const photo = readPhoto({ ...values, id: crypto.randomUUID(), fileId: file.id, width: prepared.width, height: prepared.height })
-  await database.transaction('rw', database.photos, database.files, async () => {
+  await database.transaction('rw', database.photos, database.files, database.metadata, async () => {
+    await assertDiaryGeneration(generation, database)
     await savePreparedFile(file, database)
     await database.photos.add(photo)
   })

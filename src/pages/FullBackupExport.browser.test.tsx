@@ -5,6 +5,7 @@ import { cleanup, render } from 'vitest-browser-react'
 import axe from 'axe-core'
 import { App } from '../App'
 import { db } from '../data/db'
+import { DIARY_GENERATION_ID } from '../data/clearDiary'
 import { exportTextBackup, restoreTextBackup } from '../data/backupRepository'
 import { addPhoto } from '../data/photoRepository'
 import { addDocument } from '../data/documentRepository'
@@ -93,6 +94,10 @@ test('настройки скачивают полную копию всех т�
   await restoreTextBackup(text)
   const metadata = [{ id: 'catalog-seeded', value: 'done' }, { id: 'synthetic-setting', value: 'Синтетическая настройка ≤' }]
   await db.metadata.bulkPut(metadata)
+  const metadataBefore = await db.metadata.toArray()
+  const generation = await db.metadata.get(DIARY_GENERATION_ID)
+  expect(generation?.id).toBe(DIARY_GENERATION_ID)
+  expect(generation?.value).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
   const png = await syntheticPng()
   const photo = await addPhoto({ date: '2026-10-14', title: 'Синтетическая зелёная геометрия', note: '' }, png)
   const pdfDocument = await addDocument({ date: '2026-10-13', title: 'Синтетический PDF бланк', kind: 'lab', note: '' }, pdf)
@@ -134,7 +139,8 @@ test('настройки скачивают полную копию всех т�
   const parsed: unknown = JSON.parse(await response.text())
   const backup = readFullBackup(parsed)
   expect(backup.text).toEqual(text)
-  expect(backup.metadata).toEqual(await db.metadata.toArray())
+  expect(backup.metadata).toEqual(metadata)
+  expect(backup.metadata.some(row => row.id === DIARY_GENERATION_ID)).toBe(false)
   expect(backup.photos).toEqual([photo])
   expect(backup.documents).toEqual(documentsBefore)
   expect(backup.labResults).toEqual([lab])
@@ -159,6 +165,7 @@ test('настройки скачивают полную копию всех т�
   const afterText = await exportTextBackup()
   expect(afterText.exportedAt).toBe(new Date().toISOString())
   expect({ ...afterText, exportedAt: text.exportedAt }).toEqual(text)
+  expect(await db.metadata.toArray()).toEqual(metadataBefore)
   expect(await db.documents.toArray()).toEqual(documentsBefore)
   expect(await db.photos.toArray()).toEqual([photo])
   expect(await db.labResults.toArray()).toEqual([lab])

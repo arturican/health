@@ -9,6 +9,7 @@ import type { Profile, Weight } from '../domain/profile'
 import type { FoodEntry, Product } from '../domain/nutrition'
 import type { Steps, Workout } from '../domain/activity'
 import type { EnergyPlan } from '../domain/energyPlan'
+import { expectDiaryMetadata } from '../../tests/generationAssertions'
 
 const exportedAt = '2026-10-14T12:34:56.000Z'
 const profile: Profile = { id: 'self', name: 'Синтетический профиль', heightCm: 170, birthDate: null, formulaSex: 'none' }
@@ -176,7 +177,7 @@ it('заменяет все восемь текстовых таблиц и уд
   await database.metadata.bulkPut(metadata)
   await restoreTextBackup(replacement, database)
   expect(await exportTextBackup(database)).toEqual(replacement)
-  expect(await database.metadata.toArray()).toEqual([{ id: 'fixture', value: 'Синтетическая служебная запись' }])
+  await expectDiaryMetadata(database, [{ id: 'fixture', value: 'Синтетическая служебная запись' }])
 })
 
 it('восстанавливает старую v1 без активности и планов как пустые новые таблицы', async () => {
@@ -271,5 +272,5 @@ it('восстанавливает через тестовый singleton пос�
   await db.metadata.bulkPut(metadata)
   await restoreTextBackup(replacement)
   expect(await exportTextBackup()).toEqual(replacement)
-  expect(await db.metadata.toArray()).toEqual([{ id: 'fixture', value: 'Синтетическая служебная запись' }])
+  await expectDiaryMetadata(db, [{ id: 'fixture', value: 'Синтетическая служебная запись' }])
 })

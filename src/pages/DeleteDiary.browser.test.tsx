@@ -5,6 +5,7 @@ import { cleanup, render } from 'vitest-browser-react'
 import axe from 'axe-core'
 import { App } from '../App'
 import { db } from '../data/db'
+import { DIARY_GENERATION_ID } from '../data/clearDiary'
 import { restoreTextBackup } from '../data/backupRepository'
 import { exportFullBackup } from '../data/fullBackupRepository'
 import { addPhoto } from '../data/photoRepository'
@@ -78,9 +79,11 @@ async function populate() {
 
 test('подтверждение удаляет весь дневник атомарно, отказ откатывает байты, соседняя база и новый дневник работают', async () => {
   const before = await populate()
+  const generationBefore = await db.metadata.get(DIARY_GENERATION_ID)
   async function expectUnchanged() {
     const after = await exportFullBackup()
     expect({ ...after, text: { ...after.text, exportedAt: before.text.exportedAt } }).toEqual(before)
+    expect(await db.metadata.get(DIARY_GENERATION_ID)).toEqual(generationBefore)
   }
   const unrelated = new Dexie(`health-diary-test-unrelated-delete-${crypto.randomUUID()}`)
   otherDatabases.push(unrelated)
@@ -158,7 +161,12 @@ test('подтверждение удаляет весь дневник атом
   await expect.element(fullPreview).not.toBeInTheDocument()
   await expect.element(fullConsent).not.toBeInTheDocument()
   await expect.element(fullFile).toHaveValue('')
-  expect(await Promise.all(db.tables.map(table => table.count()))).toEqual(Array<number>(13).fill(0))
+  const generationAfter = await db.metadata.get(DIARY_GENERATION_ID)
+  expect(generationAfter?.id).toBe(DIARY_GENERATION_ID)
+  expect(generationAfter?.value).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+  expect(generationAfter?.value).not.toBe(generationBefore?.value)
+  expect(await db.metadata.toArray()).toEqual([generationAfter])
+  expect(await Promise.all(db.tables.filter(table => table.name !== 'metadata').map(table => table.count()))).toEqual(Array<number>(12).fill(0))
   expect(await getVisibility()).toEqual(DEFAULT_VISIBILITY)
   await expect.element(page.getByRole('link', { name: 'Фото', exact: true })).toBeVisible()
   await expect.element(page.getByRole('link', { name: 'Документы', exact: true })).toBeVisible()
@@ -168,7 +176,8 @@ test('подтверждение удаляет весь дневник атом
   await view.unmount()
   view = await render(<App />)
   await expect.element(opener).toBeVisible()
-  expect(await Promise.all(db.tables.map(table => table.count()))).toEqual(Array<number>(13).fill(0))
+  expect(await db.metadata.toArray()).toEqual([generationAfter])
+  expect(await Promise.all(db.tables.filter(table => table.name !== 'metadata').map(table => table.count()))).toEqual(Array<number>(12).fill(0))
   await page.getByRole('link', { name: 'Фото', exact: true }).click()
   await expect.element(page.getByText('Фотографий пока нет.', { exact: true })).toBeVisible()
   await page.getByRole('link', { name: 'Документы', exact: true }).click()
@@ -183,7 +192,7 @@ test('подтверждение удаляет весь дневник атом
   expect(await db.profiles.get('self')).toMatchObject({ name: 'Синтетический новый дневник', heightCm: 175 })
   expect(await db.weights.count()).toBe(1)
   expect(await db.files.count()).toBe(0)
-  expect(await db.metadata.count()).toBe(0)
+  expect(await db.metadata.toArray()).toEqual([generationAfter])
   expect(await unrelated.table<unknown, string>('markers').toArray()).toEqual([marker])
   expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
   expect((await axe.run(view.container)).violations).toEqual([])

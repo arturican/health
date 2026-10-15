@@ -6,11 +6,12 @@ import { readPhoto } from '../domain/photo'
 import { encodeBase64 } from '../domain/base64'
 import { checkBackupFile } from '../media/checkBackupFile'
 import { prepareFullBackup } from '../media/fullBackupFile'
+import { advanceDiaryGeneration, assertDiaryGeneration, DIARY_GENERATION_ID, readDiaryGeneration } from './clearDiary'
 
 export async function exportFullBackup(database: DiaryDatabase = db): Promise<FullBackup> {
   const snapshot = await database.transaction('r', database.tables, async () => ({
     text: await exportTextBackup(database),
-    metadata: await database.metadata.toArray(),
+    metadata: (await database.metadata.toArray()).filter(row => row.id !== DIARY_GENERATION_ID),
     photos: await database.photos.toArray(),
     documents: await database.documents.toArray(),
     labResults: await database.labResults.toArray(),
@@ -27,10 +28,12 @@ export async function exportFullBackup(database: DiaryDatabase = db): Promise<Fu
 }
 
 export async function restoreFullBackup(input: unknown, database: DiaryDatabase = db): Promise<void> {
+  const generation = await readDiaryGeneration(database)
   const { backup, files } = await prepareFullBackup(input)
   await database.transaction('rw', database.tables, async () => {
+    await assertDiaryGeneration(generation, database)
     for (const table of database.tables) await table.clear()
-    await database.metadata.bulkAdd(backup.metadata)
+    await database.metadata.bulkAdd(backup.metadata.filter(row => row.id !== DIARY_GENERATION_ID))
     if (backup.text.profile) await database.profiles.add(backup.text.profile)
     await database.weights.bulkAdd(backup.text.weights)
     await database.products.bulkAdd(backup.text.products)
@@ -43,5 +46,6 @@ export async function restoreFullBackup(input: unknown, database: DiaryDatabase 
     await database.photos.bulkAdd(backup.photos)
     await database.documents.bulkAdd(backup.documents)
     await database.labResults.bulkAdd(backup.labResults)
+    await advanceDiaryGeneration(database)
   })
 }

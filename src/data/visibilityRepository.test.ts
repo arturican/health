@@ -6,6 +6,7 @@ import { DEFAULT_VISIBILITY, VISIBILITY_SETTING_ID } from '../domain/visibility'
 import { restoreTextBackup } from './backupRepository'
 import { restoreFullBackup } from './fullBackupRepository'
 import type { FullBackup } from '../domain/fullBackup'
+import { expectDiaryMetadata } from '../../tests/generationAssertions'
 
 const hidden = { version: 1, showPhotos: false, showDocuments: false }
 const mixed = { version: 1, showPhotos: false, showDocuments: true }
@@ -117,10 +118,10 @@ it('текстовое восстановление сохраняет види�
   expect(await database.metadata.get('fixture')).toEqual(metadata[1])
   await restoreFullBackup({ ...empty, metadata: [{ id: VISIBILITY_SETTING_ID, value: JSON.stringify(mixed) }] }, database)
   expect(await getVisibility(database)).toEqual(mixed)
-  expect(await database.metadata.count()).toBe(1)
+  await expectDiaryMetadata(database, [{ id: VISIBILITY_SETTING_ID, value: JSON.stringify(mixed) }])
   await restoreFullBackup(empty, database)
   expect(await getVisibility(database)).toEqual(DEFAULT_VISIBILITY)
-  expect(await database.metadata.count()).toBe(0)
+  await expectDiaryMetadata(database)
 })
 
 it('использует default singleton только тестовой базы и повторно открывает его без потери настройки', async () => {

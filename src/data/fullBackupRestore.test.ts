@@ -6,6 +6,7 @@ import { exportFullBackup, restoreFullBackup } from './fullBackupRepository'
 import { prepareFullBackup } from '../media/fullBackupFile'
 import { encodeBase64 } from '../domain/base64'
 import type { FullBackup } from '../domain/fullBackup'
+import { expectDiaryUserDataEmpty } from '../../tests/generationAssertions'
 
 const id = (value: number) => `00000000-0000-4000-8000-${String(value).padStart(12, '0')}`
 const jpeg = new Uint8Array([255, 216, 255, 192, 0, 11, 8, 0, 2, 0, 1, 1, 1, 17, 0, 255, 217])
@@ -120,7 +121,7 @@ it('пустая полная копия очищает все таблицы, �
   const database = createDatabase()
   await populate(database)
   await restoreFullBackup(empty, database)
-  expect(await Promise.all(database.tables.map(table => table.count()))).toEqual(Array.from({ length: 13 }, () => 0))
+  await expectDiaryUserDataEmpty(database)
   expect(await exportFullBackup(database)).toEqual(empty)
 })
 

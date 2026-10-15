@@ -1,5 +1,6 @@
 import { db, type DiaryDatabase } from './db'
 import { readTextBackup, type TextBackup } from '../domain/backup'
+import { advanceDiaryGeneration } from './clearDiary'
 
 export async function exportTextBackup(database: DiaryDatabase = db): Promise<TextBackup> {
   return database.transaction('r', [database.profiles, database.weights, database.products, database.foodEntries, database.nutritionDays, database.steps, database.workouts, database.energyPlans], async () => {
@@ -40,5 +41,6 @@ export async function restoreTextBackup(input: unknown, database: DiaryDatabase 
     await database.workouts.bulkAdd(backup.workouts)
     await database.energyPlans.bulkAdd(backup.energyPlans)
     await database.metadata.delete('catalog-seeded')
+    await advanceDiaryGeneration(database)
   })
 }
