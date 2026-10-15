@@ -6,6 +6,7 @@ import { type EnergyPlan } from '../domain/energyPlan'
 import { type StoredFile } from '../domain/storedFile'
 import { type Photo } from '../domain/photo'
 import { type DiaryDocument } from '../domain/document'
+import { type LabResult } from '../domain/labResult'
 
 export interface Metadata {
   id: string
@@ -25,6 +26,7 @@ export class DiaryDatabase extends Dexie {
   declare files: Table<StoredFile, string>
   declare photos: Table<Photo, string>
   declare documents: Table<DiaryDocument, string>
+  declare labResults: Table<LabResult, string>
 
   constructor(name = 'health-diary') {
     super(name)
@@ -39,6 +41,7 @@ export class DiaryDatabase extends Dexie {
     this.version(9).stores({ files: 'id,purpose' })
     this.version(10).stores({ photos: 'id,date,&fileId' })
     this.version(11).stores({ documents: 'id,date,kind,&fileId' })
+    this.version(12).stores({ labResults: 'id,documentId,date,[documentId+date]' })
   }
 }
 
