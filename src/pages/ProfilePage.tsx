@@ -7,6 +7,8 @@ import { validate } from '../domain/schema'
 import { Field, SelectField } from '../ui/Field'
 import { Feedback, readField, useAction } from '../ui/actions'
 import { exactNumber } from '../ui/exactNumber'
+import { Icon } from '../ui/Icon'
+import '../profile.css'
 
 const coefficientNames = { none: 'Не указан', male: 'Мужской', female: 'Женский' }
 
@@ -57,10 +59,14 @@ export function ProfilePage() {
   }
 
   return (
-    <section className="page" aria-labelledby="profile-title">
+    <section className="page profile-page" aria-labelledby="profile-title">
       <h1 id="profile-title">Профиль</h1>
+      <p>Ваши параметры и данные для расчётов дневника.</p>
+      <div className="profile-layout">
+      <div className="profile-main">
       {profile === undefined ? <p role="status">Загружаем локальные данные…</p> : profile === null || editing ? (
         <form className="form-grid" onSubmit={submit} noValidate aria-label={editing ? 'Редактирование профиля' : 'Создание профиля'} aria-busy={action.pending}>
+          <h2>{editing ? 'Изменить параметры' : 'Основные параметры'}</h2>
           <p>{editing ? 'Изменение профиля сохраняет историю измерений.' : 'Создайте профиль и сохраните первое измерение.'} Дата рождения и параметр формулы необязательны.</p>
           <fieldset disabled={action.pending}>
             <legend>Личные параметры</legend>
@@ -81,7 +87,8 @@ export function ProfilePage() {
           {editing && <button type="button" disabled={action.pending} onClick={() => { setEditing(false); setErrors({}) }}>Отмена</button>}
         </form>
       ) : (
-        <>
+        <section className="card profile-parameters" aria-label="Сохранённый профиль">
+          <div className="profile-identity"><Icon name="profile" /><div><h2>Личные параметры</h2><p>Локальный профиль</p></div></div>
           <dl>
             <dt>Имя</dt><dd>{profile.name || 'Не указано'}</dd>
             <dt>Рост</dt><dd>{exactNumber(profile.heightCm)} см</dd>
@@ -89,10 +96,16 @@ export function ProfilePage() {
             <dt>Параметр формулы расхода</dt><dd>{coefficientNames[profile.formulaSex]}</dd>
           </dl>
           <button type="button" onClick={() => { setErrors({}); setEditing(true) }}>Редактировать профиль</button>
-        </>
+        </section>
       )}
       <Feedback error={Object.keys(errors).length > 0 ? null : action.error} message={Object.keys(errors).length > 0 ? null : action.message} />
-      <p>Данные остаются в этом браузере. Приложение не шифрует локальное хранилище.</p>
+      </div>
+      <aside className="profile-explanations" aria-label="О параметрах профиля">
+        <section className="card"><h2><Icon name="profile" /> Для чего эти данные</h2><p>Рост используется для справочного ИМТ. Дата рождения и параметр формулы нужны только для соответствующих расчётов и могут оставаться пустыми.</p><p>Изменение параметров не переписывает сохранённую историю веса.</p></section>
+        <section className="card"><h2><Icon name="weight" /> История измерений</h2><p>Новые измерения сохраняются отдельно, по датам.</p><a className="primary-link" href="#weight">Перейти к весу</a></section>
+        <section className="card"><h2><Icon name="settings" /> Ваши данные</h2><p>Данные остаются в этом браузере. Приложение не шифрует локальное хранилище.</p><a href="#settings">Настройки и резервные копии</a></section>
+      </aside>
+      </div>
     </section>
   )
 }
