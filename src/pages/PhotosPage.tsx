@@ -3,6 +3,8 @@ import { type Photo } from '../domain/photo'
 import { PhotoForm } from './PhotoForm'
 import { PhotoGallery } from './PhotoGallery'
 import { PhotoComparison } from './PhotoComparison'
+import { Icon } from '../ui/Icon'
+import '../photos.css'
 
 export function PhotosPage() {
   const [editing, setEditing] = useState<Photo | null>(null)
@@ -14,15 +16,21 @@ export function PhotosPage() {
   useEffect(() => {
     if (focusAfterEdit.current && !editing) { focusAfterEdit.current = false; section.current?.querySelector<HTMLInputElement>('[name="title"]')?.focus() }
   }, [editing])
-  return <section ref={section} className="page" aria-labelledby="photos-title">
+  return <section ref={section} className="page photos-page" aria-labelledby="photos-title">
     <h1 id="photos-title">Фото</h1>
     <p>Фотографии помогают сравнивать записи по датам. Они не определяют диагноз или состав тела.</p>
+    <div className="photos-layout">
+    <div className="card photo-editor">
+    <h2><Icon name="photos" /> {editing ? 'Изменить запись' : 'Добавить фотографию'}</h2>
+    <p>Сохраните дату и подпись, чтобы вернуться к этому моменту.</p>
     <PhotoForm key={editing?.id ?? 'new'} entry={editing} disabled={galleryBusy} onBusyChange={setFormBusy} onSaved={() => {
       if (editing) { focusAfterEdit.current = true; setEditing(null); setNotice('Фото обновлено') }
       else setNotice(null)
     }} onCancel={() => { focusAfterEdit.current = true; setEditing(null); setNotice(null) }} />
     {notice && <p role="status">{notice}</p>}
+    </div>
     <PhotoComparison />
+    </div>
     <PhotoGallery blocked={formBusy || editing !== null} onBusyChange={setGalleryBusy} onEdit={photo => { setNotice(null); setEditing(photo) }} />
   </section>
 }

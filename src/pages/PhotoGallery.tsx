@@ -20,7 +20,7 @@ export function PhotoGallery({ onEdit, blocked, onBusyChange }: PhotoGalleryProp
       heading.current?.focus()
     }
   }, [action.pending, deleting])
-  return <section aria-labelledby="photo-gallery-title">
+  return <section className="card photo-gallery" aria-labelledby="photo-gallery-title">
     <h2 id="photo-gallery-title" tabIndex={-1} ref={heading}>Галерея фото</h2>
     <Feedback error={action.error} message={action.message} />
     {photos === undefined ? <p role="status">Загружаем фотографии…</p> : photos.length === 0 ? <p>Фотографий пока нет.</p> : <ul className="record-list" aria-label="Фотографии по датам">
