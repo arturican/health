@@ -1,8 +1,10 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { getQueryErrorCount, invalidateQueries, subscribeQueryErrors } from './queries'
+import { getNotice, setNotice, subscribeNotices } from './notices'
 
 export function QueryFeedback() {
   const errors = useSyncExternalStore(subscribeQueryErrors, getQueryErrorCount)
+  const notice = useSyncExternalStore(subscribeNotices, getNotice)
   useEffect(() => {
     const visible = () => { if (document.visibilityState === 'visible') invalidateQueries() }
     window.addEventListener('focus', invalidateQueries)
@@ -14,9 +16,12 @@ export function QueryFeedback() {
       document.removeEventListener('visibilitychange', visible)
     }
   }, [])
-  if (!errors) return null
+  if (!errors && !notice) return null
   return <aside className="card" aria-label="Обновление данных">
+    {notice && <><p role="status">{notice}</p><button type="button" onClick={() => { setNotice(null) }}>Закрыть сообщение</button></>}
+    {errors > 0 && <>
     <p role="alert">Не удалось обновить данные. На экране остаются прежние значения; ваш ввод сохранён.</p>
     <button type="button" onClick={invalidateQueries}>Повторить загрузку</button>
+    </>}
   </aside>
 }
