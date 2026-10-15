@@ -14,6 +14,7 @@ import { registerFiles } from './fileRecords.js'
 import { createUploadTransport } from './uploadTransport.js'
 import { registerPhotos } from './photoRoutes.js'
 import { registerDocuments } from './documentRoutes.js'
+import { registerLabs } from './labRoutes.js'
 
 export async function startApi(environment: Record<string, string | undefined>) {
   const config = readServerConfig(environment)
@@ -36,6 +37,7 @@ export async function startApi(environment: Record<string, string | undefined>) 
       registerFiles(app, pool, authorize)
       registerPhotos(app, pool, authorize, uploads)
       registerDocuments(app, pool, authorize, uploads)
+      registerLabs(app, pool, authorize)
     }
     await app.listen(config)
     return await app

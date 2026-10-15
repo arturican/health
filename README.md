@@ -91,6 +91,11 @@ Europe/Moscow. Команда не печатает пароль или хеш. 
 Лимит попыток находится в памяти одного API и сбрасывается при перезапуске;
 X-Forwarded-For не доверяется, поэтому за proxy лимит IP общий.
 
+Показатели: GET `/api/v1/lab-results` принимает documentId/after/limit и возвращает
+историю с документами-источниками. POST принимает `{ value, revision: null }`,
+PUT/DELETE `/:id` требуют revision. Значение — число с оператором либо текст;
+источник неизменяемый. Изменение показателя повышает также revision документа.
+
 Документы: POST `/api/v1/documents` использует тот же бинарный транспорт и
 X-Record `id, fileId, date, title, kind, note, mime`. GET поддерживает список
 after/limit, `/:id` и `/:id/results-count`. PUT `/:id` принимает изменяемые поля
