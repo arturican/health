@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { StorageBoundary } from './StorageBoundary'
 
@@ -24,7 +24,7 @@ describe('Граница ошибок раздела', () => {
 
       expect(screen.getByRole('heading', { level: 1, name: 'Раздел недоступен' })).toBeVisible()
       expect(screen.getByRole('alert')).toHaveTextContent(
-        'Не удалось открыть данные. Обновите страницу и проверьте доступ к хранилищу браузера.',
+        'Не удалось открыть данные. Повторите загрузку; если ошибка сохраняется, обновите страницу.',
       )
       expect(screen.getByRole('link', { name: 'Вернуться к дневнику' })).toHaveAttribute('href', '#today')
       expect(container).not.toHaveTextContent('synthetic-private-record')
@@ -41,5 +41,14 @@ describe('Граница ошибок раздела', () => {
     } finally {
       diagnostics.mockRestore()
     }
+  })
+
+  it('повторно открывает исправленный раздел по кнопке без перезагрузки страницы', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { rerender } = render(<StorageBoundary><BrokenSection /></StorageBoundary>)
+    rerender(<StorageBoundary><h2>Исправленный раздел</h2></StorageBoundary>)
+    expect(screen.queryByRole('heading', { name: 'Исправленный раздел' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Повторить загрузку раздела' }))
+    expect(screen.getByRole('heading', { name: 'Исправленный раздел' })).toBeVisible()
   })
 })

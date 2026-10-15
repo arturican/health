@@ -12,7 +12,8 @@ export class StorageBoundary extends Component<PropsWithChildren, { failed: bool
       return (
         <section className="page">
           <h1>Раздел недоступен</h1>
-          <p role="alert">Не удалось открыть данные. Обновите страницу и проверьте доступ к хранилищу браузера.</p>
+          <p role="alert">Не удалось открыть данные. Повторите загрузку; если ошибка сохраняется, обновите страницу.</p>
+          <button type="button" onClick={() => { this.setState({ failed: false }) }}>Повторить загрузку раздела</button>
           <a href="#today">Вернуться к дневнику</a>
         </section>
       )
