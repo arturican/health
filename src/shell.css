@@ -22,6 +22,7 @@
   margin: 0;
   padding: 26px 14px;
   flex-direction: column;
+  flex-wrap: nowrap;
   gap: 8px;
 }
 .navigation-label { padding: 0 16px 12px; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); }
@@ -97,4 +98,22 @@
   .quick-actions { gap: 8px; }
   .quick-actions a { flex: 1 1 auto; justify-content: center; padding-inline: 12px; }
   .today-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 20px; }
+}
+@media (min-width: 768px) {
+  .page .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .page .form-grid > :not(.field) { grid-column: 1 / -1; }
+  .page .form-grid > .field:has(input[type="file"], input[type="checkbox"], textarea) { grid-column: 1 / -1; }
+  .record-list[aria-label="Фотографии по датам"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  .record-list[aria-label="Фотографии по датам"] > li { padding: 0; border: 0; align-items: stretch; }
+}
+.page > dl { padding: 24px; border: 1px solid var(--line); border-radius: 20px; background: #fff; }
+.card h3, .card h4 { margin-top: 0; }
+.record-list .actions button { color: var(--accent-dark); background: var(--accent-soft); border-color: #c0d6ca; }
+.record-list .actions button:hover { background: #d6e8de; }
+.record-list .actions button[aria-label^="Удалить"] { color: #922d29; background: #fff4f1; border-color: #e5c6c0; }
+.record-list .actions button[aria-label^="Удалить"]:hover { background: #f8e2dc; }
+@media (max-width: 380px) {
+  .card, .form-grid, .confirmation { padding: 16px; }
+  .actions { gap: 8px; }
+  .record-list .actions { margin-left: 0; }
 }

@@ -7,6 +7,7 @@ import { db } from './data/db'
 import type { EnergyPlan } from './domain/energyPlan'
 import type { FoodEntry } from './domain/nutrition'
 import './styles.css'
+import './shell.css'
 
 const today = '2026-10-14'
 async function resetTestState() {
