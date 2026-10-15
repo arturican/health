@@ -6,11 +6,15 @@ import { createSessions, csrfToken, SESSION_LIFETIME_MS } from './sessions.js'
 import { deny, installRequestProtection, readCookie, sessionCookie } from './httpSecurity.js'
 import { createLoginLimit } from './loginLimit.js'
 
-export async function registerAuthentication(app: FastifyInstance, pool: Pool, origin: string, clock = () => new Date()) {
+export async function assertRuntimeRole(pool: Pool) {
   const rights = await pool.query<Record<string, unknown>>(`SELECT rolsuper OR rolbypassrls OR rolcreatedb OR rolcreaterole
     OR has_schema_privilege(current_user, 'health', 'CREATE') OR has_table_privilege(current_user, 'health.users', 'INSERT') AS elevated
     FROM pg_roles WHERE rolname = current_user`)
   if (z.object({ elevated: z.boolean() }).parse(rights.rows[0]).elevated) throw new Error('API требует ограниченную роль БД')
+}
+
+export async function registerAuthentication(app: FastifyInstance, pool: Pool, origin: string, clock = () => new Date()) {
+  await assertRuntimeRole(pool)
   const sessions = await createSessions(pool)
   const allowLogin = createLoginLimit()
   let inFlight = 0

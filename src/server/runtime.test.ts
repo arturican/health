@@ -67,3 +67,9 @@ it('неверные настройки не открывают listener и не
     env: { ...process.env, API_PORT: 'synthetic-secret' },
   })).rejects.toMatchObject({ code: 1, stdout: '', stderr: 'Не удалось запустить API: проверьте серверные настройки и доступность порта\n' })
 })
+
+it('собранная seed CLI отклоняет неверную конфигурацию без утечки реквизитов', async () => {
+  await expect(promisify(execFile)(process.execPath, ['build-api/seedDemo.js'], {
+    env: { ...process.env, MIGRATION_DATABASE_URL: 'synthetic-secret-seed-sentinel' },
+  })).rejects.toMatchObject({ code: 1, stdout: '', stderr: 'Демонстрация не загружена: проверьте настройки, права ролей и отсутствие прежних данных дневника\n' })
+})
