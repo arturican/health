@@ -22,7 +22,9 @@
     "test:coverage": "vitest run --coverage",
     "test:browser": "vitest --config vitest.browser.config.ts --ui",
     "test:browser:run": "vitest run --config vitest.browser.config.ts --browser.headless",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:design": "playwright test design-",
+    "test:design:ui": "playwright test design- --ui"
   },
   "dependencies": {
     "dexie": "4.4.6",
