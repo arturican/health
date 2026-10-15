@@ -184,6 +184,9 @@ grams, note }, revision: null }`; снимок формирует сервер. 
 текущую revision и value без productId; DELETE `/:id` — `{ revision }`.
 
 Каталог: GET `/api/v1/products?archived=true&after=UUID&limit=100` возвращает
+страницы каталога. POST `/api/v1/products/seed` с пустым JSON добавляет только
+отсутствующие начальные примеры; маркер демонстрации исключает их добавление.
+Обычный GET возвращает
 `{ items, nextAfter }`; без archived показывает активные продукты. GET `/:id`
 возвращает `{ value, revision }`. POST принимает полный продукт с revision=null,
 PUT `/:id` — полный продукт и текущую revision, включая флаг archived.

@@ -6,10 +6,17 @@ import { DataError, inputValue } from './httpErrors.js'
 import { getProductRecord, listProductRecords, saveProductRecord } from './productRecords.js'
 import { withUser } from './userTransaction.js'
 import { withCommand } from './writeCommand.js'
+import { seedProductRecords } from './seedProducts.js'
 
 const routeId = (params: unknown) => inputValue(() => z.object({ id: z.string() }).parse(params).id)
 
 export function registerProducts(app: FastifyInstance, pool: Pool, authorize: Awaited<ReturnType<typeof registerAuthentication>>) {
+  app.post('/api/v1/products/seed', async (request, reply) => {
+    const account = await authorize(request, reply)
+    if (!account) return
+    inputValue(() => z.strictObject({}).parse(request.body ?? {}))
+    return withCommand(pool, account, request, client => seedProductRecords(client, account.id))
+  })
   app.get('/api/v1/products', async (request, reply) => {
     const account = await authorize(request, reply)
     if (!account) return

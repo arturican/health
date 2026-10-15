@@ -3,6 +3,7 @@ import { readProduct, snapshotSchema, productSchema, type Product } from '../dom
 import { entityId, validate } from '../domain/schema'
 import { assertRecordCapacity, hasRecordCapacity } from './recordLimit'
 import { DIARY_GENERATION_ID } from './clearDiary'
+import { initialProducts } from '../domain/initialProducts'
 
 export async function listProducts(includeArchived = false, database: DiaryDatabase = db): Promise<Product[]> {
   const values: unknown[] = await database.products.toArray()
@@ -44,16 +45,11 @@ export async function archiveProduct(idInput: unknown, archivedInput: unknown, d
   })
 }
 
-const examples: Product[] = [
-  { id: '00000000-0000-4000-8000-000000000101', name: 'Пример: продукт А', source: 'Учебные значения — замените данными этикетки', kcal: 250, protein: 12, fat: 10, carbs: 28, archived: false },
-  { id: '00000000-0000-4000-8000-000000000102', name: 'Пример: продукт Б', source: 'Учебные значения — замените данными этикетки', kcal: 120, protein: null, fat: null, carbs: null, archived: false },
-]
-
 export async function seedProducts(database: DiaryDatabase = db): Promise<void> {
   await database.transaction('rw', database.products, database.metadata, async () => {
     if (await database.metadata.get('catalog-seeded')) return
     const missing: Product[] = []
-    for (const product of examples) {
+    for (const product of initialProducts()) {
       if (!await database.products.get(product.id)) missing.push(readProduct(product))
     }
     assertRecordCapacity(await database.products.count(), missing.length)
