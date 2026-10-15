@@ -1,4 +1,4 @@
-import { prepareFile } from '../data/fileRepository'
+import { prepareFile } from './prepareFile'
 import { imageHeaderSize } from '../domain/imageHeader'
 import { readImageSize } from '../domain/imageGeometry'
 

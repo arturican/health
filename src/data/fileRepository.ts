@@ -4,10 +4,7 @@ import { FILE_STORAGE_MAX_BYTES, readStoredFile, type StoredFile } from '../doma
 import { entityId, validate } from '../domain/schema'
 import { assertRecordCapacity } from './recordLimit'
 
-export async function prepareFile(input: unknown, purposeInput: unknown): Promise<StoredFile> {
-  const checked = await checkAttachment(input, purposeInput)
-  return readStoredFile({ ...checked, id: crypto.randomUUID(), purpose: purposeInput })
-}
+export { prepareFile } from '../media/prepareFile'
 
 /** Bytes are checked by prepareFile before the caller opens its transaction. */
 export async function savePreparedFile(input: StoredFile, database: DiaryDatabase = db): Promise<void> {

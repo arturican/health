@@ -37,6 +37,6 @@ export function registerFiles(app: FastifyInstance, pool: Pool, authorize: Await
     const file = await withUser(pool, account, client => getFileRecord(client, id))
     const extension = file.mime === 'application/pdf' ? 'pdf' : file.mime.slice(6)
     return reply.type(file.mime).header('Content-Disposition', `attachment; filename="attachment-${id}.${extension}"`)
-      .header('Content-Security-Policy', "default-src 'none'; sandbox").send(file.bytes)
+      .header('X-File-Purpose', file.purpose).header('Content-Security-Policy', "default-src 'none'; sandbox").send(file.bytes)
   })
 }
