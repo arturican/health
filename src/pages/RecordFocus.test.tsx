@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { Profiler } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { db } from '../data/db'
 import * as foodRepository from '../data/foodRepository'
@@ -48,6 +49,22 @@ async function openFood() {
   await screen.findByRole('button', { name: foodEdit })
   return entry
 }
+
+it('фокусирует дату при начале правки сразу после загрузки формы, до пассивных эффектов', async () => {
+  let started = false
+  // Profiler вызывает обработчик после commit DOM, до useEffect загрузившейся формы.
+  // Так воспроизводится ранний клик без зависимости от скорости IndexedDB и CPU.
+  render(<Profiler id="early-weight-edit" onRender={() => {
+    const button = screen.queryByRole('button', { name: weightEdit })
+    if (!button || started) return
+    started = true
+    button.focus()
+    button.click()
+  }}><WeightPage /></Profiler>)
+  await screen.findByRole('form', { name: 'Редактирование веса' })
+  await expectFieldFocus('Дата измерения')
+  expect(screen.getByLabelText('Вес, кг')).toHaveValue('70')
+})
 
 it('возвращает фокус веса после отмены, сохранения и удаления, направляет правку на дату', async () => {
   render(<WeightPage />)
