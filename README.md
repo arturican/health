@@ -91,6 +91,12 @@ Europe/Moscow. Команда не печатает пароль или хеш. 
 Лимит попыток находится в памяти одного API и сбрасывается при перезапуске;
 X-Forwarded-For не доверяется, поэтому за proxy лимит IP общий.
 
+Документы: POST `/api/v1/documents` использует тот же бинарный транспорт и
+X-Record `id, fileId, date, title, kind, note, mime`. GET поддерживает список
+after/limit, `/:id` и `/:id/results-count`. PUT `/:id` принимает изменяемые поля
+и revision; DELETE — `{ revision, expectedResults }`, где null разрешён лишь
+без показателей, иначе требуется их текущее количество.
+
 Файлы: GET `/api/v1/files/:id` возвращает исходные байты только владельцу сессии,
 с no-store/nosniff, attachment и sandbox CSP. Для бинарных загрузок подготовлен
 транспорт application/octet-stream: X-Record содержит UTF-8 JSON в base64url
