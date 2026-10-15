@@ -55,3 +55,19 @@ it('скрывает отказ чтения/декодера и отверга�
   const blob = new NativeBlob(['<html>synthetic</html>'], { type: 'application/pdf' })
   await expect(checkBackupFile({ id, blob, mime: 'application/pdf', size: blob.size, purpose: 'document' })).rejects.toThrow('Неподдерживаемый формат')
 })
+
+it('подготовленное фото с EXIF APP1 отклоняется до декодера изображения', async () => {
+  const bytes = new Uint8Array([...jpeg.slice(0, 2), 255, 225, 0, 8, 69, 120, 105, 102, 0, 0, ...jpeg.slice(2)])
+  const blob = new Blob([bytes], { type: 'image/jpeg' })
+  await expect(checkBackupFile({ id, blob, mime: 'image/jpeg', size: blob.size, purpose: 'photo' }, photo)).rejects.toThrow('Подготовленное фото в копии содержит EXIF')
+  expect(decode).not.toHaveBeenCalled()
+})
+
+it('JPEG документа сохраняет исходный EXIF APP1 и освобождает bitmap', async () => {
+  const bytes = new Uint8Array([...jpeg.slice(0, 2), 255, 225, 0, 8, 69, 120, 105, 102, 0, 0, ...jpeg.slice(2)])
+  const blob = new Blob([bytes], { type: 'image/jpeg' })
+  const close = vi.fn()
+  decode.mockResolvedValue({ width: 1, height: 2, close })
+  expect(Array.from(await checkBackupFile({ id, blob, mime: 'image/jpeg', size: blob.size, purpose: 'document' }))).toEqual(Array.from(bytes))
+  expect(close).toHaveBeenCalledTimes(1)
+})

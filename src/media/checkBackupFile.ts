@@ -3,6 +3,7 @@ import { readStoredFile } from '../domain/storedFile'
 import { readPhoto, type Photo } from '../domain/photo'
 import { imageHeaderSize } from '../domain/imageHeader'
 import { readImageSize } from '../domain/imageGeometry'
+import { assertPhotoWithoutExif } from '../domain/photoExif'
 
 export async function checkBackupFile(input: unknown, photo?: Photo): Promise<Uint8Array<ArrayBuffer>> {
   const file = readStoredFile(input)
@@ -13,6 +14,7 @@ export async function checkBackupFile(input: unknown, photo?: Photo): Promise<Ui
   try { bytes = new Uint8Array(await file.blob.arrayBuffer()) }
   catch { throw new Error('Не удалось прочитать файл копии') }
   if (file.mime === 'application/pdf') return bytes
+  if (expected) assertPhotoWithoutExif(bytes)
   const header = imageHeaderSize(bytes, file.mime)
   if (expected && (header.width !== expected.width || header.height !== expected.height)) throw new Error('Размеры фото не совпадают с карточкой')
   let bitmap: ImageBitmap

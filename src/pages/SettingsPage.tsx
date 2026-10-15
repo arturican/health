@@ -9,6 +9,7 @@ import { Field } from '../ui/Field'
 import { EnergyPlanSettings } from './EnergyPlanSettings'
 import { StorageBoundary } from '../ui/StorageBoundary'
 import { FullBackupExport } from './FullBackupExport'
+import { FullBackupImport } from './FullBackupImport'
 
 export function SettingsPage() {
   const action = useAction()
@@ -42,6 +43,7 @@ export function SettingsPage() {
       <h1 id="settings-title">Настройки</h1>
       <StorageBoundary><EnergyPlanSettings /></StorageBoundary>
       <FullBackupExport />
+      <FullBackupImport />
       <h2>Резервная копия</h2>
       <p>Текстовая копия содержит профиль, историю веса, каталог продуктов, записи еды, полноту дней, шаги, тренировки и версии энергетических планов. Фото, документы, их файлы и показатели не включены.</p>
       <div className="actions">
