@@ -152,7 +152,7 @@
 | [T073b](docs/tasks/T073b.md) | done | Сохранить экспортируемость дневных журналов | T073a |
 | [T073c](docs/tasks/T073c.md) | done | Сохранить экспортируемость файлов и настроек | T073b |
 | [T074](docs/tasks/T074.md) | done | Сохранять точность крайне малой порции | T073c |
-| [T075](docs/tasks/T075.md) | todo | Согласовать favicon и theme-color | T074 |
+| [T075](docs/tasks/T075.md) | done | Согласовать favicon и theme-color | T074 |
 
 ## После очереди
 
