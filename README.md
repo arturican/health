@@ -91,6 +91,12 @@ Europe/Moscow. Команда не печатает пароль или хеш. 
 Лимит попыток находится в памяти одного API и сбрасывается при перезапуске;
 X-Forwarded-For не доверяется, поэтому за proxy лимит IP общий.
 
+Полнота: GET `/api/v1/nutrition-days/:date` возвращает null либо запись с revision;
+PUT принимает `{ value: { date, complete }, revision }` (null при создании).
+POST `/api/v1/food/copy` принимает `{ commandId, source, meal, target }`,
+возвращает `{ count }`. Повтор commandId с теми же параметрами не создаёт копии;
+смена параметров даёт 409. Команды хранятся в БД, лимит 100000 на аккаунт.
+
 Питание: GET `/api/v1/food?date=YYYY-MM-DD&after=UUID&limit=100` возвращает
 `{ items, nextAfter }`. POST принимает `{ value: { id, date, meal, productId,
 grams, note }, revision: null }`; снимок формирует сервер. PUT `/:id` принимает
