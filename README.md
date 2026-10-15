@@ -78,6 +78,17 @@ MIGRATION_DATABASE_URL, ADMIN_LOGIN, ADMIN_PASSWORD, ADMIN_TIMEZONE.
 Europe/Moscow. Команда не печатает пароль или хеш. Повторный логин отклоняется
 без смены прежнего пароля. Публичной регистрации пока нет.
 
+Для маршрутов авторизации задайте DATABASE_URL ограниченной роли и APP_ORIGIN
+(точный origin frontend, без завершающего `/`). Production требует HTTPS origin
+и отклоняет административные переменные MIGRATION_DATABASE_URL/ADMIN_PASSWORD.
+Маршруты: POST `/api/v1/auth/login`, GET `/api/v1/auth/session`, POST
+`/api/v1/auth/logout`. Вход получает JSON login/password и правильный Origin;
+ответ возвращает аккаунт и CSRF, cookie — Secure/HttpOnly/SameSite=Lax.
+Для последующих изменений нужны Origin и X-CSRF-Token из ответа сессии.
+Срок сессии 7 суток, idle 24 часа. Пока интерфейс входа не подключён.
+Лимит попыток находится в памяти одного API и сбрасывается при перезапуске;
+X-Forwarded-For не доверяется, поэтому за proxy лимит IP общий.
+
 SQL-тестам нужна отдельная локальная PostgreSQL 18.3:
 
 ```bash
