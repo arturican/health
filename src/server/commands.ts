@@ -15,9 +15,9 @@ export async function runCommand<T>(client: PoolClient, owner: string, idInput: 
     if (row.request_hash !== hash) throw new DataError(409)
     return schema.parse(row.response)
   }
+  const result = schema.parse(await work())
   const count = await client.query<Record<string, unknown>>('SELECT count(*)::text AS count FROM health.commands')
   if (z.object({ count: z.coerce.number() }).parse(count.rows[0]).count >= BACKUP_MAX_RECORDS) throw new DataError(400)
-  const result = schema.parse(await work())
   const inserted = await client.query('INSERT INTO health.commands(user_id,id,request_hash,response) VALUES ($1,$2,$3,$4) ON CONFLICT (user_id,id) DO NOTHING',
     [owner, id, hash, JSON.stringify(z.json().parse(result))])
   if (inserted.rowCount !== 1) throw new DataError(409)

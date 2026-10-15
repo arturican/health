@@ -96,6 +96,12 @@ GET `/api/v1/backup/full` — полную, с исходными вложени
 включая скрытые разделы. Один согласованный снимок PostgreSQL, без generation
 и данных авторизации. Лимиты 20/200 MiB соответственно; превышение — 413,
 вторая параллельная операция копии — 429. Ответы имеют no-store/attachment.
+Восстановление: POST `/api/v1/backup/text`, Content-Type
+`application/vnd.health-diary+json`, тело — UTF-8 JSON v1 до 20 MiB. Обязательны
+Idempotency-Key, X-Diary-Generation и X-Diary-Revision из актуального GET
+/diary-state. X-Import-Mode: empty по умолчанию; replace используется только
+после подтверждения замены. Текстовое восстановление сохраняет вложения и
+видимость, меняет generation; повтор использует прежние заголовки и тело.
 
 Настройки: GET `/api/v1/diary-state` возвращает generation, value (видимость),
 revision, changeRevision и catalogSeeded. Первое чтение создаёт начальные настройки аккаунта.
