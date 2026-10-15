@@ -3,24 +3,24 @@
     "screen": "nutrition-desktop",
     "overflow": [],
     "overlaps": [],
-    "texts": 83,
+    "texts": 130,
     "images": 0,
-    "panels": 7,
+    "panels": 10,
     "fontLoaded": true,
     "structural": true,
-    "minTextContrast": 5.16,
+    "minTextContrast": 4.79,
     "lowContrast": []
   },
   {
     "screen": "nutrition-states",
     "overflow": [],
     "overlaps": [],
-    "texts": 87,
+    "texts": 110,
     "images": 0,
-    "panels": 12,
+    "panels": 15,
     "fontLoaded": true,
     "structural": true,
-    "minTextContrast": 5.16,
+    "minTextContrast": 4.79,
     "lowContrast": []
   }
 ]

@@ -1,31 +1,66 @@
 module.exports=({sheet,C,statusPanels})=>{
-  const s=sheet('nutrition','Питание','Дневник выбранного дня и ваш каталог продуктов',1280);
+  // Synthetic saved product snapshots; each chart uses the same portions as the diary.
+  const entries=[
+    {meal:'Завтрак',name:'Овсяная смесь',grams:100,snapshot:{kcal:420,protein:14,fat:12,carbs:64}},
+    {meal:'Обед',name:'Обеденный набор',grams:250,snapshot:{kcal:244,protein:12.8,fat:10.4,carbs:24.8}},
+    {meal:'Перекус',name:'Йогуртовая смесь',grams:100,snapshot:{kcal:170,protein:12,fat:6,carbs:17}},
+    {meal:'Ужин',name:'Овощной набор',grams:300,snapshot:{kcal:160,protein:10,fat:20/3,carbs:15}},
+  ];
+  const keys=['kcal','protein','fat','carbs'];
+  const portions=entries.map(entry=>({...entry,values:Object.fromEntries(keys.map(key=>[key,entry.snapshot[key]*entry.grams/100]))}));
+  const totals=Object.fromEntries(keys.map(key=>[key,portions.reduce((sum,entry)=>sum+entry.values[key],0)]));
+  const amount=value=>value.toLocaleString('ru-RU',{maximumFractionDigits:1});
+  const macros=[
+    {key:'protein',label:'Белки',color:C.accent,soft:C.soft,shape:'M24 5C16 5 9 20 9 29a15 14 0 0 0 30 0C39 20 32 5 24 5Z M30 29a6 6 0 1 1-12 0 6 6 0 1 1 12 0'},
+    {key:'fat',label:'Жиры',color:C.pink,soft:'#FCECF4',shape:'M24 5C19 13 10 22 10 30a14 14 0 0 0 28 0C38 22 29 13 24 5Z M17 30c0 4 3 7 7 7'},
+    {key:'carbs',label:'Углеводы',color:C.blue,soft:'#E7F5FA',shape:'M24 43V7 M24 17C12 17 11 10 12 6c8 0 12 4 12 11Z M24 28C12 28 11 21 12 17c8 0 12 4 12 11Z M24 39C12 39 11 32 12 28c8 0 12 4 12 11Z M24 22C36 22 37 15 36 11c-8 0-12 4-12 11Z M24 33C36 33 37 26 36 22c-8 0-12 4-12 11Z'},
+  ];
+  const s=sheet('nutrition','Питание','Дневник выбранного дня и ваш каталог продуктов',1660);
   s.btn(1160,86,240,'15 октября 2026 · Чт');
   let p=s.panel('Итоги',272,168,1128,158,'За выбранный день','Дневник ещё не завершён');
-  p.t(24,116,'1 680',36,C.ink,700);p.t(132,116,'ккал',14,C.muted);
+  p.t(24,116,amount(totals.kcal),36,C.ink,700);p.t(132,116,'ккал',14,C.muted);
   p.t(260,95,'ЦЕЛЬ',11,C.muted,600);p.t(260,124,'2 100 ккал',20,C.accent,600);
-  p.t(484,95,'Б / Ж / У',11,C.muted,600);p.t(484,124,'88 / 64 / 188 г',20,C.ink,600);
+  p.t(484,95,'Б / Ж / У',11,C.muted,600);p.t(484,124,macros.map(m=>amount(totals[m.key])).join(' / ')+' г',20,C.ink,600);
   p.t(756,95,'ОЦЕНКА РАСХОДА',11,C.muted,600);p.t(756,124,'Нет оценки',20,C.ink,600);p.end();
-  p=s.panel('Дневник питания',272,350,744,526,'Записи дня','4 приёма пищи · суммы по записанным продуктам');
-  [['Завтрак','Овсяная смесь · 100 г','420'],['Обед','Обеденный набор · 250 г','610'],['Перекус','Йогуртовая смесь · 100 г','170'],['Ужин','Овощной набор · 300 г','480']].forEach(([meal,food,kcal],i)=>{
-    const y=104+i*88;p.t(24,y,meal,14,C.accent,600);p.t(24,y+26,food,15,C.ink,500);
-    p.t(420,y+10,kcal+' ккал',17,C.ink,600);p.t(572,y+10,'Изменить',13,C.accent,500);p.t(650,y+10,'Удалить',13,C.danger);
-    p.rule(y+48);
+  macros.forEach((macro,index)=>{
+    const x=272+384*index;
+    p=s.panel('График: '+macro.label,x,350,360,330,macro.label);
+    p.rect(288,20,48,48,macro.soft,16);
+    p.raw('<svg x="'+(x+296)+'" y="378" width="32" height="32" viewBox="0 0 48 48" aria-hidden="true"><path d="'+macro.shape+'" fill="none" stroke="'+macro.color+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+    p.t(24,104,amount(totals[macro.key])+' г',36,macro.color,700);
+    p.t(24,132,'Съедено по внесённым записям',13,C.muted);
+    portions.forEach((entry,i)=>{
+      const y=158+i*32,value=entry.values[macro.key];
+      p.t(24,y+9,entry.meal,12,C.muted);
+      p.rect(100,y,186,10,macro.soft,5);
+      p.rect(100,y,186*value/80,10,macro.color,5,'data-macro="'+macro.key+'" data-grams="'+value+'"');
+      p.t(336,y+9,amount(value),12,C.ink,500,'text-anchor="end"');
+    });
+    [0,40,80].forEach(tick=>p.t(100+186*tick/80,296,tick+(tick===80?' г':''),11,C.muted,400,'text-anchor="middle"'));
+    p.end();
+  });
+  s.text(272,708,'БЖУ рассчитаны по продуктам и массе порций за 15 октября. Дневник ещё не завершён.',13,C.muted);
+  p=s.panel('Дневник питания',272,730,744,526,'Записи дня','4 приёма пищи · суммы по записанным продуктам');
+  portions.forEach((entry,i)=>{
+    const y=104+i*88;p.t(24,y,entry.meal,14,C.accent,600);p.t(24,y+26,entry.name+' · '+entry.grams+' г',15,C.ink,500);
+    p.t(24,y+50,'Б '+amount(entry.values.protein)+' · Ж '+amount(entry.values.fat)+' · У '+amount(entry.values.carbs)+' г',12,C.muted);
+    p.t(420,y+10,amount(entry.values.kcal)+' ккал',17,C.ink,600);p.t(572,y+10,'Изменить',13,C.accent,500);p.t(650,y+10,'Удалить',13,C.danger);
+    p.rule(y+64);
   });
   p.check(476,'Дневник питания за день завершён',false);p.end();
-  p=s.panel('Запись еды',1040,350,360,526,'Добавить еду','На 15 октября 2026');
+  p=s.panel('Запись еды',1040,730,360,526,'Добавить еду','На 15 октября 2026');
   p.field(102,'Продукт для записи','Выберите продукт  ▾');p.field(180,'Приём пищи','Завтрак  ▾');
   p.field(258,'Масса порции, г','100');p.field(336,'Комментарий (необязательно)','Например, домашний рецепт');
   p.btn(424,'Добавить еду',true);p.t(24,498,'Нет продукта? Создайте его в каталоге.',12,C.muted);p.end();
-  p=s.panel('Каталог',272,900,744,304,'Каталог продуктов','Правка каталога не меняет прежние записи еды');
+  p=s.panel('Каталог',272,1280,744,304,'Каталог продуктов','Правка каталога не меняет прежние записи еды');
   p.field(100,'Поиск продукта','Название продукта',352);p.check(137,'Показать архив',false,432);
   p.t(24,196,'Овсяная смесь',15,C.ink,600);p.t(24,220,'420 ккал / 100 г · Б 14 · Ж 12 · У 64 г',13,C.muted);
   p.t(472,196,'Править',13,C.accent);p.t(568,196,'Архивировать',13,C.accent);
   p.btn(244,'+ Новый продукт',false,false,330);p.btn(244,'Учебные примеры',false,false,330,390);p.end();
-  p=s.panel('Копирование',1040,900,360,304,'Копировать приём');
+  p=s.panel('Копирование',1040,1280,360,304,'Копировать приём');
   p.field(88,'Приём пищи','Завтрак  ▾');p.field(166,'Дата копии','14.10.2026');
   p.btn(236,'Копировать приём');p.end();
-  const f=sheet('nutrition','Питание / формы и состояния','Редакторы и состояния для реализации Desktop',1632,true);
+  const f=sheet('nutrition','Питание / формы и состояния','Редакторы и состояния для реализации Desktop',1968,true);
   p=f.panel('Правка еды',48,168,432,566,'Редактировать запись','Снимок продукта: овсяная смесь');
   p.field(102,'Дата записи еды','15.10.2026');p.field(180,'Приём пищи','Завтрак  ▾');
   p.field(258,'Масса порции, г','100');p.field(336,'Комментарий (необязательно)','Синтетический пример');
@@ -60,5 +95,18 @@ module.exports=({sheet,C,statusPanels})=>{
   p.check(84,'Дневник питания за день завершён',true);
   p.lines(118,['Если день не завершён, итог еды предварительный. Калорийная цель не равна расходу.',
     'Разница с целью не оценивается как «хорошо» или «плохо». Нет оценки расхода — нет числового энергобаланса.']);p.end();
+  p=f.panel('БЖУ: частичные данные',48,1558,432,334,'Белки: нет данных','Пример: белки в обеде не заполнены');
+  p.t(24,112,'Завтрак 14 · Обед — · Перекус 12 · Ужин 30 г',13,C.muted);
+  p.rect(24,138,384,46,'#F6F8FA',12);p.t(40,167,'Дневной итог белков неизвестен',14,C.ink,500);
+  p.lines(222,['Жиры: 64 г · Углеводы: 188 г.','Их графики остаются доступными.','Неизвестные белки не заменяются нулём.']);p.end();
+  p=f.panel('БЖУ: пустой неполный день',504,1558,432,334,'Пока нет записей еды');
+  p.lines(92,['Белки: нет данных','Жиры: нет данных','Углеводы: нет данных']);
+  p.rule(174);p.lines(214,['Графики появятся после добавления еды.','Нет записей ещё не означает,','что за день ничего не съедено.']);p.end();
+  p=f.panel('БЖУ: известный ноль',960,1558,432,334,'Вся еда внесена · записей нет');
+  macros.forEach((macro,i)=>{
+    const y=94+i*48;p.t(24,y,macro.label,14,C.muted);p.t(384,y,'0 г',16,macro.color,600,'text-anchor="end"');
+    p.rect(150,y-10,174,8,macro.soft,4);
+  });
+  p.rule(222);p.lines(262,['Итог: 0 г каждого макронутриента.','Нулевые полосы не имеют заполнения.']);p.end();
   return [s,f];
 };

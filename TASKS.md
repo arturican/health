@@ -300,6 +300,7 @@ Desktop-концепт по новому референсу; следующим 
 | [T140](docs/tasks/T140.md) | done | Desktop: документы и состояния | T139 |
 | [T141](docs/tasks/T141.md) | done | Desktop: профиль и состояния | T140 |
 | [T142](docs/tasks/T142.md) | done | Desktop: настройки и состояния | T141 |
+| [T143](docs/tasks/T143.md) | done | Desktop: пиктограммы и графики БЖУ в питании | T142 |
 
 ## Последующие изменения
 
