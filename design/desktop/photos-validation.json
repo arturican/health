@@ -1,0 +1,26 @@
+[
+  {
+    "screen": "photos-desktop",
+    "overflow": [],
+    "overlaps": [],
+    "texts": 63,
+    "images": 0,
+    "panels": 5,
+    "fontLoaded": true,
+    "structural": true,
+    "minTextContrast": 5.11,
+    "lowContrast": []
+  },
+  {
+    "screen": "photos-states",
+    "overflow": [],
+    "overlaps": [],
+    "texts": 70,
+    "images": 0,
+    "panels": 12,
+    "fontLoaded": true,
+    "structural": true,
+    "minTextContrast": 5.16,
+    "lowContrast": []
+  }
+]
