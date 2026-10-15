@@ -29,7 +29,11 @@ export function FoodJournal() {
   }
   return (
     <>
+      <div className="food-layout">
+      <div className="food-editor">
       {editing ? <FoodForm {...formProps} key={editing.id} entry={editing} focusVersion={focusVersion} onCancel={finishEditing} onSaved={() => { finishEditing(); setNotice('Запись еды изменена') }} /> : <FoodForm {...formProps} key="new" focusVersion={focusVersion} onSaved={() => { setNotice(null); action.reset() }} />}
+      </div>
+      <section className="card food-records" aria-label="Дневник питания">
       <h2>Записи выбранного дня</h2>
       {entries === undefined ? <p role="status">Загружаем еду…</p> : entries.length === 0 ? <p>За этот день нет записей еды.</p> : <ul className="record-list" aria-label="Еда выбранного дня">
         {entries.map((entry, index) => {
@@ -57,6 +61,8 @@ export function FoodJournal() {
         }, 'Запись еды удалена')
       }} />}</div>
       <Feedback error={action.error} message={editing ? null : notice ?? action.message} />
+      </section>
+      </div>
       {entries && <CopyMealForm entries={entries} />}
     </>
   )

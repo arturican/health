@@ -23,8 +23,11 @@ export function ProductCatalog() {
   const formProps = { disabled: action.pending, onPendingChange: setFormPending }
   const filtered = products?.filter(product => (showArchived || !product.archived) && product.name.toLocaleLowerCase('ru-RU').includes(search.trim().toLocaleLowerCase('ru-RU')))
   return (
-    <>
+    <div className="catalog-layout">
+      <div className="catalog-editor">
       {editing ? <ProductForm {...formProps} key={editing.id} product={editing} onSaved={() => { setEditing(null); setNotice('Продукт обновлён') }} onCancel={() => { setEditing(null) }} /> : <ProductForm {...formProps} key="new" />}
+      </div>
+      <section className="card catalog-records" aria-label="Справочник продуктов">
       <h2>Каталог продуктов</h2>
       <div className="form-grid">
         <Field label="Поиск продукта" value={search} onChange={event => { setSearch(event.target.value) }} />
@@ -53,6 +56,7 @@ export function ProductCatalog() {
       )}
       <p>Изменение справочника не меняет снимки в ранее сохранённых записях еды.</p>
       <Feedback error={action.error} message={editing ? null : notice ?? action.message} />
-    </>
+      </section>
+    </div>
   )
 }

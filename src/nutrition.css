@@ -1,0 +1,20 @@
+.nutrition-page > .macro-charts { margin-top: 24px; }
+.nutrition-overview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 24px; align-items: start; margin: 24px 0; }
+.nutrition-overview > .card { margin: 0; }
+.nutrition-overview .nutrition-summary > p:nth-of-type(2) { font-size: 28px; font-weight: 700; }
+.food-layout, .catalog-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; align-items: start; margin: 24px 0; }
+.food-editor, .catalog-editor { grid-column: 2; grid-row: 1; min-width: 0; padding: 24px; border-radius: 20px; background: var(--surface); }
+.nutrition-page .food-editor h2, .nutrition-page .catalog-editor h2 { margin-top: 0; }
+.food-records, .catalog-records { grid-column: 1; grid-row: 1; min-width: 0; }
+.nutrition-page .food-layout .card, .nutrition-page .catalog-layout .card { margin: 0; }
+.nutrition-page .food-editor .form-grid, .nutrition-page .catalog-editor .form-grid { grid-template-columns: minmax(0, 1fr); padding: 0; border: 0; margin-bottom: 0; }
+.nutrition-page .catalog-records .form-grid { padding: 0; border: 0; }
+.nutrition-page .record-list { margin: 20px 0; }
+.nutrition-page .record-list > li { padding: 18px 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
+.nutrition-page .record-list p { font-size: 13px; color: var(--muted); }
+.nutrition-page .record-list .actions { gap: 8px; }
+@media (max-width: 1199px) {
+  .nutrition-overview, .food-layout, .catalog-layout { grid-template-columns: minmax(0, 1fr); }
+  .food-editor, .catalog-editor, .food-records, .catalog-records { grid-column: auto; grid-row: auto; }
+}
+@media (max-width: 767px) { .nutrition-overview, .food-layout, .catalog-layout { gap: 16px; } }

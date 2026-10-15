@@ -1,6 +1,6 @@
 .macro-charts > p { color: var(--muted); font-size: 14px; }
 .macro-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
-.macro-card { padding: 20px; border: 1px solid var(--border); border-radius: 16px; min-width: 0; }
+.macro-card { padding: 20px; border: 1px solid var(--line); border-radius: 16px; min-width: 0; }
 .macro-protein { --macro-color: #560BAD; --macro-soft: #F2EBFC; }
 .macro-fat { --macro-color: #996000; --macro-soft: #FFF4DD; }
 .macro-carbs { --macro-color: #007BA6; --macro-soft: #E5F4FA; }
