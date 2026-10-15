@@ -7,7 +7,7 @@ import '../chart.css'
 function amount(value: number) { return String(value).replace('.', ',') }
 function dateLabel(value: string) { return value.split('-').reverse().join('.') }
 
-export function WeightChart({ weights }: { weights: readonly Weight[] }) {
+export function WeightChart({ weights, historyLink = false }: { weights: readonly Weight[]; historyLink?: boolean }) {
   const title = useId()
   const description = useId()
   const hint = useId()
@@ -56,7 +56,7 @@ export function WeightChart({ weights }: { weights: readonly Weight[] }) {
         </div>
         <div className="chart-canvas">
           <svg className="weight-chart" viewBox="0 0 600 240" preserveAspectRatio="none" role="img" aria-labelledby={title} aria-describedby={description}>
-            <desc id={description}>Измерения от {dateLabel(first.date)} до {dateLabel(last.date)}; диапазон {amount(plot.minimum)}–{amount(plot.maximum)} кг. Все числа доступны в истории измерений ниже.</desc>
+            <desc id={description}>Измерения от {dateLabel(first.date)} до {dateLabel(last.date)}; диапазон {amount(plot.minimum)}–{amount(plot.maximum)} кг. Все числа доступны в истории измерений{historyLink ? ' в разделе «Вес».' : ' ниже.'}</desc>
             <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1a73e8" stopOpacity="0.16" /><stop offset="100%" stopColor="#1a73e8" stopOpacity="0.01" /></linearGradient></defs>
             {[40, 80, 120, 160, 200].map(y => <path key={y} d={`M40 ${String(y)}H560`} className="chart-grid-line" />)}
             {[40, 170, 300, 430, 560].map(x => <path key={x} d={`M${String(x)} 40V200`} className="chart-grid-line chart-grid-vertical" />)}
@@ -83,7 +83,7 @@ export function WeightChart({ weights }: { weights: readonly Weight[] }) {
       <p>Период: {dateLabel(first.date)} — {dateLabel(last.date)}.</p>
       <p>Диапазон шкалы: {amount(plot.minimum)}–{amount(plot.maximum)} кг. Шкала адаптирована к измерениям и может не начинаться с нуля.</p>
       <p>Горизонтальные интервалы соответствуют календарным дням. Между точками проведена линия; измерений в пропущенные дни нет.</p>
-      <p>Все даты и значения доступны в списке «История веса» ниже. График показывает записи, без оценки состояния здоровья.</p>
+      <p>Все даты и значения доступны {historyLink ? <a href="#weight">в истории веса</a> : 'в списке «История веса» ниже'}. График показывает записи, без оценки состояния здоровья.</p>
     </>}
   </section>
 }

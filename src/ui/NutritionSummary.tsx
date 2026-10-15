@@ -5,6 +5,7 @@ import { getNutritionDay, setNutritionDay } from '../data/nutritionRepository'
 import { foodTotals } from '../domain/nutrition'
 import { useDay } from './DayContext'
 import { Feedback, useAction } from './actions'
+import { Icon } from './Icon'
 
 function amount(value: number | null, unit: string) {
   return value === null ? 'нет данных' : `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} ${unit}`
@@ -27,8 +28,8 @@ export function NutritionSummary() {
     if (savedDay === day) checkbox.current?.focus()
   }, [action.pending, action.error, action.message, day])
   return (
-    <section className="card" aria-labelledby={title}>
-      <h2 id={title}>Итоги питания</h2>
+    <section className="card nutrition-summary" aria-labelledby={title}>
+      <h2 id={title}><Icon name="nutrition" /> Итоги питания</h2>
       {totals === null ? <p role="status">Загружаем итоги…</p> : (
         <>
           <p>{complete ? 'Вся еда за день внесена.' : 'Дневник питания неполный. Учтены только внесённые записи.'}</p>

@@ -26,6 +26,8 @@ it('собирает сводку из сохранённых данных и п
   ])
   render(<DayProvider><DayPicker /><TodayPage /></DayProvider>)
   expect(await screen.findByText('75 кг, измерено 14.10.2026.')).toBeVisible()
+  const chart = within(screen.getByRole('region', { name: 'График веса' }))
+  expect(chart.getAllByRole('option')).toHaveLength(2)
   expect(screen.queryByRole('link', { name: 'Заполнить профиль' })).not.toBeInTheDocument()
   expect(await screen.findByText('Шаги: 0.')).toBeVisible()
   const activity = within(screen.getByRole('region', { name: 'Активность за день' }))
@@ -34,6 +36,7 @@ it('собирает сводку из сохранённых данных и п
   fireEvent.change(screen.getByLabelText('День дневника'), { target: { value: '2026-10-13' } })
   fireEvent.click(screen.getByRole('button', { name: 'Открыть день' }))
   expect(await screen.findByText('72 кг, измерено 12.10.2026.')).toBeVisible()
+  expect(chart.getAllByRole('option')).toHaveLength(1)
   expect(await activity.findByText('Шаги: нет данных.')).toBeVisible()
   expect(activity.queryByRole('list', { name: 'Сводка тренировок' })).not.toBeInTheDocument()
   expect(within(screen.getByRole('region', { name: 'ИМТ (справочно)' })).getByText('22,2')).toBeVisible()
@@ -42,6 +45,19 @@ it('собирает сводку из сохранённых данных и п
   expect(await screen.findByText('Нет измерений не позже выбранного дня.')).toBeVisible()
   expect(screen.getByText('Нужны рост в профиле и измерение веса не позже даты оценки.')).toBeVisible()
   expect(await db.weights.count()).toBe(2)
+})
+
+it('группирует сохранённые порции по приёмам пищи без подстановки нуля в пустой приём', async () => {
+  await db.foodEntries.bulkAdd([
+    { id: crypto.randomUUID(), date: '2026-10-14', meal: 'breakfast', grams: 150, productId: null, note: '', snapshot: { name: 'Демо A', source: '', kcal: 200, protein: null, fat: null, carbs: null } },
+    { id: crypto.randomUUID(), date: '2026-10-14', meal: 'dinner', grams: 100, productId: null, note: '', snapshot: { name: 'Демо B', source: '', kcal: 0, protein: 0, fat: 0, carbs: 0 } },
+  ])
+  render(<DayProvider><TodayPage /></DayProvider>)
+  const meals = within(screen.getByRole('region', { name: 'Питание за день' }))
+  expect(await meals.findByText('300 ккал')).toBeVisible()
+  expect(meals.getByText('0 ккал')).toBeVisible()
+  expect(meals.getAllByText('нет записей')).toHaveLength(2)
+  expect(meals.getByRole('meter', { name: 'Завтрак: доля записанных калорий' })).toHaveAttribute('value', '300')
 })
 
 it('сохраняет точность введённых веса и длительности в сводке, не превращая малое значение в ноль', async () => {
