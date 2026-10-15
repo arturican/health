@@ -17,11 +17,14 @@ export function ProductCatalog() {
   const [search, setSearch] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [formPending, setFormPending] = useState(false)
   const action = useAction()
+  const busy = action.pending || formPending
+  const formProps = { disabled: action.pending, onPendingChange: setFormPending }
   const filtered = products?.filter(product => (showArchived || !product.archived) && product.name.toLocaleLowerCase('ru-RU').includes(search.trim().toLocaleLowerCase('ru-RU')))
   return (
     <>
-      {editing ? <ProductForm key={editing.id} product={editing} onSaved={() => { setEditing(null); setNotice('Продукт обновлён') }} onCancel={() => { setEditing(null) }} /> : <ProductForm key="new" />}
+      {editing ? <ProductForm {...formProps} key={editing.id} product={editing} onSaved={() => { setEditing(null); setNotice('Продукт обновлён') }} onCancel={() => { setEditing(null) }} /> : <ProductForm {...formProps} key="new" />}
       <h2>Каталог продуктов</h2>
       <div className="form-grid">
         <Field label="Поиск продукта" value={search} onChange={event => { setSearch(event.target.value) }} />
@@ -38,8 +41,8 @@ export function ProductCatalog() {
                 <p>Источник: {product.source || 'не указан'}</p>
               </div>
               <div className="actions">
-                <button type="button" className="secondary" disabled={action.pending} aria-label={`Править продукт ${product.name}`} onClick={() => { setEditing(product); setNotice(null) }}>Править</button>
-                <button type="button" className="secondary" disabled={action.pending} aria-label={`${product.archived ? 'Вернуть' : 'Архивировать'} продукт ${product.name}`} onClick={() => {
+                <button type="button" className="secondary" disabled={busy} aria-label={`Править продукт ${product.name}`} onClick={() => { setEditing(product); setNotice(null) }}>Править</button>
+                <button type="button" className="secondary" disabled={busy} aria-label={`${product.archived ? 'Вернуть' : 'Архивировать'} продукт ${product.name}`} onClick={() => {
                   setNotice(null)
                   action.run(() => archiveProduct(product.id, !product.archived), product.archived ? 'Продукт возвращён из архива' : 'Продукт перемещён в архив')
                 }}>{product.archived ? 'Вернуть' : 'Архивировать'}</button>
@@ -49,7 +52,7 @@ export function ProductCatalog() {
         </>
       )}
       <p>Изменение справочника не меняет снимки в ранее сохранённых записях еды.</p>
-      {!editing && <Feedback error={action.error} message={notice ?? action.message} />}
+      <Feedback error={action.error} message={editing ? null : notice ?? action.message} />
     </>
   )
 }

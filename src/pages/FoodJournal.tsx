@@ -17,7 +17,10 @@ export function FoodJournal() {
   const [deleting, setDeleting] = useState<FoodEntry | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [focusVersion, setFocusVersion] = useState(0)
+  const [formPending, setFormPending] = useState(false)
   const action = useAction()
+  const busy = action.pending || formPending
+  const formProps = { disabled: action.pending, onPendingChange: setFormPending }
   const dialog = useRef<HTMLDivElement>(null)
   useEffect(() => { if (action.error && deleting) dialog.current?.querySelector<HTMLButtonElement>('button')?.focus() }, [action.error, deleting])
   function finishEditing() {
@@ -26,7 +29,7 @@ export function FoodJournal() {
   }
   return (
     <>
-      {editing ? <FoodForm key={editing.id} entry={editing} focusVersion={focusVersion} onCancel={finishEditing} onSaved={() => { finishEditing(); setNotice('Запись еды изменена') }} /> : <FoodForm key="new" focusVersion={focusVersion} onSaved={() => { setNotice(null); action.reset() }} />}
+      {editing ? <FoodForm {...formProps} key={editing.id} entry={editing} focusVersion={focusVersion} onCancel={finishEditing} onSaved={() => { finishEditing(); setNotice('Запись еды изменена') }} /> : <FoodForm {...formProps} key="new" focusVersion={focusVersion} onSaved={() => { setNotice(null); action.reset() }} />}
       <h2>Записи выбранного дня</h2>
       {entries === undefined ? <p role="status">Загружаем еду…</p> : entries.length === 0 ? <p>За этот день нет записей еды.</p> : <ul className="record-list" aria-label="Еда выбранного дня">
         {entries.map((entry, index) => {
@@ -39,16 +42,21 @@ export function FoodJournal() {
               {entry.note && <p>{entry.note}</p>}
             </div>
             <div className="actions">
-              <button type="button" className="secondary" disabled={action.pending} aria-label={`Изменить запись еды ${String(index + 1)}: ${entry.snapshot.name}`} onClick={() => { action.reset(); setEditing(entry); setFocusVersion(value => value + 1); setNotice(null) }}>Изменить</button>
-              <button type="button" className="secondary" disabled={action.pending} aria-label={`Удалить запись еды ${String(index + 1)}: ${entry.snapshot.name}`} onClick={() => { action.reset(); setDeleting(entry); setNotice(null) }}>Удалить</button>
+              <button type="button" className="secondary" disabled={busy} aria-label={`Изменить запись еды ${String(index + 1)}: ${entry.snapshot.name}`} onClick={() => { action.reset(); setEditing(entry); setFocusVersion(value => value + 1); setNotice(null) }}>Изменить</button>
+              <button type="button" className="secondary" disabled={busy} aria-label={`Удалить запись еды ${String(index + 1)}: ${entry.snapshot.name}`} onClick={() => { action.reset(); setDeleting(entry); setNotice(null) }}>Удалить</button>
             </div>
           </li>
         })}
       </ul>}
-      <div ref={dialog}>{deleting && <Confirmation question={`Удалить запись «${deleting.snapshot.name}» за ${deleting.date.split('-').reverse().join('.')}?`} pending={action.pending} onCancel={() => { setDeleting(null); action.reset() }} onConfirm={() => {
-        action.run(async () => { await deleteFood(deleting.id); setDeleting(null); finishEditing() }, 'Запись еды удалена')
+      <div ref={dialog}>{deleting && <Confirmation question={`Удалить запись «${deleting.snapshot.name}» за ${deleting.date.split('-').reverse().join('.')}?`} pending={busy} onCancel={() => { setDeleting(null); action.reset() }} onConfirm={() => {
+        action.run(async () => {
+          await deleteFood(deleting.id)
+          setDeleting(null)
+          if (!editing || editing.id === deleting.id) finishEditing()
+          else setFocusVersion(value => value + 1)
+        }, 'Запись еды удалена')
       }} />}</div>
-      {!editing && <Feedback error={action.error} message={notice ?? action.message} />}
+      <Feedback error={action.error} message={editing ? null : notice ?? action.message} />
       {entries && <CopyMealForm entries={entries} />}
     </>
   )

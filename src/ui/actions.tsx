@@ -21,7 +21,7 @@ export function readField<T>(form: FormData, name: string, reader: (value: strin
   }
 }
 
-export function useAction() {
+export function useAction(onPendingChange?: (pending: boolean) => void) {
   const [status, setStatus] = useState<ActionStatus>({ pending: false, error: null, message: null })
   const busy = useRef(false)
 
@@ -29,12 +29,14 @@ export function useAction() {
     if (busy.current) return
     busy.current = true
     setStatus({ pending: true, error: null, message: null })
+    onPendingChange?.(true)
     void Promise.resolve().then(task).then(() => {
       setStatus({ pending: false, error: null, message })
     }).catch((reason: unknown) => {
       setStatus({ pending: false, error: reason instanceof Error && reason.name === 'Error' ? reason.message : 'Не удалось выполнить действие', message: null })
     }).finally(() => {
       busy.current = false
+      onPendingChange?.(false)
     })
   }
 

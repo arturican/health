@@ -12,10 +12,13 @@ interface ProductFormProps {
   product?: Product
   onSaved?: () => void
   onCancel?: () => void
+  disabled?: boolean
+  onPendingChange?: (pending: boolean) => void
 }
 
-export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
-  const action = useAction()
+export function ProductForm({ product, onSaved, onCancel, disabled = false, onPendingChange }: ProductFormProps) {
+  const action = useAction(onPendingChange)
+  const busy = disabled || action.pending
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [revision, setRevision] = useState(0)
 
@@ -47,8 +50,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   return (
     <>
       <h2>{product ? 'Редактирование продукта' : 'Новый продукт'}</h2>
-      <form key={revision} className="form-grid" aria-label={product ? 'Редактирование продукта' : 'Новый продукт'} noValidate onSubmit={submit} aria-busy={action.pending}>
-        <fieldset disabled={action.pending}>
+      <form key={revision} className="form-grid" aria-label={product ? 'Редактирование продукта' : 'Новый продукт'} noValidate onSubmit={submit} aria-busy={busy}>
+        <fieldset disabled={busy}>
           <legend>Значения на 100 г продукта</legend>
           <Field label="Название продукта" name="name" maxLength={120} defaultValue={product?.name ?? ''} required error={errors['name']} />
           <Field label="Калории на 100 г, ккал" name="kcal" inputMode="decimal" defaultValue={product?.kcal ?? ''} required error={errors['kcal']} />
@@ -57,8 +60,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         </fieldset>
         <p>Перенесите данные с этикетки. Пустое поле БЖУ означает «неизвестно», а 0 — известный ноль.</p>
         {Object.keys(errors).length > 0 && <p role="alert">Проверьте отмеченные поля.</p>}
-        <button type="submit" disabled={action.pending}>{action.pending ? 'Сохраняем…' : 'Сохранить продукт'}</button>
-        {onCancel && <button type="button" className="secondary" disabled={action.pending} onClick={onCancel}>Отменить правку продукта</button>}
+        <button type="submit" disabled={busy}>{action.pending ? 'Сохраняем…' : 'Сохранить продукт'}</button>
+        {onCancel && <button type="button" className="secondary" disabled={busy} onClick={onCancel}>Отменить правку продукта</button>}
       </form>
       <Feedback error={Object.keys(errors).length > 0 ? null : action.error} message={Object.keys(errors).length > 0 ? null : action.message} />
     </>

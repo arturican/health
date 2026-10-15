@@ -9,26 +9,30 @@ import { Field, SelectField } from '../ui/Field'
 import { Feedback, readField, useAction } from '../ui/actions'
 import { useDay } from '../ui/DayContext'
 
-interface FoodFormProps { entry?: FoodEntry; onSaved?: () => void; onCancel?: () => void; focusVersion?: number }
+interface FoodFormProps {
+  entry?: FoodEntry; onSaved?: () => void; onCancel?: () => void; focusVersion?: number
+  disabled?: boolean; onPendingChange?: (pending: boolean) => void
+}
 
-export function FoodForm({ entry, onSaved, onCancel, focusVersion = 0 }: FoodFormProps) {
+export function FoodForm({ entry, onSaved, onCancel, focusVersion = 0, disabled = false, onPendingChange }: FoodFormProps) {
   const { day } = useDay()
   const result = useLiveQuery(async () => ({ day, products: await listProducts(), entries: await listFood(day) }), [day])
   const data = result?.day === day ? result : undefined
   const [revision, setRevision] = useState(0)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const action = useAction()
+  const action = useAction(onPendingChange)
+  const busy = disabled || action.pending
   const formRef = useRef<HTMLFormElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const focusAfterSave = useRef(false)
   const handledFocus = useRef(0)
   useEffect(() => {
-    if (!data || action.pending || (!focusAfterSave.current && (focusVersion === 0 || handledFocus.current === focusVersion))) return
+    if (!data || busy || (!focusAfterSave.current && (focusVersion === 0 || handledFocus.current === focusVersion))) return
     const target = formRef.current?.querySelector<HTMLElement>(entry ? '[name="date"]' : '[name="productId"]') ?? titleRef.current
     target?.focus()
     focusAfterSave.current = false
     handledFocus.current = focusVersion
-  }, [data, action.pending, revision, focusVersion, entry])
+  }, [data, busy, revision, focusVersion, entry])
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
@@ -64,8 +68,8 @@ export function FoodForm({ entry, onSaved, onCancel, focusVersion = 0 }: FoodFor
         <>
           {!entry && <p>Записей еды: {data.entries.length}</p>}
           {data.products.length === 0 && !entry ? <p>Сначала добавьте активный продукт в каталог ниже.</p> : (
-            <form key={revision} ref={formRef} className="form-grid" aria-label={entry ? 'Редактирование еды' : 'Добавление еды'} noValidate onSubmit={submit} aria-busy={action.pending}>
-              <fieldset disabled={action.pending}>
+            <form key={revision} ref={formRef} className="form-grid" aria-label={entry ? 'Редактирование еды' : 'Добавление еды'} noValidate onSubmit={submit} aria-busy={busy}>
+              <fieldset disabled={busy}>
                 <legend>Продукт и порция</legend>
                 {entry ? <>
                   <p>Продукт: {entry.snapshot.name}. Снимок записи сохраняется.</p>
@@ -81,8 +85,8 @@ export function FoodForm({ entry, onSaved, onCancel, focusVersion = 0 }: FoodFor
                 <Field label="Комментарий к еде (необязательно)" name="note" maxLength={500} defaultValue={entry?.note ?? ''} error={errors['note']} />
               </fieldset>
               {Object.keys(errors).length > 0 && <p role="alert">Проверьте отмеченные поля.</p>}
-              <button type="submit" disabled={action.pending}>{action.pending ? 'Сохраняем…' : entry ? 'Сохранить запись еды' : 'Добавить еду'}</button>
-              {onCancel && <button type="button" className="secondary" disabled={action.pending} onClick={onCancel}>Отменить правку еды</button>}
+              <button type="submit" disabled={busy}>{action.pending ? 'Сохраняем…' : entry ? 'Сохранить запись еды' : 'Добавить еду'}</button>
+              {onCancel && <button type="button" className="secondary" disabled={busy} onClick={onCancel}>Отменить правку еды</button>}
             </form>
           )}
         </>

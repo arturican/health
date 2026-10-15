@@ -81,6 +81,91 @@ describe('Чтение поля формы', () => {
 })
 
 describe('useAction', () => {
+  it('синхронно блокирует внешние действия до запуска задачи и разблокирует их после успеха', async () => {
+    const onPendingChange = vi.fn<(pending: boolean) => void>()
+    const pending = pendingTask()
+    const { result } = renderHook(() => useAction(onPendingChange))
+    expect(onPendingChange).not.toHaveBeenCalled()
+
+    act(() => {
+      result.current.run(pending.task, 'Синтетическая запись сохранена')
+      expect(onPendingChange.mock.calls).toEqual([[true]])
+      expect(pending.task).not.toHaveBeenCalled()
+    })
+    await waitFor(() => { expect(pending.task).toHaveBeenCalledTimes(1) })
+    expect(onPendingChange.mock.calls).toEqual([[true]])
+    act(() => { pending.complete() })
+    await waitFor(() => { expect(onPendingChange.mock.calls).toEqual([[true], [false]]) })
+    expect(result.current.message).toBe('Синтетическая запись сохранена')
+    expect(result.current.pending).toBe(false)
+  })
+
+  it('повторный запуск и reset не снимают внешнюю блокировку незавершённой задачи', async () => {
+    const onPendingChange = vi.fn<(pending: boolean) => void>()
+    const pending = pendingTask()
+    const duplicate = vi.fn<() => void>()
+    const { result } = renderHook(() => useAction(onPendingChange))
+    act(() => {
+      result.current.run(pending.task)
+      result.current.run(duplicate)
+      result.current.reset()
+      expect(onPendingChange.mock.calls).toEqual([[true]])
+    })
+    await waitFor(() => { expect(pending.task).toHaveBeenCalledTimes(1) })
+    act(() => { result.current.run(duplicate) })
+    expect(duplicate).not.toHaveBeenCalled()
+    expect(onPendingChange.mock.calls).toEqual([[true]])
+    expect(result.current.pending).toBe(true)
+
+    act(() => { pending.complete() })
+    await waitFor(() => { expect(onPendingChange.mock.calls).toEqual([[true], [false]]) })
+    const next = pendingTask()
+    act(() => {
+      result.current.run(next.task)
+      expect(onPendingChange.mock.calls).toEqual([[true], [false], [true]])
+    })
+    await waitFor(() => { expect(next.task).toHaveBeenCalledTimes(1) })
+    act(() => { result.current.run(duplicate) })
+    expect(duplicate).not.toHaveBeenCalled()
+    expect(onPendingChange.mock.calls).toEqual([[true], [false], [true]])
+    act(() => { next.complete() })
+    await waitFor(() => { expect(onPendingChange.mock.calls).toEqual([[true], [false], [true], [false]]) })
+  })
+
+  it.each(['синхронная', 'асинхронная'] as const)(
+    '%s ошибка снимает внешнюю блокировку и разрешает новую попытку', async kind => {
+      const onPendingChange = vi.fn<(pending: boolean) => void>()
+      const reason = new Error('Синтетическое сохранение не удалось')
+      const failure = vi.fn(() => {
+        if (kind === 'синхронная') throw reason
+        return Promise.reject(reason)
+      })
+      const { result } = renderHook(() => useAction(onPendingChange))
+      act(() => {
+        result.current.run(failure)
+        expect(onPendingChange.mock.calls).toEqual([[true]])
+        expect(failure).not.toHaveBeenCalled()
+      })
+      await waitFor(() => { expect(onPendingChange.mock.calls).toEqual([[true], [false]]) })
+      expect(failure).toHaveBeenCalledTimes(1)
+      expect(result.current.error).toBe(reason.message)
+      expect(result.current.pending).toBe(false)
+
+      const retry = pendingTask()
+      act(() => {
+        result.current.run(retry.task)
+        expect(onPendingChange.mock.calls).toEqual([[true], [false], [true]])
+      })
+      await waitFor(() => { expect(retry.task).toHaveBeenCalledTimes(1) })
+      expect(result.current.error).toBeNull()
+      expect(result.current.pending).toBe(true)
+      act(() => { retry.complete() })
+      await waitFor(() => { expect(onPendingChange.mock.calls).toEqual([[true], [false], [true], [false]]) })
+      expect(result.current.message).toBe('Сохранено')
+      expect(result.current.error).toBeNull()
+    },
+  )
+
   it('до первого действия не сообщает об ожидании, ошибке или успехе', () => {
     const { result } = renderHook(useAction)
 
