@@ -50,7 +50,7 @@ it('сохраняет возможность экспорта после имп
   expect((await save(2)).statusCode).toBe(200)
   expect((await save(3)).statusCode).toBe(200)
   expect((await download()).metadata).toHaveLength(BACKUP_MAX_RECORDS)
-})
+}, 15000) // Настоящий импорт и два экспорта 100 000 строк под coverage.
 
 it('полностью восстанавливает байты и связи, повторяется и сохраняет чужие одинаковые UUID', async () => {
   const backup = await fullBackupFixture(), confirmed = await confirmation()

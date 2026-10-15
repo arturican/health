@@ -8,6 +8,14 @@ import { ensureDiaryState, readChangeRevision } from './diaryState.js'
 import { DataError, inputValue } from './httpErrors.js'
 import { withUser } from './userTransaction.js'
 
+export function requireConfirmation(request: FastifyRequest) {
+  inputValue(() => {
+    entityId.parse(request.headers['idempotency-key'])
+    entityId.parse(request.headers['x-diary-generation'])
+    readChangeRevision(request.headers['x-diary-revision'])
+  })
+}
+
 export async function withCommand(pool: Pool, account: Account, request: FastifyRequest,
   work: (client: PoolClient) => Promise<unknown>, body: unknown = request.body ?? null): Promise<unknown> {
   const generation = inputValue(() => entityId.parse(request.headers['x-diary-generation']))

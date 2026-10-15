@@ -17,6 +17,7 @@ import { registerDocuments } from './documentRoutes.js'
 import { registerLabs } from './labRoutes.js'
 import { registerSettings } from './settingsRoutes.js'
 import { registerBackups } from './backupRoutes.js'
+import { registerClear } from './clearRoutes.js'
 
 export async function startApi(environment: Record<string, string | undefined>) {
   const config = readServerConfig(environment)
@@ -42,6 +43,7 @@ export async function startApi(environment: Record<string, string | undefined>) 
       registerLabs(app, pool, authorize)
       registerSettings(app, pool, authorize)
       registerBackups(app, pool, authorize)
+      registerClear(app, pool, authorize)
     }
     await app.listen(config)
     return await app
