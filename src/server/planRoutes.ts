@@ -5,6 +5,7 @@ import type { registerAuthentication } from './auth.js'
 import { inputValue } from './httpErrors.js'
 import { diaryDate } from './recordValidation.js'
 import { withUser } from './userTransaction.js'
+import { withCommand } from './writeCommand.js'
 import { createPlanRecord, effectivePlanRecord, listPlanRecords } from './planRecords.js'
 
 export function registerPlans(app: FastifyInstance, pool: Pool, authorize: Awaited<ReturnType<typeof registerAuthentication>>, clock = () => new Date()) {
@@ -22,7 +23,7 @@ export function registerPlans(app: FastifyInstance, pool: Pool, authorize: Await
   app.post('/api/v1/energy-plans', async (request, reply) => {
     const account = await authorize(request, reply)
     if (!account) return
-    const record = await withUser(pool, account, client => createPlanRecord(client, account.id, request.body, diaryDate(account.timezone, clock())), true)
+    const record = await withCommand(pool, account, request, client => createPlanRecord(client, account.id, request.body, diaryDate(account.timezone, clock())))
     return reply.code(201).send(record)
   })
 }

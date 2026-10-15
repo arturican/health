@@ -5,6 +5,7 @@ import type { registerAuthentication } from './auth.js'
 import { inputValue } from './httpErrors.js'
 import { diaryDate } from './recordValidation.js'
 import { withUser } from './userTransaction.js'
+import { withCommand } from './writeCommand.js'
 import { deleteStepsRecord, getStepsRecord, listStepsRecords, saveStepsRecord } from './stepsRecords.js'
 
 const routeDate = (params: unknown) => inputValue(() => z.object({ date: z.string() }).parse(params).date)
@@ -23,12 +24,12 @@ export function registerSteps(app: FastifyInstance, pool: Pool, authorize: Await
   app.put('/api/v1/steps/:date', async (request, reply) => {
     const account = await authorize(request, reply)
     if (!account) return
-    return withUser(pool, account, client => saveStepsRecord(client, account.id, routeDate(request.params), request.body, diaryDate(account.timezone, clock())), true)
+    return withCommand(pool, account, request, client => saveStepsRecord(client, account.id, routeDate(request.params), request.body, diaryDate(account.timezone, clock())))
   })
   app.delete('/api/v1/steps/:date', async (request, reply) => {
     const account = await authorize(request, reply)
     if (!account) return
-    await withUser(pool, account, client => deleteStepsRecord(client, routeDate(request.params), request.body), true)
+    await withCommand(pool, account, request, client => deleteStepsRecord(client, routeDate(request.params), request.body))
     return reply.code(204).send()
   })
 }
