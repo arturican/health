@@ -56,6 +56,14 @@ E2E-сервер использует `127.0.0.1:4173`, порт должен б
 
 ## Что тестировать
 
+После T160 полный check требует TEST_DATABASE_URL выделенной локальной
+PostgreSQL health_test. Запуск контейнера описан в [README](../README.md).
+SQL-тесты создают отдельную случайно именованную БД на каждый сценарий и удаляют
+только её; нет fallback к рабочим реквизитам и нет skip при отсутствии БД.
+CI предоставляет отдельный PostgreSQL service с вымышленными реквизитами.
+`npm test -- src/server/migrations.test.ts` проверяет fresh/repeat/checksum,
+ошибку SQL с rollback и конкурентные миграции на настоящем сервере PostgreSQL.
+
 API factory в src/server проверяется существующим Vitest в Node-окружении
 через директиву @vitest-environment node и Fastify inject. Команда:
 `npm test -- src/server/app.test.ts`. Проверяются HTTP-статусы, заголовки,

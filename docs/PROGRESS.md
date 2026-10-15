@@ -1,5 +1,18 @@
 # Прогресс
 
+## T160 — настоящие SQL-миграции
+
+Добавлены pg 8.23.1, отдельная команда db:migrate и SQL-файлы с SHA-256,
+транзакцией и advisory lock. Применённые миграции нельзя менять/удалять.
+Тесты создают отдельные локальные БД и проверяют fresh/repeat/checksum,
+rollback DDL и конкурентные запуски. CI получил PostgreSQL service.
+
+Проверки: 10 SQL/config тестов PASS на PostgreSQL 18.3; API build, lint/types
+PASS; полный npm run check PASS (1153 unit, 91 browser, 54 E2E, coverage/build).
+Node 24.22.0, npm 11.19.1; тестовая БД только localhost:55432/health_test.
+npm audit: 0 известных уязвимостей. Документация и git diff --check PASS.
+На VPS миграции не запускались, пользовательские таблицы ещё не созданы.
+
 ## T159 — модель и обследование
 
 Сопоставлены поля Zod, 13 областей IndexedDB, формы, графики, репозитории и
