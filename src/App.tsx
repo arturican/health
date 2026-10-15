@@ -36,10 +36,11 @@ export function App() {
 
   return (
     <DayProvider>
+      <div className="app-shell">
       <a className="skip-link" href="#main" onClick={event => { event.preventDefault(); main.current?.focus() }}>Перейти к содержимому</a>
       <header className="site-header">
-        <span className="brand"><span className="brand-mark" aria-hidden="true">д.</span> Дневник здоровья</span>
-        <span className="edition">Личный дневник</span>
+        <span className="brand"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 12h4l3-7 4 14 3-7h4" strokeLinecap="round" strokeLinejoin="round" /></svg></span> Дневник здоровья</span>
+        <span className="edition">Личный дневник · На вашем устройстве</span>
       </header>
       <Navigation active={route} showPhotos={Boolean(visibility?.value.showPhotos)} showDocuments={Boolean(visibility?.value.showDocuments)} />
       <main id="main" tabIndex={-1} ref={main}>
@@ -55,6 +56,7 @@ export function App() {
         <span>Наблюдать. Записывать. Заботиться о себе.</span>
         <span>Дневник не заменяет консультацию специалиста.</span>
       </footer>
+      </div>
     </DayProvider>
   )
 }
