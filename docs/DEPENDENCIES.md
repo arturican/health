@@ -94,3 +94,13 @@ peerDependencies, dist.integrity, repository). Метаданные этой в�
 Транзитивные версии закреплены lock-файлом. Пакет нужен для изолированного
 backend factory, frontend не импортирует его. Новые PostgreSQL/auth-пакеты
 будут проверяться в соответствующих задачах.
+
+## T171a: серверное декодирование изображений
+
+sharp 0.35.5 закреплён точно; npm view подтвердил engines Node >=20.9.0.
+Node 24.22.0 поддерживается, prebuilt Linux-библиотеки установились локально.
+Нужен для реального декодирования JPEG/PNG/WebP перед записью байтов в БД.
+Клиент его не импортирует. Используются failOn=warning и существующий предел
+64 млн пикселей; отключения safety limits нет.
+[Установка](https://sharp.pixelplumbing.com/install/),
+[параметры декодера](https://sharp.pixelplumbing.com/api-constructor/).
