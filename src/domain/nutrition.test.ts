@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { foodTotals, portion, readFoodEntry, readProduct } from './nutrition'
+import { foodTotals, gramsSchema, portion, readFoodEntry, readProduct, snapshotSchema } from './nutrition'
 
 const snapshot = { name: 'Синтетический продукт', source: 'Тестовая этикетка', kcal: 250, protein: 12, fat: 10, carbs: 28 }
 const product = { ...snapshot, id: '00000000-0000-4000-8000-000000000001', archived: false }
@@ -13,6 +13,30 @@ it('масштабирует введённые данные на 100 г без 
 it('сохраняет неизвестные БЖУ отдельно от явно введённых нулей', () => {
   expect(portion({ ...snapshot, kcal: 0, protein: null, fat: 0, carbs: null }, 100)).toEqual({ kcal: 0, protein: null, fat: 0, carbs: null })
   expect(portion({ ...snapshot, protein: 0, fat: null, carbs: 0 }, 100)).toMatchObject({ protein: 0, fat: null, carbs: 0 })
+})
+it('сохраняет представимый результат всех четырёх величин для крайне малой положительной порции', () => {
+  const values = Object.freeze({ ...snapshot, kcal: 100, protein: 100, fat: 100, carbs: 100 })
+  expect(portion(values, Number.MIN_VALUE)).toEqual({
+    kcal: Number.MIN_VALUE, protein: Number.MIN_VALUE, fat: Number.MIN_VALUE, carbs: Number.MIN_VALUE,
+  })
+})
+it('различает крайне малый положительный результат, неизвестное значение и явный ноль', () => {
+  const values = { ...snapshot, kcal: 100, protein: null, fat: 0, carbs: 100 }
+  expect(portion(values, Number.MIN_VALUE)).toEqual({
+    kcal: Number.MIN_VALUE, protein: null, fat: 0, carbs: Number.MIN_VALUE,
+  })
+})
+it('считает максимальные разрешённые значения и массу порции без переполнения', () => {
+  const values = {
+    ...snapshot,
+    kcal: snapshotSchema.shape.kcal.maxValue,
+    protein: snapshotSchema.shape.protein.unwrap().maxValue,
+    fat: snapshotSchema.shape.fat.unwrap().maxValue,
+    carbs: snapshotSchema.shape.carbs.unwrap().maxValue,
+  }
+  expect(portion(values, gramsSchema.maxValue)).toEqual({
+    kcal: 10_000_000, protein: 100_000, fat: 100_000, carbs: 100_000,
+  })
 })
 it.each([null, '', 0, -1, NaN, Infinity, 100001])('отклоняет некорректную массу порции %s', input => {
   expect(() => portion(snapshot, input)).toThrow()

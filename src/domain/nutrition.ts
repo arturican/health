@@ -40,12 +40,11 @@ export function readFoodEntry(input: unknown): FoodEntry { return validate(foodE
 export function portion(input: unknown, gramsInput: unknown): Nutrients {
   const values = validate(snapshotSchema, input)
   const grams = validate(gramsSchema, gramsInput)
-  const ratio = grams / 100
   return {
-    kcal: values.kcal * ratio,
-    protein: values.protein === null ? null : values.protein * ratio,
-    fat: values.fat === null ? null : values.fat * ratio,
-    carbs: values.carbs === null ? null : values.carbs * ratio,
+    kcal: values.kcal * grams / 100,
+    protein: values.protein === null ? null : values.protein * grams / 100,
+    fat: values.fat === null ? null : values.fat * grams / 100,
+    carbs: values.carbs === null ? null : values.carbs * grams / 100,
   }
 }
 
