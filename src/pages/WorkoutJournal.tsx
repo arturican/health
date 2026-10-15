@@ -23,7 +23,7 @@ export function WorkoutJournal() {
       section.current?.querySelector<HTMLInputElement>('[name="kind"]')?.focus()
     }
   }, [editing, deleting, action.pending, workouts])
-  return <section ref={section} className="card" aria-labelledby="workouts-title">
+  return <section ref={section} className="card workout-journal" aria-labelledby="workouts-title">
     <h2 id="workouts-title">Тренировки</h2>
     {editing ? <WorkoutForm key={editing.id} entry={editing} onSaved={() => {
       focusAfterChange.current = true
