@@ -35,6 +35,25 @@ beforeEach(() => {
 })
 afterEach(() => { vi.useRealTimers() })
 
+it('проверяет рождение, журналы и план по явному дню аккаунта, независимо от часов процесса', () => {
+  const input = { ...empty, profile: { ...profile, birthDate: '2026-10-16' },
+    weights: [{ ...weight, date: '2026-10-16' }], steps: [{ date: '2026-10-16', count: 0 }],
+    workouts: [{ ...workout, date: '2026-10-16' }], energyPlans: [{ ...plan, createdOn: '2026-10-16' }] }
+  expect(readTextBackup(input, '2026-10-16')).toEqual(input)
+  expect(() => readTextBackup(input)).toThrow(/в будущем/)
+  expect(() => readTextBackup(input, 'invalid')).toThrow()
+  for (const patch of [
+    { profile: { ...profile, birthDate: '2026-10-16' }, weights: [] },
+    { weights: [{ ...weight, date: '2026-10-16' }] },
+    { foodEntries: [{ ...food, date: '2026-10-16' }] },
+    { nutritionDays: [{ date: '2026-10-16', complete: true }] },
+    { steps: [{ date: '2026-10-16', count: 0 }] },
+    { workouts: [{ ...workout, date: '2026-10-16' }] },
+    { energyPlans: [{ ...plan, createdOn: '2026-10-16' }] },
+  ]) expect(() => readTextBackup({ ...backup, ...patch }, '2026-10-15')).toThrow()
+  expect(() => readTextBackup({ ...input, weights: [{ ...weight, date: '2026-10-15' }] }, '2026-10-16')).toThrow(/до даты рождения/)
+})
+
 it('читает пустую и полную v1-копию, разрешая архив и совпадение ID разных таблиц', () => {
   expect(readTextBackup(empty)).toEqual(empty)
   expect(readTextBackup(backup)).toEqual(backup)

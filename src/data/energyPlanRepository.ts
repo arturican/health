@@ -8,7 +8,7 @@ import { assertRecordCapacity } from './recordLimit'
 
 export async function listEnergyPlans(database: DiaryDatabase = db): Promise<EnergyPlan[]> {
   const values: unknown[] = await database.energyPlans.toArray()
-  return values.map(readEnergyPlan).sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom) || b.revision - a.revision)
+  return values.map(value => readEnergyPlan(value)).sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom) || b.revision - a.revision)
 }
 
 export async function getEnergyPlan(date: unknown = localDate(), database: DiaryDatabase = db): Promise<EnergyPlan | null> {

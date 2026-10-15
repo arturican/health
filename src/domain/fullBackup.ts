@@ -2,9 +2,10 @@ import { z } from 'zod'
 import { readTextBackup, textBackupSchema, BACKUP_MAX_RECORDS } from './backup'
 import { PHOTO_MAX_BYTES, DOCUMENT_MAX_BYTES, attachmentMimes } from './attachment'
 import { FILE_STORAGE_MAX_BYTES } from './storedFile'
-import { readPhoto, photoSchema } from './photo'
-import { readDocument, documentSchema } from './document'
-import { readLabResult, labResultSchema } from './labResult'
+import { photoSchema } from './photo'
+import { documentSchema } from './document'
+import { labResultSchema } from './labResult'
+import { localDate } from './input'
 import { entityId, validate } from './schema'
 import { isCanonicalBase64 } from './base64'
 import { readVisibilityValue, VISIBILITY_SETTING_ID } from './visibility'
@@ -30,12 +31,12 @@ export type BackupFile = z.infer<typeof backupFileSchema>
 function unique(ids: readonly string[]) {
   if (new Set(ids).size !== ids.length) throw new Error('Повторяющиеся идентификаторы полной копии')
 }
-export function readFullBackup(input: unknown): FullBackup {
+export function readFullBackup(input: unknown, today = localDate()): FullBackup {
   const backup = validate(fullBackupSchema, input)
-  readTextBackup(backup.text)
-  backup.photos.forEach(readPhoto)
-  backup.documents.forEach(readDocument)
-  backup.labResults.forEach(readLabResult)
+  readTextBackup(backup.text, today)
+  for (const record of [...backup.photos, ...backup.documents, ...backup.labResults]) {
+    if (record.date > today) throw new Error('Записи вложений не могут быть в будущем')
+  }
   for (const records of [backup.metadata, backup.photos, backup.documents, backup.labResults, backup.files]) unique(records.map(record => record.id))
   if (backup.metadata.some(row => row.id === 'catalog-seeded' && row.value !== 'done')) throw new Error('Некорректная отметка каталога')
   const visibility = backup.metadata.find(row => row.id === VISIBILITY_SETTING_ID)

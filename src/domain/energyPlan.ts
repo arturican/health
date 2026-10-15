@@ -35,10 +35,11 @@ export function readEnergyPlanInput(input: unknown): EnergyPlanInput {
   return values
 }
 
-export function readEnergyPlan(input: unknown): EnergyPlan {
+export function readEnergyPlan(input: unknown, today = localDate()): EnergyPlan {
+  validate(calendarDate, today)
   const plan = validate(energyPlanSchema, input)
   checkMethod(plan)
-  if (plan.createdOn > localDate() || plan.effectiveFrom < plan.createdOn) throw new Error('Даты версии плана не согласованы')
+  if (plan.createdOn > today || plan.effectiveFrom < plan.createdOn) throw new Error('Даты версии плана не согласованы')
   if ((plan.snapshot.kg === null) !== (plan.snapshot.weightDate === null) || (plan.snapshot.weightDate !== null && plan.snapshot.weightDate > plan.createdOn)) throw new Error('Дата и значение веса в снимке не согласованы')
   return plan
 }

@@ -42,6 +42,20 @@ const complete: FullBackup = {
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-14T12:00:00Z')) })
 afterEach(() => { vi.useRealTimers() })
 
+it('принимает вложения сегодняшнего дня аккаунта и отклоняет завтрашние во всех областях', () => {
+  for (const patch of [
+    { photos: [{ ...photo, date: '2026-10-16' }] },
+    { documents: [{ ...document, date: '2026-10-16' }] },
+    { labResults: [{ ...result, date: '2026-10-16' }] },
+  ]) {
+    const input = { ...complete, ...patch }
+    expect(readFullBackup(input, '2026-10-16')).toEqual(input)
+    expect(() => readFullBackup(input, '2026-10-15')).toThrow(/в будущем/)
+    expect(() => readFullBackup(input)).toThrow(/в будущем/)
+  }
+  expect(() => readFullBackup(empty, '2026-02-30')).toThrow()
+})
+
 it('проверяет известную настройку видимости, сохраняя совместимость копий без неё и с другими настройками', () => {
   expect(readFullBackup(empty)).toEqual(empty)
   for (const flags of [{ version: 1, showPhotos: false, showDocuments: true }, { version: 1, showPhotos: true, showDocuments: false }]) {

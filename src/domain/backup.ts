@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { profileSchema, weightSchema } from './profile'
 import { foodEntrySchema, nutritionDaySchema, productSchema } from './nutrition'
-import { validate } from './schema'
+import { calendarDate, validate } from './schema'
 import { localDate } from './input'
 import { stepsSchema, workoutSchema } from './activity'
 import { energyPlanSchema, readEnergyPlan } from './energyPlan'
@@ -12,7 +12,7 @@ export const textBackupSchema = z.strictObject({
   format: z.literal('health-diary-text'),
   version: z.literal(1),
   exportedAt: z.iso.datetime(),
-  profile: profileSchema.nullable(),
+  profile: profileSchema.extend({ birthDate: calendarDate.nullable() }).nullable(),
   weights: z.array(weightSchema).max(BACKUP_MAX_RECORDS),
   products: z.array(productSchema).max(BACKUP_MAX_RECORDS),
   foodEntries: z.array(foodEntrySchema).max(BACKUP_MAX_RECORDS),
@@ -27,15 +27,16 @@ function unique(values: readonly (string | number)[], label: string) {
   if (new Set(values).size !== values.length) throw new Error(`Повторяющиеся ${label}`)
 }
 
-export function readTextBackup(input: unknown): TextBackup {
+export function readTextBackup(input: unknown, today = localDate()): TextBackup {
+  validate(calendarDate, today)
   const backup = validate(textBackupSchema, input)
+  if (backup.profile?.birthDate && backup.profile.birthDate > today) throw new Error('Дата рождения не может быть в будущем')
   for (const records of [backup.weights, backup.products, backup.foodEntries, backup.workouts, backup.energyPlans]) unique(records.map(record => record.id), 'идентификаторы')
   unique(backup.weights.map(record => record.date), 'даты веса')
   unique(backup.nutritionDays.map(record => record.date), 'даты полноты питания')
   unique(backup.steps.map(record => record.date), 'даты шагов')
   unique(backup.energyPlans.map(record => record.revision), 'ревизии плана')
-  backup.energyPlans.forEach(readEnergyPlan)
-  const today = localDate()
+  backup.energyPlans.forEach(plan => readEnergyPlan(plan, today))
   for (const record of [...backup.weights, ...backup.foodEntries, ...backup.nutritionDays, ...backup.steps, ...backup.workouts]) {
     if (record.date > today) throw new Error('Записи дневника не могут быть в будущем')
   }
