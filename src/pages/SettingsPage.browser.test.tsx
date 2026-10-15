@@ -203,7 +203,7 @@ test('проверка файла отвергает неверные копии
   await expect.element(preview).toBeVisible()
   await expect.element(preview.getByText('Профилей: 1. Измерений веса: 1. Продуктов: 1. Записей еды: 1. Отметок полноты: 1.', { exact: true })).toBeVisible()
   await expect.element(preview.getByText('Итогов шагов: 1. Тренировок: 1. Версий плана: 1.', { exact: true })).toBeVisible()
-  await expect.element(preview.getByText('Восстановление заменяет перечисленные данные. Фото и документы сохраняются.', { exact: true })).toBeVisible()
+  await expect.element(preview.getByText('Восстановление заменяет перечисленные данные. Фото и документы с их показателями сохраняются.', { exact: true })).toBeVisible()
   await expectBaseline()
   expect((await axe.run(view.container)).violations).toEqual([])
   await preview.getByRole('button', { name: 'Отменить импорт', exact: true }).click()

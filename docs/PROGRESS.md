@@ -314,3 +314,9 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 ## T055a — полный формат копии и канонический Base64
 
 полный формат копии и канонический Base64. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+После push до T054b [GitHub CI](https://github.com/arturican/health/actions/runs/38659483926) завершился success на f173a83: установка и полный check — OK.
+
+## T055b — полный экспорт дневника с проверенными вложениями
+
+полный экспорт дневника с проверенными вложениями. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
