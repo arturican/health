@@ -2,17 +2,11 @@ import { randomUUID } from 'node:crypto'
 import { argon2id, hash } from 'argon2'
 import type { Pool } from 'pg'
 import { z } from 'zod'
+import { accountSchema, loginSchema, timezoneSchema, type Account } from '../domain/session'
+export { accountSchema, loginSchema, timezoneSchema, type Account } from '../domain/session'
 
-export const loginSchema = z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9_.-]{2,63}$/)
 export const passwordSchema = z.string().min(15).max(1024)
-export const timezoneSchema = z.string().max(80).refine(value => {
-  if (!/^(?:UTC|[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)+)$/.test(value)) return false
-  try { new Intl.DateTimeFormat('en', { timeZone: value }).format(0); return true }
-  catch { return false }
-})
-export const accountSchema = z.strictObject({ id: z.uuid(), login: loginSchema, timezone: timezoneSchema })
 const inputSchema = z.strictObject({ login: loginSchema, password: passwordSchema, timezone: timezoneSchema })
-export type Account = z.infer<typeof accountSchema>
 
 export async function hashPassword(password: string): Promise<string> {
   return hash(passwordSchema.parse(password), { type: argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 })
