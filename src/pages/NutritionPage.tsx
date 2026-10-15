@@ -1,4 +1,4 @@
-import { seedProducts } from '../data/productRepository'
+import { seedProducts } from '../dataAccess'
 import { ProductCatalog } from './ProductCatalog'
 import { Feedback, useAction } from '../ui/actions'
 import { FoodJournal } from './FoodJournal'

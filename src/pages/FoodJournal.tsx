@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { deleteFood, listFood } from '../data/foodRepository'
+import { useDiaryQuery, deleteFood, listFood } from '../dataAccess'
 import { mealNames, portion, type FoodEntry } from '../domain/nutrition'
 import { useDay } from '../ui/DayContext'
 import { Confirmation } from '../ui/Confirmation'
@@ -11,7 +10,7 @@ import { exactNumber } from '../ui/exactNumber'
 
 export function FoodJournal() {
   const { day } = useDay()
-  const result = useLiveQuery(async () => ({ day, entries: await listFood(day) }), [day])
+  const result = useDiaryQuery(async () => ({ day, entries: await listFood(day) }), [day])
   const entries = result?.day === day ? result.entries : undefined
   const [editing, setEditing] = useState<FoodEntry | null>(null)
   const [deleting, setDeleting] = useState<FoodEntry | null>(null)
@@ -54,7 +53,7 @@ export function FoodJournal() {
       </ul>}
       <div ref={dialog}>{deleting && <Confirmation question={`Удалить запись «${deleting.snapshot.name}» за ${deleting.date.split('-').reverse().join('.')}?`} pending={busy} onCancel={() => { setDeleting(null); action.reset() }} onConfirm={() => {
         action.run(async () => {
-          await deleteFood(deleting.id)
+          await deleteFood(deleting)
           setDeleting(null)
           if (!editing || editing.id === deleting.id) finishEditing()
           else setFocusVersion(value => value + 1)

@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { listProducts } from '../data/productRepository'
-import { addFood, listFood, updateFood } from '../data/foodRepository'
+import { useDiaryQuery, listProducts, addFood, listFood, updateFood } from '../dataAccess'
 import { foodEntrySchema, gramsSchema, mealNames, mealSchema, type FoodEntry } from '../domain/nutrition'
 import { entityId, validate } from '../domain/schema'
 import { localDate, parseDate, parseNumber } from '../domain/input'
@@ -16,7 +14,7 @@ interface FoodFormProps {
 
 export function FoodForm({ entry, onSaved, onCancel, focusVersion = 0, disabled = false, onPendingChange }: FoodFormProps) {
   const { day } = useDay()
-  const result = useLiveQuery(async () => ({ day, products: await listProducts(), entries: await listFood(day) }), [day])
+  const result = useDiaryQuery(async () => ({ day, products: await listProducts(), entries: await listFood(day) }), [day])
   const data = result?.day === day ? result : undefined
   const [revision, setRevision] = useState(0)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -53,7 +51,7 @@ export function FoodForm({ entry, onSaved, onCancel, focusVersion = 0, disabled 
       return
     }
     action.run(async () => {
-      if (entry) await updateFood(entry.id, { date, meal, grams, note })
+      if (entry) await updateFood(entry, { date, meal, grams, note })
       else await addFood({ date, productId, meal, grams, note })
       focusAfterSave.current = true
       setRevision(value => value + 1)

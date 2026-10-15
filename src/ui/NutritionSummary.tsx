@@ -1,7 +1,5 @@
 import { useEffect, useId, useRef } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { listFood } from '../data/foodRepository'
-import { getNutritionDay, setNutritionDay } from '../data/nutritionRepository'
+import { useDiaryQuery, getNutritionSummary, setNutritionDay } from '../dataAccess'
 import { foodTotals } from '../domain/nutrition'
 import { useDay } from './DayContext'
 import { Feedback, useAction } from './actions'
@@ -14,7 +12,7 @@ function amount(value: number | null, unit: string) {
 export function NutritionSummary() {
   const title = useId()
   const { day } = useDay()
-  const result = useLiveQuery(async () => ({ day, entries: await listFood(day), status: await getNutritionDay(day) }), [day])
+  const result = useDiaryQuery(() => getNutritionSummary(day), [day])
   const data = result?.day === day ? result : undefined
   const complete = data?.status?.complete ?? false
   const totals = data ? foodTotals(data.entries, complete) : null
@@ -42,7 +40,7 @@ export function NutritionSummary() {
       <label><input ref={checkbox} type="checkbox" checked={complete} disabled={!data || action.pending} onChange={event => {
         const checked = event.target.checked
         if (event.currentTarget === document.activeElement) focusAfterSave.current = day
-        action.run(() => setNutritionDay(day, checked), 'Полнота дня сохранена')
+        action.run(() => setNutritionDay(day, checked, data?.status ?? null), 'Полнота дня сохранена')
       }} /> За этот день внесена вся еда</label>
       <p>Отмечайте после внесения всей еды. Неизвестные БЖУ остаются неизвестными.</p>
       <Feedback error={action.error} message={action.message} />

@@ -1,5 +1,5 @@
 import { useState, type SyntheticEvent } from 'react'
-import { copyMeal } from '../data/foodRepository'
+import { copyMeal } from '../dataAccess'
 import { mealNames, mealSchema, type FoodEntry } from '../domain/nutrition'
 import { localDate, parseDate } from '../domain/input'
 import { validate } from '../domain/schema'
