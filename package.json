@@ -9,6 +9,9 @@
     "npm": ">=11.19.1 <12"
   },
   "scripts": {
+    "build:api": "tsc -p tsconfig.server.json",
+    "start:api": "node --env-file-if-exists=.env build-api/main.js",
+    "dev:api": "npm run build:api && npm run start:api",
     "dev": "vite",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.browser.json --noEmit",
     "test": "vitest run",
