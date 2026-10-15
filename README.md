@@ -91,6 +91,12 @@ Europe/Moscow. Команда не печатает пароль или хеш. 
 Лимит попыток находится в памяти одного API и сбрасывается при перезапуске;
 X-Forwarded-For не доверяется, поэтому за proxy лимит IP общий.
 
+Планы: GET `/api/v1/energy-plans?before=REVISION&limit=100` возвращает страницы
+по убыванию revision; GET `/effective/:date` — действующую версию либо null.
+POST принимает `{ id, value: EnergyPlanInput, expectedRevision }` (null для первой).
+Снимок и номер версии создаёт сервер. Повтор id возвращает прежний результат,
+другие параметры того же id или устаревшая expectedRevision дают 409.
+
 Тренировки: GET `/api/v1/workouts?date=YYYY-MM-DD&after=UUID&limit=100`
 возвращает `{ items, nextAfter }`. POST принимает `{ value: Workout, revision: null }`,
 PUT `/:id` — полный Workout и текущую revision; DELETE `/:id` — `{ revision }`.
