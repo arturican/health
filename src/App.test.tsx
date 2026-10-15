@@ -5,6 +5,7 @@ import axe from 'axe-core'
 import { db } from './data/db'
 import { saveVisibility } from './data/visibilityRepository'
 import { VISIBILITY_SETTING_ID } from './domain/visibility'
+import type { Profile } from './domain/profile'
 
 async function clear() { await db.transaction('rw', db.tables, async () => { await Promise.all(db.tables.map(table => table.clear())) }) }
 beforeEach(async () => {
@@ -71,6 +72,25 @@ describe('Стартовый экран', () => {
 })
 
 describe('Переходы между разделами', () => {
+  it('оставляет сводку и редактор веса доступными при невозможности расчёта ИМТ', async () => {
+    const profile: Profile = { id: 'self', name: '', heightCm: Number.MIN_VALUE, birthDate: null, formulaSex: 'none' }
+    const weight = { id: '00000000-0000-4000-8000-000000000001', date: '2026-10-12', kg: 70 }
+    await db.profiles.put(profile)
+    await db.weights.put(weight)
+    render(<App />)
+    expect(await screen.findByText('70 кг, измерено 12.10.2026.')).toBeVisible()
+    expect(within(screen.getByRole('region', { name: 'ИМТ (справочно)' })).getByRole('alert')).toHaveTextContent('Не удалось рассчитать ИМТ')
+    expect(await screen.findByRole('region', { name: 'Итоги питания' })).toBeVisible()
+    fireEvent.click(screen.getByRole('link', { name: 'Вес' }))
+    expect(await screen.findByRole('form', { name: 'Новое измерение' })).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Изменить вес за 12.10.2026' }))
+    expect(screen.getByRole('form', { name: 'Редактирование веса' })).toBeVisible()
+    expect(screen.getByLabelText('Вес, кг')).toHaveValue('70')
+    expect(screen.queryByRole('heading', { name: 'Раздел недоступен' })).not.toBeInTheDocument()
+    expect(await db.weights.toArray()).toEqual([weight])
+    expect(await db.profiles.get('self')).toEqual(profile)
+  })
+
   it('прямые маршруты скрытых разделов оставляют доступ к настройкам и не показывают формы или вложения', async () => {
     await saveVisibility({ version: 1, showPhotos: false, showDocuments: false })
     for (const route of ['photos', 'documents']) {

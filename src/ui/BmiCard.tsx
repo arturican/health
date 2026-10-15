@@ -12,13 +12,19 @@ interface BmiCardProps {
 export function BmiCard({ profile, weight, date = localDate() }: BmiCardProps) {
   const title = useId()
   const measurement = weight && weight.date <= date ? weight : null
-  const bmi = calculateBmi(measurement?.kg ?? null, profile?.heightCm ?? null)
+  let bmi: number | null = null
+  let failed = false
+  try { bmi = calculateBmi(measurement?.kg ?? null, profile?.heightCm ?? null) }
+  catch { failed = true }
   const age = profile?.birthDate && profile.birthDate <= date ? ageOn(profile.birthDate, date) : null
   const category = adultBmiCategory(bmi, age)
   return (
     <section className="card" aria-labelledby={title}>
       <h2 id={title}>ИМТ (справочно)</h2>
-      {bmi === null ? <p>Нужны рост в профиле и измерение веса не позже даты оценки.</p> : (
+      {failed ? <>
+        <p role="alert">Не удалось рассчитать ИМТ по этим параметрам. Проверьте рост в профиле и измерение веса.</p>
+        <div className="actions"><a href="#profile">Проверить профиль</a><a href="#weight">Проверить измерение веса</a></div>
+      </> : bmi === null ? <p>Нужны рост в профиле и измерение веса не позже даты оценки.</p> : (
         <>
           <p><strong className="metric-value">{bmi.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</strong> кг/м²</p>
           <p>По текущему росту и измерению от {measurement?.date.split('-').reverse().join('.')}.</p>

@@ -35,3 +35,18 @@ it('сохраняет точную категорию при округлени
   expect(screen.getByText(/От 18,5 до 25/)).toBeVisible()
   expect(screen.getByText(/категория учитывает точное значение/)).toBeVisible()
 })
+
+it.each([
+  { label: 'переполнение', heightCm: Number.MIN_VALUE, kg: 70 },
+  { label: 'underflow', heightCm: 300, kg: Number.MIN_VALUE },
+])('объясняет невозможность расчёта без подмены числа или категории: $label', ({ heightCm, kg }) => {
+  render(<BmiCard profile={{ ...profile, heightCm }} weight={{ ...weight, kg }} date="2026-10-14" />)
+  const card = within(screen.getByRole('region', { name: 'ИМТ (справочно)' }))
+  expect(card.getByRole('alert')).toHaveTextContent('Не удалось рассчитать ИМТ')
+  expect(card.getByRole('link', { name: 'Проверить профиль' })).toHaveAttribute('href', '#profile')
+  expect(card.getByRole('link', { name: 'Проверить измерение веса' })).toHaveAttribute('href', '#weight')
+  expect(card.queryByText(/Справочная категория CDC/)).not.toBeInTheDocument()
+  expect(card.queryByText(/Нужны рост/)).not.toBeInTheDocument()
+  expect(card.queryByText(/Infinity|NaN|^0,0$/)).not.toBeInTheDocument()
+  expect(card.getByText(/Это не диагноз/)).toBeVisible()
+})

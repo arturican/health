@@ -68,6 +68,33 @@ function expectNoExternalRequests() {
   expect(externalRequests).toEqual([])
 }
 
+test('невозможность расчёта ИМТ не блокирует журналы и исправляется через профиль', async () => {
+  await db.profiles.update('self', { heightCm: Number.MIN_VALUE })
+  const view = await openWeightPage()
+  const bmi = page.getByRole('region', { name: 'ИМТ (справочно)' })
+  await expect.element(bmi.getByRole('alert')).toHaveTextContent('Не удалось рассчитать ИМТ')
+  await expect.element(page.getByRole('list', { name: 'История веса' })).toHaveTextContent('70 кг')
+  await expect.element(page.getByRole('form', { name: 'Новое измерение' })).toBeVisible()
+  expect((await axe.run(view.container)).violations).toEqual([])
+  await page.getByRole('link', { name: 'Сегодня', exact: true }).click()
+  await expect.element(page.getByRole('region', { name: 'Последнее измерение веса' })).toHaveTextContent('70 кг, измерено 01.10.2026.')
+  await expect.element(bmi.getByRole('alert')).toHaveTextContent('Не удалось рассчитать ИМТ')
+  await expect.element(page.getByRole('region', { name: 'Итоги питания' })).toBeVisible()
+  await bmi.getByRole('link', { name: 'Проверить профиль' }).click()
+  await expect.element(page.getByRole('main')).toHaveFocus()
+  await page.getByRole('button', { name: 'Редактировать профиль' }).click()
+  await page.getByLabelText('Рост, см').fill('170')
+  await page.getByRole('button', { name: 'Сохранить профиль' }).click()
+  await expect.element(page.getByText('Профиль обновлён', { exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Вес', exact: true }).click()
+  await expect.element(bmi.getByText('24,2', { exact: true })).toBeVisible()
+  await expect.element(bmi.getByRole('alert')).not.toBeInTheDocument()
+  expect(await db.weights.toArray()).toEqual([initialWeight])
+  expect(await db.profiles.get('self')).toMatchObject({ heightCm: 170 })
+  expect((await axe.run(view.container)).violations).toEqual([])
+  expectNoExternalRequests()
+})
+
 test('удаление другой записи сохраняет черновик веса до явного сохранения', async () => {
   const second = { ...initialWeight, id: '00000000-0000-4000-8000-000000000002', date: '2026-10-02', kg: 72 }
   await db.weights.put(second)
