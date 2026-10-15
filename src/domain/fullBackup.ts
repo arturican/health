@@ -7,6 +7,7 @@ import { readDocument, documentSchema } from './document'
 import { readLabResult, labResultSchema } from './labResult'
 import { entityId, validate } from './schema'
 import { isCanonicalBase64 } from './base64'
+import { readVisibilityValue, VISIBILITY_SETTING_ID } from './visibility'
 
 export const FULL_BACKUP_MAX_BYTES = 200 * 1024 * 1024
 export const backupFileSchema = z.strictObject({
@@ -37,6 +38,8 @@ export function readFullBackup(input: unknown): FullBackup {
   backup.labResults.forEach(readLabResult)
   for (const records of [backup.metadata, backup.photos, backup.documents, backup.labResults, backup.files]) unique(records.map(record => record.id))
   if (backup.metadata.some(row => row.id === 'catalog-seeded' && row.value !== 'done')) throw new Error('Некорректная отметка каталога')
+  const visibility = backup.metadata.find(row => row.id === VISIBILITY_SETTING_ID)
+  if (visibility) readVisibilityValue(visibility.value)
   const files = new Map(backup.files.map(file => [file.id, file]))
   const owners = [...backup.photos, ...backup.documents].map(record => record.fileId)
   unique(owners)

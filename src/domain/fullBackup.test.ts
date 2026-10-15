@@ -6,6 +6,7 @@ import type { TextBackup } from './backup'
 import type { Photo } from './photo'
 import type { DiaryDocument } from './document'
 import type { LabResult } from './labResult'
+import { VISIBILITY_SETTING_ID } from './visibility'
 
 const id = (value: number) => `00000000-0000-4000-8000-${String(value).padStart(12, '0')}`
 const text: TextBackup = {
@@ -40,6 +41,19 @@ const complete: FullBackup = {
 
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-14T12:00:00Z')) })
 afterEach(() => { vi.useRealTimers() })
+
+it('проверяет известную настройку видимости, сохраняя совместимость копий без неё и с другими настройками', () => {
+  expect(readFullBackup(empty)).toEqual(empty)
+  for (const flags of [{ version: 1, showPhotos: false, showDocuments: true }, { version: 1, showPhotos: true, showDocuments: false }]) {
+    const input = { ...empty, metadata: [{ id: VISIBILITY_SETTING_ID, value: JSON.stringify(flags) }] }
+    expect(readFullBackup(input)).toEqual(input)
+  }
+  for (const value of ['Синтетическая закрытая строка', '{}', 'null', JSON.stringify({ version: 2, showPhotos: true, showDocuments: true }), JSON.stringify({ version: 1, showPhotos: 'false', showDocuments: true }), JSON.stringify({ version: 1, showPhotos: true, showDocuments: true, extra: 'x' })]) {
+    expect(() => readFullBackup({ ...empty, metadata: [{ id: VISIBILITY_SETTING_ID, value }] })).toThrow()
+  }
+  const opaque = { ...empty, metadata: [{ id: 'synthetic-other-setting', value: 'Синтетическая строка' }] }
+  expect(readFullBackup(opaque)).toEqual(opaque)
+})
 
 it('принимает пустую копию и сериализует все разделы, Unicode, null/0 и будущую версию плана без мутации', () => {
   expect(readFullBackup(empty)).toEqual(empty)
