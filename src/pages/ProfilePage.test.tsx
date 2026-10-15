@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../data/db'
 import * as repository from '../data/profileRepository'
+import * as access from '../dataAccess'
 import { ProfilePage } from './ProfilePage'
 
 const savedProfile = {
@@ -42,10 +43,25 @@ async function openEditor() {
   return view
 }
 
+it('сохраняет черновик и исходный профиль при фоновом изменении записи', async () => {
+  const read = vi.spyOn(access, 'getProfile')
+  const update = vi.spyOn(access, 'updateProfile').mockRejectedValue(new Error('Данные изменились'))
+  await openEditor()
+  fireEvent.change(screen.getByRole('textbox', { name: 'Рост, см' }), { target: { value: '172' } })
+  const reads = read.mock.calls.length
+  await act(async () => { await repository.updateProfile({ ...savedProfile, heightCm: 180 }) })
+  await waitFor(() => { expect(read.mock.calls.length).toBeGreaterThan(reads) })
+  expect(screen.getByRole('textbox', { name: 'Рост, см' })).toHaveValue('172')
+  fireEvent.click(screen.getByRole('button', { name: 'Сохранить профиль' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Данные изменились')
+  expect(update).toHaveBeenCalledWith({ ...savedProfile, heightCm: 172 }, savedProfile)
+  expect(screen.getByRole('textbox', { name: 'Рост, см' })).toHaveValue('172')
+})
+
 describe('Создание профиля', () => {
   it('показывает загрузку и затем доступную форму без придуманных данных', async () => {
     render(<ProfilePage />)
-    expect(screen.getByRole('status')).toHaveTextContent('Загружаем локальные данные')
+    expect(screen.getByRole('status')).toHaveTextContent('Загружаем профиль')
 
     expect(await screen.findByRole('form', { name: 'Создание профиля' })).toBeVisible()
     expect(screen.getByRole('textbox', { name: 'Рост, см' })).toHaveValue('')

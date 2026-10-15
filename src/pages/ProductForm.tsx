@@ -1,5 +1,5 @@
 import { useState, type SyntheticEvent } from 'react'
-import { addProduct, updateProduct } from '../data/productRepository'
+import { addProduct, updateProduct } from '../dataAccess'
 import { snapshotSchema, type Product } from '../domain/nutrition'
 import { parseNumber } from '../domain/input'
 import { validate } from '../domain/schema'
@@ -40,7 +40,7 @@ export function ProductForm({ product, onSaved, onCancel, disabled = false, onPe
     }
     action.run(async () => {
       const snapshot = { name, source, kcal, protein, fat, carbs }
-      if (product) await updateProduct(product.id, snapshot)
+      if (product) await updateProduct(product, snapshot)
       else await addProduct({ id: crypto.randomUUID(), ...snapshot, archived: false })
       setRevision(value => value + 1)
       onSaved?.()

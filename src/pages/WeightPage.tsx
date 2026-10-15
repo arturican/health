@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { getProfile } from '../data/profileRepository'
-import { deleteWeight, listWeights, saveWeight, updateWeight } from '../data/weightRepository'
+import { useDiaryQuery, getWeightOverview, deleteWeight, saveWeight, updateWeight } from '../dataAccess'
 import { weightSchema, type Weight } from '../domain/profile'
 import { localDate, parseDate, parseNumber } from '../domain/input'
 import { validate } from '../domain/schema'
@@ -14,7 +12,7 @@ import { Icon } from '../ui/Icon'
 import '../weight.css'
 
 export function WeightPage() {
-  const data = useLiveQuery(async () => ({ profile: await getProfile(), weights: await listWeights() }), [])
+  const data = useDiaryQuery(() => getWeightOverview(localDate()), [])
   const [editing, setEditing] = useState<Weight | null>(null)
   const [deleting, setDeleting] = useState<Weight | null>(null)
   const [revision, setRevision] = useState(0)
@@ -52,8 +50,8 @@ export function WeightPage() {
     }
     setFocusRequest({ field: 'kg' })
     action.run(async () => {
-      if (editing) await updateWeight(editing.id, { date, kg })
-      else await saveWeight({ date, kg })
+      if (editing) await updateWeight(editing, { date, kg })
+      else await saveWeight({ date, kg }, data?.weights.find(weight => weight.date === date) ?? null)
       setEditing(null)
       setRevision(value => value + 1)
     }, 'Измерение сохранено')
@@ -111,7 +109,7 @@ export function WeightPage() {
           )}
           <div ref={dialog}>{deleting && <Confirmation question={`Удалить измерение за ${deleting.date.split('-').reverse().join('.')}?`} pending={action.pending} onCancel={() => { setDeleting(null); action.reset() }} onConfirm={() => {
             action.run(async () => {
-              await deleteWeight(deleting.id)
+              await deleteWeight(deleting)
               setFocusRequest({ field: 'kg' })
               setDeleting(null)
               if (editing?.id === deleting.id) { setEditing(null); setErrors({}) }

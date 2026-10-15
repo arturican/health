@@ -1,7 +1,6 @@
 import { useState, type SyntheticEvent } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { createProfile, getProfile, updateProfile } from '../data/profileRepository'
-import { profileSchema, weightSchema } from '../domain/profile'
+import { useDiaryQuery, createProfile, getProfile, updateProfile } from '../dataAccess'
+import { profileSchema, weightSchema, type Profile } from '../domain/profile'
 import { localDate, parseDate, parseNumber } from '../domain/input'
 import { validate } from '../domain/schema'
 import { Field, SelectField } from '../ui/Field'
@@ -13,10 +12,11 @@ import '../profile.css'
 const coefficientNames = { none: 'Не указан', male: 'Мужской', female: 'Женский' }
 
 export function ProfilePage() {
-  const profile = useLiveQuery(() => getProfile(), [])
+  const profile = useDiaryQuery(() => getProfile(), [])
   const action = useAction()
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState<Profile | null>(null)
+  const formProfile = editing ?? profile
 
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -46,8 +46,8 @@ export function ProfilePage() {
     const nextProfile = { id: 'self', name, heightCm, birthDate, formulaSex }
     if (editing) {
       action.run(async () => {
-        await updateProfile(nextProfile)
-        setEditing(false)
+        await updateProfile(nextProfile, editing)
+        setEditing(null)
       }, 'Профиль обновлён')
       return
     }
@@ -64,16 +64,16 @@ export function ProfilePage() {
       <p>Ваши параметры и данные для расчётов дневника.</p>
       <div className="profile-layout">
       <div className="profile-main">
-      {profile === undefined ? <p role="status">Загружаем локальные данные…</p> : profile === null || editing ? (
+      {profile === undefined ? <p role="status">Загружаем профиль…</p> : profile === null || editing ? (
         <form className="form-grid" onSubmit={submit} noValidate aria-label={editing ? 'Редактирование профиля' : 'Создание профиля'} aria-busy={action.pending}>
           <h2>{editing ? 'Изменить параметры' : 'Основные параметры'}</h2>
           <p>{editing ? 'Изменение профиля сохраняет историю измерений.' : 'Создайте профиль и сохраните первое измерение.'} Дата рождения и параметр формулы необязательны.</p>
           <fieldset disabled={action.pending}>
             <legend>Личные параметры</legend>
-            <Field label="Имя (необязательно)" name="name" maxLength={80} defaultValue={profile?.name ?? ''} error={errors['name']} />
-            <Field label="Рост, см" name="heightCm" inputMode="decimal" maxLength={12} defaultValue={profile?.heightCm ?? ''} required error={errors['heightCm']} />
-            <Field label="Дата рождения (необязательно)" name="birthDate" type="date" max={localDate()} defaultValue={profile?.birthDate ?? ''} error={errors['birthDate']} />
-            <SelectField label="Пол для формулы расхода (необязательно)" name="formulaSex" defaultValue={profile?.formulaSex ?? 'none'} error={errors['formulaSex']}>
+            <Field label="Имя (необязательно)" name="name" maxLength={80} defaultValue={formProfile?.name ?? ''} error={errors['name']} />
+            <Field label="Рост, см" name="heightCm" inputMode="decimal" maxLength={12} defaultValue={formProfile?.heightCm ?? ''} required error={errors['heightCm']} />
+            <Field label="Дата рождения (необязательно)" name="birthDate" type="date" max={localDate()} defaultValue={formProfile?.birthDate ?? ''} error={errors['birthDate']} />
+            <SelectField label="Пол для формулы расхода (необязательно)" name="formulaSex" defaultValue={formProfile?.formulaSex ?? 'none'} error={errors['formulaSex']}>
               <option value="none">Не указывать</option><option value="male">Мужской</option><option value="female">Женский</option>
             </SelectField>
           </fieldset>
@@ -84,18 +84,18 @@ export function ProfilePage() {
           </fieldset>}
           {Object.keys(errors).length > 0 && <p role="alert">Проверьте отмеченные поля.</p>}
           <button type="submit" disabled={action.pending}>{action.pending ? 'Сохраняем…' : editing ? 'Сохранить профиль' : 'Создать профиль'}</button>
-          {editing && <button type="button" disabled={action.pending} onClick={() => { setEditing(false); setErrors({}) }}>Отмена</button>}
+          {editing && <button type="button" disabled={action.pending} onClick={() => { setEditing(null); setErrors({}) }}>Отмена</button>}
         </form>
       ) : (
         <section className="card profile-parameters" aria-label="Сохранённый профиль">
-          <div className="profile-identity"><Icon name="profile" /><div><h2>Личные параметры</h2><p>Локальный профиль</p></div></div>
+          <div className="profile-identity"><Icon name="profile" /><div><h2>Личные параметры</h2><p>Профиль дневника</p></div></div>
           <dl>
             <dt>Имя</dt><dd>{profile.name || 'Не указано'}</dd>
             <dt>Рост</dt><dd>{exactNumber(profile.heightCm)} см</dd>
             <dt>Дата рождения</dt><dd>{profile.birthDate?.split('-').reverse().join('.') ?? 'Не указана'}</dd>
             <dt>Параметр формулы расхода</dt><dd>{coefficientNames[profile.formulaSex]}</dd>
           </dl>
-          <button type="button" onClick={() => { setErrors({}); setEditing(true) }}>Редактировать профиль</button>
+          <button type="button" onClick={() => { setErrors({}); setEditing(profile) }}>Редактировать профиль</button>
         </section>
       )}
       <Feedback error={Object.keys(errors).length > 0 ? null : action.error} message={Object.keys(errors).length > 0 ? null : action.message} />
@@ -103,7 +103,7 @@ export function ProfilePage() {
       <aside className="profile-explanations" aria-label="О параметрах профиля">
         <section className="card"><h2><Icon name="profile" /> Для чего эти данные</h2><p>Рост используется для справочного ИМТ. Дата рождения и параметр формулы нужны только для соответствующих расчётов и могут оставаться пустыми.</p><p>Изменение параметров не переписывает сохранённую историю веса.</p></section>
         <section className="card"><h2><Icon name="weight" /> История измерений</h2><p>Новые измерения сохраняются отдельно, по датам.</p><a className="primary-link" href="#weight">Перейти к весу</a></section>
-        <section className="card"><h2><Icon name="settings" /> Ваши данные</h2><p>Данные остаются в этом браузере. Приложение не шифрует локальное хранилище.</p><a href="#settings">Настройки и резервные копии</a></section>
+        <section className="card"><h2><Icon name="settings" /> Ваши данные</h2><p>Сохраняйте резервные копии дневника. Скачанные файлы копий не зашифрованы.</p><a href="#settings">Настройки и резервные копии</a></section>
       </aside>
       </div>
     </section>

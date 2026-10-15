@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { archiveProduct, listProducts } from '../data/productRepository'
+import { useDiaryQuery, archiveProduct, listProducts } from '../dataAccess'
 import type { Product } from '../domain/nutrition'
 import { Field } from '../ui/Field'
 import { Feedback, useAction } from '../ui/actions'
@@ -12,7 +11,7 @@ function macroLabel(value: number | null) {
 }
 
 export function ProductCatalog() {
-  const products = useLiveQuery(() => listProducts(true), [])
+  const products = useDiaryQuery(() => listProducts(true), [])
   const [editing, setEditing] = useState<Product | null>(null)
   const [search, setSearch] = useState('')
   const [showArchived, setShowArchived] = useState(false)
@@ -47,7 +46,7 @@ export function ProductCatalog() {
                 <button type="button" className="secondary" disabled={busy} aria-label={`Править продукт ${product.name}`} onClick={() => { setEditing(product); setNotice(null) }}>Править</button>
                 <button type="button" className="secondary" disabled={busy} aria-label={`${product.archived ? 'Вернуть' : 'Архивировать'} продукт ${product.name}`} onClick={() => {
                   setNotice(null)
-                  action.run(() => archiveProduct(product.id, !product.archived), product.archived ? 'Продукт возвращён из архива' : 'Продукт перемещён в архив')
+                  action.run(() => archiveProduct(product, !product.archived), product.archived ? 'Продукт возвращён из архива' : 'Продукт перемещён в архив')
                 }}>{product.archived ? 'Вернуть' : 'Архивировать'}</button>
               </div>
             </li>)}
