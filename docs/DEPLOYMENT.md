@@ -62,7 +62,37 @@ curl --fail https://dev.arturican.com/release.txt
 с нужным SHA, загрузка JS/CSS, профиль и вес с синтетическими данными после reload.
 Браузерные проверки запускаются в отдельном контексте без личной базы.
 
-Автоматизация из `dev` оформляется отдельной задачей T126.
+## GitHub Actions
+
+Workflow [check.yml](../.github/workflows/check.yml) после успешного check
+передаёт тот же dist через artifact отдельному deploy job. Публикация выполняется
+для push в `dev` и ручного запуска workflow на `dev`; PR и master не публикуются.
+Запущенный workflow dev не отменяется следующим push во время доставки.
+Установщик проверяется Python unittest в CI. Actions закреплены по SHA;
+download-artifact v8.0.2 проверен по официальному release и README.
+
+Окружение GitHub `health-dev` ограничено веткой `dev` и содержит:
+
+- `HEALTH_DEPLOY_KEY` — отдельный SSH-ключ, environment secret;
+- `HEALTH_KNOWN_HOSTS` — закреплённый ключ VPS, environment secret;
+- `HEALTH_DEPLOY_HOST` — адрес VPS, environment variable.
+
+Ключ разрешает только `deploy <полный Git SHA>` с архивом в stdin. SSH shell,
+PTY, forwarding и sudo ему недоступны. Private key не хранится в репозитории;
+root-доступ в Actions не используется. Ключ хоста получен через уже доверенное
+SSH-соединение, автоматическое принятие нового host key выключено.
+
+После доставки проверяются HTTPS, главная страница и точный SHA в `/release.txt`.
+При сбое доставки до переключения продолжает работать прежний релиз. Если
+проверка HTTPS падает уже после переключения, workflow сообщает ошибку, но не
+откатывает сайт автоматически: используйте административный откат выше.
+Повторный запуск того же workflow допускается для того же неизменённого артефакта.
+Не запускайте старый workflow для доставки поверх новой версии без намерения отката.
+
+Изменения установщика и Nginx не применяются автоматическим frontend-деплоем:
+их нужно отдельно проверить и установить администратором. При смене VPS обновите
+DNS, сертификат, разрешённый ключ пользователя и secrets/variable окружения.
+Не отключайте проверку SSH host key при ошибке подключения.
 
 Источники: [Nginx try_files](https://nginx.org/en/docs/http/ngx_http_core_module.html#try_files),
 [GitHub Actions secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).

@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/dev' }}
 
 jobs:
   check:
@@ -29,6 +29,15 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run check
+      - run: python3 -B -m unittest discover -s deploy -p 'test_*.py' -v
+      - name: Save tested build
+        if: github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: health-dist-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
       - name: Browser failure artifacts
         if: failure()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -39,3 +48,46 @@ jobs:
             playwright-report/
           if-no-files-found: ignore
           retention-days: 7
+
+  deploy:
+    needs: check
+    if: github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment:
+      name: health-dev
+      url: https://dev.arturican.com
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: health-dist-${{ github.sha }}
+          path: dist/
+      - name: Publish tested build over restricted SSH
+        shell: bash
+        env:
+          DEPLOY_KEY: ${{ secrets.HEALTH_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HEALTH_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ vars.HEALTH_DEPLOY_HOST }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key_path="$RUNNER_TEMP/health-key"
+          hosts_path="$RUNNER_TEMP/health-known-hosts"
+          trap 'rm -f "$key_path" "$hosts_path"' EXIT
+          test -n "$DEPLOY_KEY" && test -n "$KNOWN_HOSTS" && test -n "$DEPLOY_HOST"
+          printf '%s\n' "$DEPLOY_KEY" > "$key_path"
+          printf '%s\n' "$KNOWN_HOSTS" > "$hosts_path"
+          tar -czf "$RUNNER_TEMP/health-dist.tar.gz" -C dist .
+          ssh -i "$key_path" -o IdentitiesOnly=yes -o BatchMode=yes \
+            -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$hosts_path" \
+            "health-deploy@$DEPLOY_HOST" "deploy $GITHUB_SHA" < "$RUNNER_TEMP/health-dist.tar.gz"
+      - name: Verify published revision over HTTPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
+            --retry 3 https://dev.arturican.com/release.txt)
+          test "$revision" = "$GITHUB_SHA"
+          curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
+            https://dev.arturican.com/ --output /dev/null
