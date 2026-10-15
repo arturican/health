@@ -1,7 +1,5 @@
 import { useId, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { listLabHistory } from '../data/labHistoryRepository'
-import { getFile } from '../data/fileRepository'
+import { useDiaryQuery, listLabHistory, getFile } from '../dataAccess'
 import { labPlot } from '../domain/labPlot'
 import { formatLabValue } from '../domain/labResult'
 import { SelectField } from '../ui/Field'
@@ -21,7 +19,7 @@ function scaleLabel(value: number | null) {
 export function LabTrends() {
   const title = useId()
   const hint = useId()
-  const history = useLiveQuery(() => listLabHistory(), [])
+  const history = useDiaryQuery(() => listLabHistory(), [])
   const [seriesKey, setSeriesKey] = useState('')
   const [resultId, setResultId] = useState('')
   const action = useAction()

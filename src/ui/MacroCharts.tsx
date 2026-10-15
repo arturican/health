@@ -1,8 +1,5 @@
 import { useId } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../data/db'
-import { listFood } from '../data/foodRepository'
-import { getNutritionDay } from '../data/nutritionRepository'
+import { useDiaryQuery, getNutritionSummary } from '../dataAccess'
 import { foodTotals, mealNames } from '../domain/nutrition'
 import { useDay } from './DayContext'
 import '../macro-charts.css'
@@ -17,9 +14,7 @@ const grams = (value: number | null) => value === null ? 'нет данных' :
 export function MacroCharts() {
   const title = useId()
   const { day } = useDay()
-  const result = useLiveQuery(() => db.transaction('r', db.foodEntries, db.nutritionDays, async () => ({
-    day, entries: await listFood(day), status: await getNutritionDay(day),
-  })), [day])
+  const result = useDiaryQuery(() => getNutritionSummary(day), [day])
   const data = result?.day === day ? result : undefined
   const totals = data ? foodTotals(data.entries, data.status?.complete ?? false) : null
   const meals = (['breakfast', 'lunch', 'snack', 'dinner'] as const).map(meal => ({

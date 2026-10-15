@@ -1,9 +1,5 @@
 import { useId } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { getEnergyPlan } from '../data/energyPlanRepository'
-import { listFood } from '../data/foodRepository'
-import { getNutritionDay } from '../data/nutritionRepository'
-import { db } from '../data/db'
+import { useDiaryQuery, getEnergySummary } from '../dataAccess'
 import { calculateEnergyDay, calculateExpenditure } from '../domain/energy'
 import { foodTotals } from '../domain/nutrition'
 import { useDay } from './DayContext'
@@ -14,7 +10,7 @@ function estimate(value: number | null) { return value === null ? 'нет дан
 export function EnergySummary() {
   const title = useId()
   const { day } = useDay()
-  const result = useLiveQuery(() => db.transaction('r', [db.energyPlans, db.foodEntries, db.nutritionDays], async () => ({ day, plan: await getEnergyPlan(day), entries: await listFood(day), status: await getNutritionDay(day) })), [day])
+  const result = useDiaryQuery(() => getEnergySummary(day), [day])
   const data = result?.day === day ? result : undefined
   if (!data) return <section className="card" aria-labelledby={title}><h2 id={title}>Цель и оценочный баланс</h2><p role="status">Загружаем энергетические показатели…</p></section>
   const { plan } = data

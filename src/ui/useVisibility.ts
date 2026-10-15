@@ -1,11 +1,13 @@
-import { useLiveQuery } from 'dexie-react-hooks'
-import { getVisibility } from '../data/visibilityRepository'
+import { useState } from 'react'
+import { useDiaryQuery, getVisibility } from '../dataAccess'
 import { type Visibility } from '../domain/visibility'
 
 const hidden: Visibility = { version: 1, showPhotos: false, showDocuments: false }
 export function useVisibility() {
-  return useLiveQuery(async () => {
+  const [attempt, setAttempt] = useState(0)
+  const result = useDiaryQuery(async () => {
     try { return { value: await getVisibility(), failed: false } }
     catch { return { value: hidden, failed: true } }
-  })
+  }, [attempt])
+  return result && { ...result, retry: () => { setAttempt(value => value + 1) } }
 }
