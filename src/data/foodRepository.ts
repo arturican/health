@@ -3,6 +3,7 @@ import { getProduct } from './productRepository'
 import { foodEntrySchema, mealSchema, readFoodEntry, type FoodEntry } from '../domain/nutrition'
 import { calendarDate, entityId, validate } from '../domain/schema'
 import { localDate, parseDate } from '../domain/input'
+import { assertRecordCapacity } from './recordLimit'
 
 const foodInputSchema = foodEntrySchema.pick({ date: true, meal: true, productId: true, grams: true, note: true }).extend({ productId: entityId })
 const foodEditSchema = foodEntrySchema.pick({ date: true, meal: true, grams: true, note: true })
@@ -17,6 +18,7 @@ export async function addFood(input: unknown, database: DiaryDatabase = db): Pro
   const values = validate(foodInputSchema, input)
   if (values.date > localDate()) throw new Error('Дата записи еды не может быть в будущем')
   return database.transaction('rw', database.products, database.foodEntries, async () => {
+    assertRecordCapacity(await database.foodEntries.count())
     const product = await getProduct(values.productId, database)
     if (!product) throw new Error('Продукт не найден')
     if (product.archived) throw new Error('Продукт в архиве. Выберите активный продукт')
@@ -55,6 +57,7 @@ export async function copyMeal(sourceInput: unknown, mealInput: unknown, targetI
     const input: unknown[] = await database.foodEntries.where('[date+meal]').equals([source, meal]).toArray()
     const entries = input.map(readFoodEntry)
     if (entries.length === 0) throw new Error('В выбранном приёме пищи нет записей')
+    assertRecordCapacity(await database.foodEntries.count(), entries.length)
     const copies = entries.map(entry => ({ ...entry, id: crypto.randomUUID(), date: target }))
     await database.foodEntries.bulkAdd(copies)
     return copies.length

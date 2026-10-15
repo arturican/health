@@ -2,6 +2,7 @@ import { db, type DiaryDatabase } from './db'
 import { readLabInput, readLabResult, type LabResult } from '../domain/labResult'
 import { readDocument } from '../domain/document'
 import { entityId, validate } from '../domain/schema'
+import { assertRecordCapacity } from './recordLimit'
 
 export async function listLabResults(documentIdInput: unknown, database: DiaryDatabase = db): Promise<LabResult[]> {
   const documentId = validate(entityId, documentIdInput)
@@ -11,6 +12,7 @@ export async function listLabResults(documentIdInput: unknown, database: DiaryDa
 export async function addLabResult(input: unknown, database: DiaryDatabase = db): Promise<LabResult> {
   const result = readLabResult({ ...readLabInput(input), id: crypto.randomUUID() })
   await database.transaction('rw', database.documents, database.labResults, async () => {
+    assertRecordCapacity(await database.labResults.count())
     const source: unknown = await database.documents.get(result.documentId)
     if (source === undefined) throw new Error('Документ-источник не найден')
     readDocument(source)

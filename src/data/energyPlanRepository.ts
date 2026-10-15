@@ -4,6 +4,7 @@ import { ageOn, localDate } from '../domain/input'
 import { calendarDate, validate } from '../domain/schema'
 import { getProfile } from './profileRepository'
 import { latestWeight } from './weightRepository'
+import { assertRecordCapacity } from './recordLimit'
 
 export async function listEnergyPlans(database: DiaryDatabase = db): Promise<EnergyPlan[]> {
   const values: unknown[] = await database.energyPlans.toArray()
@@ -20,6 +21,7 @@ export async function addEnergyPlan(input: unknown, database: DiaryDatabase = db
   const today = localDate()
   if (values.effectiveFrom < today) throw new Error('Новая версия действует с сегодняшнего или будущего дня')
   return database.transaction('rw', [database.energyPlans, database.profiles, database.weights], async () => {
+    assertRecordCapacity(await database.energyPlans.count())
     const profile = await getProfile(database)
     const weight = await latestWeight(today, database)
     const plans = await listEnergyPlans(database)
