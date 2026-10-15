@@ -26,7 +26,7 @@ it('успешное удаление сбрасывает открытый пр
   await screen.findByText('Все данные дневника удалены')
   expect(screen.queryByRole('region', { name: 'Предпросмотр текстовой копии' })).not.toBeInTheDocument()
   expect(screen.queryByLabelText('Согласен заменить текстовые данные дневника')).not.toBeInTheDocument()
-  expect(screen.getByRole('button', { name: 'Удалить весь дневник' })).toHaveFocus()
+  await waitFor(() => { expect(screen.getByRole('button', { name: 'Удалить весь дневник' })).toHaveFocus() })
   expect(restoreTextBackup).not.toHaveBeenCalled()
 })
 
