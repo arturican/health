@@ -38,3 +38,14 @@ export function beginRequest() {
     finish() { requests.delete(controller) },
   }
 }
+
+export function updateDiaryState(input: unknown) {
+  const diary = diaryStateSchema.parse(input)
+  if (!state.session) throw new Error('Войдите в дневник.')
+  if (state.diary?.generation !== diary.generation) { setClientSession(state.session, diary); return }
+  if (diary.changeRevision < state.diary.changeRevision) return
+  if (state.diary.revision === diary.revision && state.diary.changeRevision === diary.changeRevision) return
+  Object.freeze(diary.value)
+  state = Object.freeze({ ...state, diary: Object.freeze(diary) })
+  for (const listener of listeners) listener()
+}
