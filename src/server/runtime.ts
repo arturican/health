@@ -11,6 +11,8 @@ import { registerSteps } from './stepsRoutes.js'
 import { registerWorkouts } from './workoutRoutes.js'
 import { registerPlans } from './planRoutes.js'
 import { registerFiles } from './fileRecords.js'
+import { createUploadTransport } from './uploadTransport.js'
+import { registerPhotos } from './photoRoutes.js'
 
 export async function startApi(environment: Record<string, string | undefined>) {
   const config = readServerConfig(environment)
@@ -21,6 +23,7 @@ export async function startApi(environment: Record<string, string | undefined>) 
       const pool = createPool(dataConfig.connectionString)
       app.addHook('onClose', async () => { await pool.end() })
       const authorize = await registerAuthentication(app, pool, dataConfig.origin)
+      const uploads = createUploadTransport(app, authorize)
       registerProfile(app, pool, authorize)
       registerWeights(app, pool, authorize)
       registerProducts(app, pool, authorize)
@@ -30,6 +33,7 @@ export async function startApi(environment: Record<string, string | undefined>) 
       registerWorkouts(app, pool, authorize)
       registerPlans(app, pool, authorize)
       registerFiles(app, pool, authorize)
+      registerPhotos(app, pool, authorize, uploads)
     }
     await app.listen(config)
     return await app

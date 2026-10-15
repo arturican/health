@@ -95,7 +95,10 @@ X-Forwarded-For не доверяется, поэтому за proxy лимит 
 с no-store/nosniff, attachment и sandbox CSP. Для бинарных загрузок подготовлен
 транспорт application/octet-stream: X-Record содержит UTF-8 JSON в base64url
 без padding, до 4096 символов. Сессия проверяется до тела, одновременно до двух
-загрузок. Конкретные POST-маршруты карточек добавляются следующими задачами.
+загрузок. POST `/api/v1/photos` принимает подготовленный JPEG и X-Record с
+`id, fileId, date, title, note, mime`. Размеры определяет сервер. GET `/photos`
+использует after/limit; PUT `/:id` принимает `{ value: { date, title, note }, revision }`,
+DELETE `/:id` — `{ revision }`. Карточка и файл создаются/удаляются атомарно.
 
 Планы: GET `/api/v1/energy-plans?before=REVISION&limit=100` возвращает страницы
 по убыванию revision; GET `/effective/:date` — действующую версию либо null.
