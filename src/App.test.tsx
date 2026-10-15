@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 import axe from 'axe-core'
 import { db } from './data/db'
+import { saveVisibility } from './data/visibilityRepository'
+import { VISIBILITY_SETTING_ID } from './domain/visibility'
 
 async function clear() { await db.transaction('rw', db.tables, async () => { await Promise.all(db.tables.map(table => table.clear())) }) }
 beforeEach(async () => {
@@ -50,6 +52,35 @@ describe('Стартовый экран', () => {
 })
 
 describe('Переходы между разделами', () => {
+  it('прямые маршруты скрытых разделов оставляют доступ к настройкам и не показывают формы или вложения', async () => {
+    await saveVisibility({ version: 1, showPhotos: false, showDocuments: false })
+    for (const route of ['photos', 'documents']) {
+      window.history.replaceState(null, '', `/#${route}`)
+      render(<App />)
+      expect(await screen.findByRole('heading', { level: 1, name: 'Раздел скрыт' })).toBeVisible()
+      expect(screen.getByRole('link', { name: 'Открыть настройки видимости' })).toHaveAttribute('href', '#settings')
+      expect(screen.getByRole('link', { name: 'Настройки' })).toBeVisible()
+      expect(screen.queryByRole('link', { name: 'Фото' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'Документы' })).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('Файл документа')).not.toBeInTheDocument()
+      expect(screen.queryByRole('img')).not.toBeInTheDocument()
+      cleanup()
+    }
+  })
+
+  it('повреждённая настройка скрывает документы и позволяет открыть настройки для исправления', async () => {
+    await db.metadata.put({ id: VISIBILITY_SETTING_ID, value: 'Синтетическая повреждённая строка' })
+    window.history.replaceState(null, '', '/#documents')
+    render(<App />)
+    await screen.findByRole('heading', { level: 1, name: 'Раздел скрыт' })
+    fireEvent.click(screen.getByRole('link', { name: 'Открыть настройки видимости' }))
+    await screen.findByRole('heading', { level: 1, name: 'Настройки' })
+    expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось прочитать настройки видимости')
+    expect(screen.getByLabelText('Показывать фото')).not.toBeChecked()
+    expect(screen.getByLabelText('Показывать документы и показатели')).not.toBeChecked()
+    expect(screen.getByRole('button', { name: 'Сохранить видимость' })).toBeEnabled()
+  })
+
   it('переход к содержимому сохраняет текущий раздел', () => {
     window.history.replaceState(null, '', '/#profile')
     render(<App />)

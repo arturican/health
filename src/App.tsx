@@ -11,9 +11,14 @@ import { SettingsPage } from './pages/SettingsPage'
 import { ActivityPage } from './pages/ActivityPage'
 import { PhotosPage } from './pages/PhotosPage'
 import { DocumentsPage } from './pages/DocumentsPage'
+import { useVisibility } from './ui/useVisibility'
 
 export function App() {
   const [route, setRoute] = useState(() => getRoute(window.location.hash))
+  const visibility = useVisibility()
+  const mediaRoute = route === 'photos' || route === 'documents'
+  const hidden = (route === 'photos' && !visibility?.value.showPhotos) || (route === 'documents' && !visibility?.value.showDocuments)
+  const previousHidden = useRef(hidden)
   const previousRoute = useRef(route)
   const main = useRef<HTMLElement>(null)
 
@@ -24,9 +29,10 @@ export function App() {
   }, [])
 
   useEffect(() => {
-    if (previousRoute.current !== route) main.current?.focus()
+    if (previousRoute.current !== route || previousHidden.current !== hidden) main.current?.focus()
     previousRoute.current = route
-  }, [route])
+    previousHidden.current = hidden
+  }, [route, hidden])
 
   return (
     <DayProvider>
@@ -35,11 +41,14 @@ export function App() {
         <span className="brand"><span className="brand-mark" aria-hidden="true">д.</span> Дневник здоровья</span>
         <span className="edition">Личный дневник</span>
       </header>
-      <Navigation active={route} />
+      <Navigation active={route} showPhotos={Boolean(visibility?.value.showPhotos)} showDocuments={Boolean(visibility?.value.showDocuments)} />
       <main id="main" tabIndex={-1} ref={main}>
         {(route === 'today' || route === 'nutrition' || route === 'activity') && <DayPicker />}
-        <StorageBoundary key={route}>
-        {route === 'today' ? <TodayPage /> : route === 'profile' ? <ProfilePage /> : route === 'weight' ? <WeightPage /> : route === 'nutrition' ? <NutritionPage /> : route === 'activity' ? <ActivityPage /> : route === 'photos' ? <PhotosPage /> : route === 'documents' ? <DocumentsPage /> : <SettingsPage />}
+        <StorageBoundary key={route + String(hidden)}>
+        {mediaRoute && !visibility ? <p role="status">Загружаем настройки видимости…</p> : hidden ? <section className="page">
+          <h1>Раздел скрыт</h1><p>Его записи и файлы сохранены в этом браузере.</p>
+          <a href="#settings">Открыть настройки видимости</a>
+        </section> : route === 'today' ? <TodayPage /> : route === 'profile' ? <ProfilePage /> : route === 'weight' ? <WeightPage /> : route === 'nutrition' ? <NutritionPage /> : route === 'activity' ? <ActivityPage /> : route === 'photos' ? <PhotosPage /> : route === 'documents' ? <DocumentsPage /> : <SettingsPage />}
         </StorageBoundary>
       </main>
       <footer className="site-footer">

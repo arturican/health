@@ -20,10 +20,10 @@ export function getRoute(hash: string): Route {
   return isRoute(candidate) ? candidate : 'today'
 }
 
-export function Navigation({ active }: { active: Route }) {
+export function Navigation({ active, showPhotos = true, showDocuments = true }: { active: Route; showPhotos?: boolean; showDocuments?: boolean }) {
   return (
     <nav className="navigation" aria-label="Разделы дневника">
-      {Object.entries(routes).map(([id, label]) => (
+      {Object.entries(routes).filter(([id]) => (id !== 'photos' || showPhotos) && (id !== 'documents' || showDocuments)).map(([id, label]) => (
         <a key={id} href={`#${id}`} aria-current={active === id ? 'page' : undefined}>{label}</a>
       ))}
     </nav>

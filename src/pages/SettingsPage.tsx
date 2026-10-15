@@ -10,6 +10,7 @@ import { EnergyPlanSettings } from './EnergyPlanSettings'
 import { StorageBoundary } from '../ui/StorageBoundary'
 import { FullBackupExport } from './FullBackupExport'
 import { FullBackupImport } from './FullBackupImport'
+import { PrivacySettings } from './PrivacySettings'
 
 export function SettingsPage() {
   const action = useAction()
@@ -41,6 +42,7 @@ export function SettingsPage() {
   return (
     <section className="page" aria-labelledby="settings-title">
       <h1 id="settings-title">Настройки</h1>
+      <PrivacySettings />
       <StorageBoundary><EnergyPlanSettings /></StorageBoundary>
       <FullBackupExport />
       <FullBackupImport />

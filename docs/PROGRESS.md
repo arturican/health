@@ -334,3 +334,9 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 ## T058a — строгие сохраняемые настройки видимости разделов
 
 строгие сохраняемые настройки видимости разделов. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+После push до T057 [GitHub CI](https://github.com/arturican/health/actions/runs/38662400741) завершился success на 6fa2e51: установка и полный check — OK.
+
+## T058b — управление видимостью фото и документов в интерфейсе
+
+управление видимостью фото и документов в интерфейсе. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.

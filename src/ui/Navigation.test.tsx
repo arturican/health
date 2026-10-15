@@ -24,6 +24,16 @@ describe('Разбор маршрута', () => {
 })
 
 describe('Навигация', () => {
+  it('независимо скрывает выбранные разделы и сохраняет переход к настройкам', () => {
+    const view = render(<Navigation active="settings" showPhotos={false} showDocuments={true} />)
+    expect(screen.queryByRole('link', { name: 'Фото' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Документы' })).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Настройки' })).toHaveAttribute('aria-current', 'page')
+    view.rerender(<Navigation active="settings" showPhotos={true} showDocuments={false} />)
+    expect(screen.getByRole('link', { name: 'Фото' })).toBeVisible()
+    expect(screen.queryByRole('link', { name: 'Документы' })).not.toBeInTheDocument()
+  })
+
   it('показывает все доступные разделы с адресами перехода', () => {
     render(<Navigation active="today" />)
 
