@@ -3,8 +3,9 @@ import { calendarDate, entityId, validate } from './schema'
 import { localDate } from './input'
 
 export const labOperators = { eq: '', lt: '<', lte: '≤', gt: '>', gte: '≥' } as const
+export const labOperatorSchema = z.enum(['eq', 'lt', 'lte', 'gt', 'gte'])
 export const labValueSchema = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.literal('number'), number: z.number(), operator: z.enum(['eq', 'lt', 'lte', 'gt', 'gte']) }),
+  z.strictObject({ type: z.literal('number'), number: z.number(), operator: labOperatorSchema }),
   z.strictObject({ type: z.literal('text'), text: z.string().trim().min(1, 'Введите текст результата').max(120, 'Результат слишком длинный') }),
 ])
 export const labInputSchema = z.strictObject({
