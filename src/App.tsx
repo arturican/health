@@ -14,7 +14,24 @@ import { DocumentsPage } from './pages/DocumentsPage'
 import { useVisibility } from './ui/useVisibility'
 import { Icon } from './ui/Icon'
 
+function hasIndexedDB() {
+  try { return typeof window.indexedDB !== 'undefined' }
+  catch { return false }
+}
+
 export function App() {
+  if (!hasIndexedDB()) return (
+    <main>
+      <section className="page" aria-labelledby="storage-unavailable-title">
+        <h1 id="storage-unavailable-title">Хранилище недоступно</h1>
+        <p role="alert">Браузер не предоставляет доступ к локальной базе дневника. Разрешите хранение данных для сайта в настройках браузера или откройте приложение в другом браузере, затем обновите страницу.</p>
+      </section>
+    </main>
+  )
+  return <DiaryApp />
+}
+
+function DiaryApp() {
   const [route, setRoute] = useState(() => getRoute(window.location.hash))
   const visibility = useVisibility()
   const mediaRoute = route === 'photos' || route === 'documents'

@@ -22,6 +22,25 @@ afterEach(async () => {
 })
 
 describe('Стартовый экран', () => {
+  it.each(['missing', 'denied'])('показывает недоступность хранилища без форм при отказе API: %s', failure => {
+    const original = Object.getOwnPropertyDescriptor(window, 'indexedDB')
+    Object.defineProperty(window, 'indexedDB', failure === 'missing'
+      ? { configurable: true, value: undefined }
+      : { configurable: true, get() { throw new DOMException('Synthetic storage refusal', 'SecurityError') } })
+    try {
+      render(<App />)
+      expect(screen.getByRole('heading', { level: 1, name: 'Хранилище недоступно' })).toBeVisible()
+      expect(screen.getByRole('alert')).toHaveTextContent('Разрешите хранение данных')
+      expect(screen.getByRole('main')).toBeVisible()
+      expect(screen.queryByRole('form')).not.toBeInTheDocument()
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    } finally {
+      cleanup()
+      if (original) Object.defineProperty(window, 'indexedDB', original)
+      else Reflect.deleteProperty(window, 'indexedDB')
+    }
+  })
+
   it('показывает доступный дневник и предлагает заполнить отсутствующий профиль', async () => {
     render(<App />)
 
