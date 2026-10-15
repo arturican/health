@@ -91,6 +91,10 @@ Europe/Moscow. Команда не печатает пароль или хеш. 
 Лимит попыток находится в памяти одного API и сбрасывается при перезапуске;
 X-Forwarded-For не доверяется, поэтому за proxy лимит IP общий.
 
+Настройки: GET `/api/v1/diary-state` возвращает generation, value (видимость),
+revision и catalogSeeded. Первое чтение создаёт начальные настройки аккаунта.
+PUT `/api/v1/settings` принимает `{ value, revision }` с защитой от конфликтов.
+
 Показатели: GET `/api/v1/lab-results` принимает documentId/after/limit и возвращает
 историю с документами-источниками. POST принимает `{ value, revision: null }`,
 PUT/DELETE `/:id` требуют revision. Значение — число с оператором либо текст;

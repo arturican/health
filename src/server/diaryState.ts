@@ -1,0 +1,26 @@
+import type { PoolClient } from 'pg'
+import { z } from 'zod'
+import { entityId } from '../domain/schema'
+import { visibilitySchema } from '../domain/visibility'
+import { DataError, inputValue } from './httpErrors.js'
+import { revisionInput, storedRevision } from './profileRecords.js'
+
+const stateSchema = z.object({ generation: entityId, value: visibilitySchema, revision: storedRevision, catalogSeeded: z.boolean() })
+
+// Вызывается под блокировкой владельца: первый GET создаёт только настройки.
+export async function ensureDiaryState(client: PoolClient, owner: string) {
+  await client.query('INSERT INTO health.settings(user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING', [owner])
+  const result = await client.query<Record<string, unknown>>(`SELECT generation,revision::text,catalog_seeded AS "catalogSeeded",
+    jsonb_build_object('version',1,'showPhotos',show_photos,'showDocuments',show_documents) AS value FROM health.settings`)
+  return stateSchema.parse(result.rows[0])
+}
+
+export async function saveSettings(client: PoolClient, owner: string, input: unknown) {
+  const { value, revision } = inputValue(() => z.strictObject({ value: visibilitySchema, revision: revisionInput }).parse(input))
+  const previous = await ensureDiaryState(client, owner)
+  if (previous.revision !== revision) throw new DataError(409)
+  const result = await client.query(`UPDATE health.settings SET show_photos=$1,show_documents=$2,revision=revision+1,updated_at=now()
+    WHERE revision=$3`, [value.showPhotos, value.showDocuments, revision])
+  if (result.rowCount !== 1) throw new DataError(409)
+  return ensureDiaryState(client, owner)
+}
