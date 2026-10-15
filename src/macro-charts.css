@@ -1,0 +1,22 @@
+.macro-charts > p { color: var(--muted); font-size: 14px; }
+.macro-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
+.macro-card { padding: 20px; border: 1px solid var(--border); border-radius: 16px; min-width: 0; }
+.macro-protein { --macro-color: #560BAD; --macro-soft: #F2EBFC; }
+.macro-fat { --macro-color: #996000; --macro-soft: #FFF4DD; }
+.macro-carbs { --macro-color: #007BA6; --macro-soft: #E5F4FA; }
+.macro-icon { display: inline-flex; background: var(--macro-soft); color: var(--macro-color); border-radius: 12px; padding: 10px; }
+.macro-icon svg { width: 24px; height: 24px; }
+.macro-card h3 { margin: 12px 0 8px; font-size: 14px; color: var(--muted); }
+.macro-card > strong { font-size: 28px; letter-spacing: -.02em; }
+.macro-charts meter { appearance: none; display: block; height: 8px; width: 100%; margin: 12px 0 0; background: #EDF0F4; border: 0; border-radius: 8px; }
+.macro-charts meter::-webkit-meter-bar { background: #EDF0F4; border: 0; border-radius: 8px; }
+.macro-charts meter::-webkit-meter-optimum-value { background: var(--macro-color); border-radius: 8px; }
+.macro-charts meter::-moz-meter-bar { background: var(--macro-color); border-radius: 8px; }
+.macro-meals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin: 20px 0; }
+.macro-meals h4 { margin: 0 0 16px; font-size: 14px; }
+.macro-meal-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; margin-top: 14px; font-size: 12px; }
+.macro-meal-row > strong { color: var(--muted); font-weight: 500; }
+.macro-meal-row meter { grid-column: 1 / -1; margin: 0; }
+.macro-charts .chart-note { font-size: 12px; }
+@media (max-width: 1199px) { .macro-meals { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 599px) { .macro-cards { grid-template-columns: minmax(0, 1fr); } .macro-meals { gap: 20px 12px; } }

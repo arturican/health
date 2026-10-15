@@ -5,6 +5,7 @@ import { FoodJournal } from './FoodJournal'
 import { useDay } from '../ui/DayContext'
 import { NutritionSummary } from '../ui/NutritionSummary'
 import { EnergySummary } from '../ui/EnergySummary'
+import { MacroCharts } from '../ui/MacroCharts'
 
 export function NutritionPage() {
   const { day } = useDay()
@@ -12,6 +13,7 @@ export function NutritionPage() {
   return (
     <section className="page" aria-labelledby="nutrition-title">
       <h1 id="nutrition-title">Питание</h1>
+      <MacroCharts />
       <NutritionSummary />
       <EnergySummary />
       <FoodJournal key={day} />
