@@ -1,0 +1,55 @@
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { beforeEach, expect, it, vi } from 'vitest'
+import { DeleteDiary } from './DeleteDiary'
+import { clearDiary } from '../data/clearDiary'
+
+vi.mock('../data/clearDiary', () => ({ clearDiary: vi.fn() }))
+beforeEach(() => { vi.resetAllMocks() })
+
+it('объясняет удаление и скачанные копии, требует подтверждения и возвращает фокус после отмены', () => {
+  render(<DeleteDiary />)
+  expect(screen.getByText(/Скачанные копии остаются на устройстве/)).toBeVisible()
+  const button = screen.getByRole('button', { name: 'Удалить весь дневник' })
+  button.focus()
+  fireEvent.click(button)
+  const dialog = screen.getByRole('alertdialog')
+  expect(dialog).toHaveAccessibleName(/включая фото, документы, показатели и настройки/)
+  const cancel = within(dialog).getByRole('button', { name: 'Отмена' })
+  expect(cancel).toHaveFocus()
+  expect(clearDiary).not.toHaveBeenCalled()
+  fireEvent.click(cancel)
+  expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+  expect(button).toHaveFocus()
+  expect(clearDiary).not.toHaveBeenCalled()
+})
+
+it('блокирует повтор/отмену в pending, сохраняет диалог после ошибки и позволяет повторить', async () => {
+  let reject: (reason: unknown) => void = () => { throw new Error('Удаление не началось') }
+  vi.mocked(clearDiary).mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail }))
+  const onCleared = vi.fn()
+  render(<DeleteDiary onCleared={onCleared} />)
+  const button = screen.getByRole('button', { name: 'Удалить весь дневник' })
+  button.focus()
+  fireEvent.click(button)
+  const confirm = screen.getByRole('button', { name: 'Подтвердить удаление' })
+  fireEvent.click(confirm)
+  await waitFor(() => { expect(clearDiary).toHaveBeenCalledTimes(1) })
+  expect(button).toBeDisabled()
+  expect(confirm).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Отмена' })).toBeDisabled()
+  fireEvent.click(confirm)
+  expect(clearDiary).toHaveBeenCalledTimes(1)
+  reject(Object.assign(new Error('synthetic-private-quota'), { name: 'QuotaExceededError' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось выполнить действие')
+  expect(screen.getByRole('alert')).not.toHaveTextContent('synthetic-private-quota')
+  expect(screen.getByRole('alertdialog')).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Отмена' })).toHaveFocus()
+  expect(onCleared).not.toHaveBeenCalled()
+  vi.mocked(clearDiary).mockResolvedValueOnce(undefined)
+  fireEvent.click(confirm)
+  expect(await screen.findByRole('status')).toHaveTextContent('Все данные дневника удалены')
+  expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+  expect(button).toHaveFocus()
+  expect(clearDiary).toHaveBeenCalledTimes(2)
+  expect(onCleared).toHaveBeenCalledTimes(1)
+})

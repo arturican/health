@@ -11,8 +11,18 @@ import { StorageBoundary } from '../ui/StorageBoundary'
 import { FullBackupExport } from './FullBackupExport'
 import { FullBackupImport } from './FullBackupImport'
 import { PrivacySettings } from './PrivacySettings'
+import { DeleteDiary } from './DeleteDiary'
 
 export function SettingsPage() {
+  const [resetVersion, setResetVersion] = useState(0)
+  return <section className="page" aria-labelledby="settings-title">
+    <h1 id="settings-title">Настройки</h1>
+    <SettingsContent key={resetVersion} />
+    <DeleteDiary onCleared={() => { setResetVersion(version => version + 1) }} />
+  </section>
+}
+
+function SettingsContent() {
   const action = useAction()
   const importing = useAction()
   const restoring = useAction()
@@ -40,8 +50,7 @@ export function SettingsPage() {
     }, 'Текстовая копия восстановлена')
   }
   return (
-    <section className="page" aria-labelledby="settings-title">
-      <h1 id="settings-title">Настройки</h1>
+    <>
       <PrivacySettings />
       <StorageBoundary><EnergyPlanSettings /></StorageBoundary>
       <FullBackupExport />
@@ -79,6 +88,6 @@ export function SettingsPage() {
       </section>}
       <Feedback error={restoring.error} message={restoring.message} />
       <p>Копия не зашифрована. Данные приложения хранятся в этом браузере; очистка данных браузера удаляет дневник.</p>
-    </section>
+    </>
   )
 }
