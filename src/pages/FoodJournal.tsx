@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { deleteFood, listFood } from '../data/foodRepository'
 import { mealNames, portion, type FoodEntry } from '../domain/nutrition'
@@ -16,10 +16,17 @@ export function FoodJournal() {
   const [editing, setEditing] = useState<FoodEntry | null>(null)
   const [deleting, setDeleting] = useState<FoodEntry | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [focusVersion, setFocusVersion] = useState(0)
   const action = useAction()
+  const dialog = useRef<HTMLDivElement>(null)
+  useEffect(() => { if (action.error && deleting) dialog.current?.querySelector<HTMLButtonElement>('button')?.focus() }, [action.error, deleting])
+  function finishEditing() {
+    setEditing(null)
+    setFocusVersion(value => value + 1)
+  }
   return (
     <>
-      {editing ? <FoodForm key={editing.id} entry={editing} onCancel={() => { setEditing(null) }} onSaved={() => { setEditing(null); setNotice('Запись еды изменена') }} /> : <FoodForm key="new" />}
+      {editing ? <FoodForm key={editing.id} entry={editing} focusVersion={focusVersion} onCancel={finishEditing} onSaved={() => { finishEditing(); setNotice('Запись еды изменена') }} /> : <FoodForm key="new" focusVersion={focusVersion} onSaved={() => { setNotice(null); action.reset() }} />}
       <h2>Записи выбранного дня</h2>
       {entries === undefined ? <p role="status">Загружаем еду…</p> : entries.length === 0 ? <p>За этот день нет записей еды.</p> : <ul className="record-list" aria-label="Еда выбранного дня">
         {entries.map((entry, index) => {
@@ -32,15 +39,15 @@ export function FoodJournal() {
               {entry.note && <p>{entry.note}</p>}
             </div>
             <div className="actions">
-              <button type="button" className="secondary" disabled={action.pending} aria-label={`Изменить запись еды ${String(index + 1)}: ${entry.snapshot.name}`} onClick={() => { setEditing(entry); setNotice(null) }}>Изменить</button>
-              <button type="button" className="secondary" disabled={action.pending} aria-label={`Удалить запись еды ${String(index + 1)}: ${entry.snapshot.name}`} onClick={() => { setDeleting(entry); setNotice(null) }}>Удалить</button>
+              <button type="button" className="secondary" disabled={action.pending} aria-label={`Изменить запись еды ${String(index + 1)}: ${entry.snapshot.name}`} onClick={() => { action.reset(); setEditing(entry); setFocusVersion(value => value + 1); setNotice(null) }}>Изменить</button>
+              <button type="button" className="secondary" disabled={action.pending} aria-label={`Удалить запись еды ${String(index + 1)}: ${entry.snapshot.name}`} onClick={() => { action.reset(); setDeleting(entry); setNotice(null) }}>Удалить</button>
             </div>
           </li>
         })}
       </ul>}
-      {deleting && <Confirmation question={`Удалить запись «${deleting.snapshot.name}» за ${deleting.date.split('-').reverse().join('.')}?`} pending={action.pending} onCancel={() => { setDeleting(null) }} onConfirm={() => {
-        action.run(async () => { await deleteFood(deleting.id); setDeleting(null); setEditing(null) }, 'Запись еды удалена')
-      }} />}
+      <div ref={dialog}>{deleting && <Confirmation question={`Удалить запись «${deleting.snapshot.name}» за ${deleting.date.split('-').reverse().join('.')}?`} pending={action.pending} onCancel={() => { setDeleting(null); action.reset() }} onConfirm={() => {
+        action.run(async () => { await deleteFood(deleting.id); setDeleting(null); finishEditing() }, 'Запись еды удалена')
+      }} />}</div>
       {!editing && <Feedback error={action.error} message={notice ?? action.message} />}
       {entries && <CopyMealForm entries={entries} />}
     </>

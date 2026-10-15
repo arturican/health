@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from 'react'
+import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { listProducts } from '../data/productRepository'
 import { addFood, listFood, updateFood } from '../data/foodRepository'
@@ -9,15 +9,26 @@ import { Field, SelectField } from '../ui/Field'
 import { Feedback, readField, useAction } from '../ui/actions'
 import { useDay } from '../ui/DayContext'
 
-interface FoodFormProps { entry?: FoodEntry; onSaved?: () => void; onCancel?: () => void }
+interface FoodFormProps { entry?: FoodEntry; onSaved?: () => void; onCancel?: () => void; focusVersion?: number }
 
-export function FoodForm({ entry, onSaved, onCancel }: FoodFormProps) {
+export function FoodForm({ entry, onSaved, onCancel, focusVersion = 0 }: FoodFormProps) {
   const { day } = useDay()
   const result = useLiveQuery(async () => ({ day, products: await listProducts(), entries: await listFood(day) }), [day])
   const data = result?.day === day ? result : undefined
   const [revision, setRevision] = useState(0)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const action = useAction()
+  const formRef = useRef<HTMLFormElement>(null)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const focusAfterSave = useRef(false)
+  const handledFocus = useRef(0)
+  useEffect(() => {
+    if (!data || action.pending || (!focusAfterSave.current && (focusVersion === 0 || handledFocus.current === focusVersion))) return
+    const target = formRef.current?.querySelector<HTMLElement>(entry ? '[name="date"]' : '[name="productId"]') ?? titleRef.current
+    target?.focus()
+    focusAfterSave.current = false
+    handledFocus.current = focusVersion
+  }, [data, action.pending, revision, focusVersion, entry])
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
@@ -40,19 +51,20 @@ export function FoodForm({ entry, onSaved, onCancel }: FoodFormProps) {
     action.run(async () => {
       if (entry) await updateFood(entry.id, { date, meal, grams, note })
       else await addFood({ date, productId, meal, grams, note })
+      focusAfterSave.current = true
       setRevision(value => value + 1)
       onSaved?.()
     }, entry ? 'Запись еды изменена' : 'Запись еды добавлена')
   }
   return (
     <>
-      <h2>{entry ? 'Редактирование еды' : 'Запись еды'}</h2>
+      <h2 ref={titleRef} tabIndex={-1}>{entry ? 'Редактирование еды' : 'Запись еды'}</h2>
       <p>Еда за {(entry?.date ?? day).split('-').reverse().join('.')}</p>
       {data === undefined ? <p role="status">Загружаем продукты для записи…</p> : (
         <>
           {!entry && <p>Записей еды: {data.entries.length}</p>}
           {data.products.length === 0 && !entry ? <p>Сначала добавьте активный продукт в каталог ниже.</p> : (
-            <form key={revision} className="form-grid" aria-label={entry ? 'Редактирование еды' : 'Добавление еды'} noValidate onSubmit={submit} aria-busy={action.pending}>
+            <form key={revision} ref={formRef} className="form-grid" aria-label={entry ? 'Редактирование еды' : 'Добавление еды'} noValidate onSubmit={submit} aria-busy={action.pending}>
               <fieldset disabled={action.pending}>
                 <legend>Продукт и порция</legend>
                 {entry ? <>

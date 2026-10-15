@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from 'react'
+import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getProfile } from '../data/profileRepository'
 import { deleteWeight, listWeights, saveWeight, updateWeight } from '../data/weightRepository'
@@ -18,6 +18,15 @@ export function WeightPage() {
   const [revision, setRevision] = useState(0)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const action = useAction()
+  const formRef = useRef<HTMLFormElement>(null)
+  const dialog = useRef<HTMLDivElement>(null)
+  const focusAfterChange = useRef<'date' | 'kg' | null>(null)
+  useEffect(() => {
+    if (action.pending || !data?.profile || !focusAfterChange.current) return
+    const control = formRef.current?.querySelector<HTMLInputElement>(`[name="${focusAfterChange.current}"]`)
+    if (control) { control.focus(); focusAfterChange.current = null }
+  }, [editing, deleting, revision, action.pending, data])
+  useEffect(() => { if (action.error && deleting) dialog.current?.querySelector<HTMLButtonElement>('button')?.focus() }, [action.error, deleting])
 
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -36,6 +45,7 @@ export function WeightPage() {
       if (first) event.currentTarget.querySelector<HTMLElement>(`[name="${first}"]`)?.focus()
       return
     }
+    focusAfterChange.current = 'kg'
     action.run(async () => {
       if (editing) await updateWeight(editing.id, { date, kg })
       else await saveWeight({ date, kg })
@@ -53,14 +63,14 @@ export function WeightPage() {
         <>
           <BmiCard profile={data.profile} weight={data.weights[0] ?? null} />
           <WeightChart weights={data.weights} />
-          <form key={editing?.id ?? revision} className="form-grid" aria-label={editing ? 'Редактирование веса' : 'Новое измерение'} onSubmit={submit} noValidate aria-busy={action.pending}>
+          <form key={editing?.id ?? revision} ref={formRef} className="form-grid" aria-label={editing ? 'Редактирование веса' : 'Новое измерение'} onSubmit={submit} noValidate aria-busy={action.pending}>
             <Field label="Дата измерения" name="date" type="date" defaultValue={editing?.date ?? localDate()} max={localDate()} required disabled={action.pending} error={errors['date']} />
             <Field label="Вес, кг" name="kg" inputMode="decimal" defaultValue={editing?.kg ?? ''} required disabled={action.pending} error={errors['kg']} />
             <p>Одна запись на дату. Повторный ввод обновляет вес этой даты.</p>
             {Object.keys(errors).length > 0 && <p role="alert">Проверьте отмеченные поля.</p>}
             <div className="actions">
               <button type="submit" disabled={action.pending}>{action.pending ? 'Сохраняем…' : 'Сохранить вес'}</button>
-              {editing && <button type="button" className="secondary" disabled={action.pending} onClick={() => { setEditing(null); setErrors({}) }}>Отменить изменение</button>}
+              {editing && <button type="button" className="secondary" disabled={action.pending} onClick={() => { focusAfterChange.current = 'kg'; setEditing(null); setErrors({}); action.reset() }}>Отменить изменение</button>}
             </div>
           </form>
           <h2>История измерений</h2>
@@ -72,16 +82,20 @@ export function WeightPage() {
                   <time dateTime={weight.date}>{dateLabel}</time>
                   <strong>{String(weight.kg).replace('.', ',')} кг</strong>
                   <div className="actions">
-                    <button type="button" className="secondary" disabled={action.pending} aria-label={`Изменить вес за ${dateLabel}`} onClick={() => { setEditing(weight); setErrors({}) }}>Изменить</button>
-                    <button type="button" className="secondary" disabled={action.pending} aria-label={`Удалить вес за ${dateLabel}`} onClick={() => { setDeleting(weight) }}>Удалить</button>
+                    <button type="button" className="secondary" disabled={action.pending} aria-label={`Изменить вес за ${dateLabel}`} onClick={() => {
+                      if (editing?.id === weight.id) formRef.current?.querySelector<HTMLInputElement>('[name="date"]')?.focus()
+                      else focusAfterChange.current = 'date'
+                      setEditing(weight); setErrors({}); action.reset()
+                    }}>Изменить</button>
+                    <button type="button" className="secondary" disabled={action.pending} aria-label={`Удалить вес за ${dateLabel}`} onClick={() => { setDeleting(weight); setErrors({}); action.reset() }}>Удалить</button>
                   </div>
                 </li>
               })}
             </ul>
           )}
-          {deleting && <Confirmation question={`Удалить измерение за ${deleting.date.split('-').reverse().join('.')}?`} pending={action.pending} onCancel={() => { setDeleting(null) }} onConfirm={() => {
-            action.run(async () => { await deleteWeight(deleting.id); setDeleting(null); setEditing(null); setErrors({}) }, 'Измерение удалено')
-          }} />}
+          <div ref={dialog}>{deleting && <Confirmation question={`Удалить измерение за ${deleting.date.split('-').reverse().join('.')}?`} pending={action.pending} onCancel={() => { setDeleting(null); action.reset() }} onConfirm={() => {
+            action.run(async () => { await deleteWeight(deleting.id); focusAfterChange.current = 'kg'; setDeleting(null); setEditing(null); setErrors({}) }, 'Измерение удалено')
+          }} />}</div>
         </>
       )}
       <Feedback error={Object.keys(errors).length > 0 ? null : action.error} message={Object.keys(errors).length > 0 ? null : action.message} />
