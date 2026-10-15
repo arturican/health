@@ -1,3 +1,10 @@
+let calendarFormatter: Intl.DateTimeFormat | null = null
+export function configureCalendarTimezone(timezone: string | null) {
+  calendarFormatter = timezone === null ? null : new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+  })
+}
+
 export interface NumberOptions {
   min?: number
   max?: number
@@ -37,6 +44,10 @@ export function parseDate(value: string): string {
 export function localDate(date = new Date()): string {
   const year = date.getFullYear()
   if (Number.isNaN(date.getTime()) || year < 1 || year > 9999) throw new Error('Некорректная дата')
+  if (calendarFormatter) {
+    const parts = calendarFormatter.formatToParts(date)
+    return parseDate(['year', 'month', 'day'].map(type => parts.find(part => part.type === type)?.value.padStart(type === 'year' ? 4 : 2, '0')).join('-'))
+  }
   return [String(year).padStart(4, '0'), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
 }
 
