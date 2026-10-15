@@ -91,6 +91,12 @@ Europe/Moscow. Команда не печатает пароль или хеш. 
 Лимит попыток находится в памяти одного API и сбрасывается при перезапуске;
 X-Forwarded-For не доверяется, поэтому за proxy лимит IP общий.
 
+Файлы: GET `/api/v1/files/:id` возвращает исходные байты только владельцу сессии,
+с no-store/nosniff, attachment и sandbox CSP. Для бинарных загрузок подготовлен
+транспорт application/octet-stream: X-Record содержит UTF-8 JSON в base64url
+без padding, до 4096 символов. Сессия проверяется до тела, одновременно до двух
+загрузок. Конкретные POST-маршруты карточек добавляются следующими задачами.
+
 Планы: GET `/api/v1/energy-plans?before=REVISION&limit=100` возвращает страницы
 по убыванию revision; GET `/effective/:date` — действующую версию либо null.
 POST принимает `{ id, value: EnergyPlanInput, expectedRevision }` (null для первой).

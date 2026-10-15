@@ -10,6 +10,7 @@ import { registerNutrition } from './nutritionRoutes.js'
 import { registerSteps } from './stepsRoutes.js'
 import { registerWorkouts } from './workoutRoutes.js'
 import { registerPlans } from './planRoutes.js'
+import { registerFiles } from './fileRecords.js'
 
 export async function startApi(environment: Record<string, string | undefined>) {
   const config = readServerConfig(environment)
@@ -28,6 +29,7 @@ export async function startApi(environment: Record<string, string | undefined>) 
       registerSteps(app, pool, authorize)
       registerWorkouts(app, pool, authorize)
       registerPlans(app, pool, authorize)
+      registerFiles(app, pool, authorize)
     }
     await app.listen(config)
     return await app

@@ -7,7 +7,7 @@ export function createApi() {
     trustProxy: false,
     bodyLimit: 16 * 1024,
     connectionTimeout: 10000,
-    requestTimeout: 15000,
+    requestTimeout: 120000,
   })
 
   app.addHook('onSend', (_request, reply, payload, done) => {
