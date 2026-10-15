@@ -1,0 +1,31 @@
+.documents-page .lab-trends { margin-top: 24px; }
+.lab-trends > .field { max-width: 560px; margin: 24px 0 16px; }
+.lab-trends > p, .lab-trends .lab-note { color: var(--muted); font-size: 13px; }
+.lab-trends-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; align-items: start; margin: 24px 0; }
+.lab-graph, .lab-selected { min-width: 0; }
+.lab-chart-layout { display: grid; grid-template-columns: 64px minmax(0, 1fr); margin: 20px 0; }
+.lab-scale { position: relative; font-size: 12px; color: var(--muted); text-align: right; }
+.lab-scale span { position: absolute; left: 0; right: 8px; transform: translateY(-50%); overflow-wrap: anywhere; }
+.lab-scale-top { top: 16.6667%; }
+.lab-scale-middle { top: 50%; }
+.lab-scale-bottom { top: 83.3333%; }
+.lab-canvas { height: 240px; position: relative; min-width: 0; }
+.lab-canvas svg { width: 100%; height: 100%; display: block; }
+.lab-grid-line { fill: none; stroke: #E7EDF2; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.lab-series-line { fill: none; stroke: #560BAD; stroke-width: 3; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.lab-point { position: absolute; width: 8px; height: 8px; border: 2px solid white; background: #560BAD; box-shadow: 0 0 0 1px #560BAD; border-radius: 50%; transform: translate(-50%, -50%); }
+.lab-point-selected { width: 12px; height: 12px; background: white; border: 3px solid #560BAD; box-shadow: 0 0 0 5px #560BAD1A; }
+.lab-date-axis { grid-column: 2; display: flex; justify-content: space-between; gap: 12px; padding-inline: 6.6667%; font-size: 12px; color: var(--muted); }
+.lab-date-axis span:only-child { margin: auto; }
+.lab-selected { padding: 20px; background: #F6F8FA; border-radius: 14px; }
+.lab-trends .lab-selected h3 { margin-top: 0; }
+.lab-selected p { font-size: 13px; color: var(--muted); margin-top: 16px; }
+.lab-selected button { margin-top: 16px; }
+.lab-readout { display: grid; gap: 4px; margin: 20px 0; overflow-wrap: anywhere; }
+.lab-readout strong { font-size: 30px; line-height: 1.3; }
+.lab-readout span, .lab-readout time { font-size: 13px; color: var(--muted); }
+.lab-history { list-style: none; margin: 20px 0 0; padding: 0; }
+.lab-history li { display: grid; grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 16px 0; border-top: 1px solid var(--line); font-size: 14px; overflow-wrap: anywhere; }
+.lab-history span { color: var(--muted); }
+@media (max-width: 1199px) { .lab-trends-layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 599px) { .lab-history li { grid-template-columns: minmax(0, 1fr); gap: 8px; } .lab-chart-layout { grid-template-columns: 48px minmax(0, 1fr); } }

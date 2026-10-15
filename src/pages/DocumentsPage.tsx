@@ -3,6 +3,7 @@ import { type DiaryDocument } from '../domain/document'
 import { DocumentForm } from './DocumentForm'
 import { DocumentList } from './DocumentList'
 import { LabSection } from './LabSection'
+import { LabTrends } from './LabTrends'
 import { Icon } from '../ui/Icon'
 import '../documents.css'
 
@@ -22,6 +23,7 @@ export function DocumentsPage() {
     <p>Бланки анализов и история показателей в одном месте.</p>
     <ol className="documents-steps"><li>Сохраните бланк</li><li>Внесите показатели вручную</li><li>Наблюдайте изменения по датам</li></ol>
     <p>Файлы хранятся в этом браузере. Сохраняйте резервные копии: очистка браузера может удалить записи.</p>
+    <LabTrends />
     <div className="documents-layout">
     <div className="card document-editor">
     <h2><Icon name="documents" /> {editing ? 'Изменить бланк' : 'Загрузить анализ'}</h2>

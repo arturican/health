@@ -1,0 +1,80 @@
+import { readFile } from 'node:fs/promises'
+import { expect, test } from '@playwright/test'
+import axe from 'axe-core'
+
+test('график анализов обновляется из ручных записей, разделяет единицы и скачивает источник', async ({ page, baseURL }) => {
+  const errors: string[] = []
+  const external: string[] = []
+  page.on('pageerror', error => { errors.push(error.message) })
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('request', request => {
+    const url = new URL(request.url())
+    if (['http:', 'https:'].includes(url.protocol) && url.origin !== baseURL) external.push(url.href)
+  })
+  await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'))
+  await page.goto('/#documents')
+  const pdf = Buffer.from('%PDF-1.7\nSynthetic laboratory chart fixture\n%%EOF\n')
+  for (const [title, date, value] of [['Учебный бланк A', '2026-10-01', '12'], ['Учебный бланк B', '2026-10-14', '10']] as const) {
+    const form = page.getByRole('form', { name: 'Добавление документа', exact: true })
+    await form.getByLabel('Дата документа', { exact: true }).fill(date)
+    await form.getByLabel('Название документа', { exact: true }).fill(title)
+    await form.getByLabel('Файл документа', { exact: true }).setInputFiles({ name: 'synthetic.pdf', mimeType: 'application/pdf', buffer: pdf })
+    await form.getByRole('button', { name: 'Добавить документ', exact: true }).click()
+    await expect(page.getByRole('list', { name: 'Сохранённые документы' }).getByRole('heading', { name: title, exact: true })).toBeVisible()
+    await page.getByLabel('Бланк для показателей', { exact: true }).selectOption({ label: `${date} — ${title}` })
+    const lab = page.getByRole('form', { name: 'Добавление показателя', exact: true })
+    await lab.getByLabel('Название показателя', { exact: true }).fill('Учебный показатель')
+    await lab.getByLabel('Результат числом', { exact: true }).fill(value)
+    await lab.getByLabel('Единицы (необязательно)', { exact: true }).fill('усл. ед.')
+    await lab.getByRole('button', { name: 'Добавить показатель', exact: true }).click()
+    await expect(page.getByRole('list', { name: 'Показатели выбранного документа' }).getByText(`Результат: ${value}`, { exact: true })).toBeVisible()
+  }
+  const trends = page.getByRole('region', { name: 'Динамика показателей', exact: true })
+  const history = trends.getByRole('list', { name: 'История выбранного показателя' })
+  const output = trends.getByRole('status', { name: 'Выбранный показатель' })
+  await expect(history.getByRole('listitem')).toHaveCount(2)
+  await expect(trends.getByRole('img', { name: 'График выбранного показателя' })).toBeVisible()
+  const choice = trends.getByLabel('Измерение показателя', { exact: true })
+  await choice.focus()
+  await page.keyboard.press('Home')
+  await page.keyboard.press('Enter')
+  await expect(output).toContainText('01.10.2026')
+  const pendingDownload = page.waitForEvent('download')
+  await trends.getByRole('button', { name: 'Скачать бланк выбранного показателя' }).click()
+  const download = await pendingDownload
+  const path = await download.path()
+  if (!path) throw new Error('Учебный бланк не скачан')
+  expect(await readFile(path)).toEqual(pdf)
+
+  const lab = page.getByRole('form', { name: 'Добавление показателя', exact: true })
+  await lab.getByLabel('Название показателя', { exact: true }).fill('Учебный показатель')
+  await lab.getByLabel('Результат числом', { exact: true }).fill('99')
+  await lab.getByLabel('Единицы (необязательно)', { exact: true }).fill('другие ед.')
+  await lab.getByRole('button', { name: 'Добавить показатель', exact: true }).click()
+  await expect(trends.getByLabel('Показатель для графика').getByRole('option')).toHaveCount(2)
+  await trends.getByLabel('Показатель для графика').selectOption({ label: 'Учебный показатель · усл. ед.' })
+  await expect(history.getByRole('listitem')).toHaveCount(2)
+
+  const records = page.getByRole('list', { name: 'Показатели выбранного документа' })
+  const original = records.getByRole('listitem').filter({ hasText: 'Единицы: усл. ед.' })
+  await original.getByRole('button', { name: /Изменить показатель/ }).click()
+  const edit = page.getByRole('form', { name: 'Редактирование показателя', exact: true })
+  await edit.getByLabel('Результат числом', { exact: true }).fill('8.5')
+  await edit.getByRole('button', { name: 'Сохранить показатель', exact: true }).click()
+  await expect(history).toContainText('8,5 усл. ед.')
+  await page.addScriptTag({ content: axe.source })
+  expect(await page.evaluate(async () => (await window.axe.run(document)).violations)).toEqual([])
+  for (const width of [320, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+  await original.getByRole('button', { name: /Удалить показатель/ }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Подтвердить удаление' }).click()
+  await expect(history.getByRole('listitem')).toHaveCount(1)
+  await expect(history).not.toContainText('8,5')
+  await page.reload()
+  await page.getByLabel('Показатель для графика').selectOption({ label: 'Учебный показатель · усл. ед.' })
+  await expect(history.getByRole('listitem')).toHaveCount(1)
+  expect(errors).toEqual([])
+  expect(external).toEqual([])
+})
