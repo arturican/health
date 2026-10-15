@@ -1,5 +1,16 @@
 # Прогресс
 
+## T164 — RLS профиля и веса
+
+Созданы profiles/weights с FK, уникальной датой на аккаунт, numeric без округления,
+ревизиями и FORCE RLS. Транзакционный helper задаёт владельца/timezone локально,
+изолирует чтение и сериализует записи аккаунта. Контекст сбрасывается при завершении.
+
+Проверки: 5 интеграционных сценариев двух аккаунтов/runtime PASS: одинаковый UUID,
+чужое чтение/update/delete, подмена владельца, ограничения и маленькое число,
+rollback/pool, каскад удаления. Полный npm run check PASS (1194 unit,
+91 browser, 54 E2E, lint/types/coverage/build), git diff --check PASS.
+
 ## T163b — защищённая HTTP-авторизация
 
 Подключены login/session/logout, __Host-cookie Secure/HttpOnly/SameSite=Lax,
