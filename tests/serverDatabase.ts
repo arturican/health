@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import { createPool } from '../src/server/database'
 
 /** Dedicated synthetic test DB only; never falls back to application credentials. */
@@ -11,13 +12,23 @@ export async function testDatabase() {
   }
   const admin = createPool(value)
   const name = `health_test_${randomUUID().replaceAll('-', '')}`
-  try { await admin.query(`CREATE DATABASE ${name}`) }
+  const login = `${name}_user`
+  const password = randomUUID()
+  try {
+    await admin.query(await readFile('deploy/database-roles.sql', 'utf8'))
+    await admin.query(`CREATE ROLE ${login} LOGIN PASSWORD '${password}' IN ROLE health_runtime`)
+    await admin.query(`CREATE DATABASE ${name}`)
+  }
   catch (error) { await admin.end(); throw error }
   url.pathname = `/${name}`
   const pool = createPool(url.toString())
-  return { pool, async close() {
+  url.username = login
+  url.password = password
+  const runtime = createPool(url.toString())
+  return { pool, runtime, async close() {
+    await runtime.end()
     await pool.end()
-    try { await admin.query(`DROP DATABASE ${name}`) }
+    try { await admin.query(`DROP DATABASE ${name}`); await admin.query(`DROP ROLE ${login}`) }
     finally { await admin.end() }
   } }
 }
