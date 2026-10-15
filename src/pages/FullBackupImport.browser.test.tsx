@@ -106,7 +106,7 @@ test('полная копия проверяется настоящим деко
   await expect.element(preview).toHaveTextContent('Файлов: 2')
   await expect.element(preview).toHaveTextContent(String(before.files.reduce((sum, record) => sum + record.size, 0)))
   await expect.element(preview).toHaveTextContent('Настроек: 1')
-  await expect.element(page.getByRole('button', { name: 'Восстановить полную копию', exact: true })).not.toBeInTheDocument()
+  await expect.element(page.getByRole('button', { name: 'Восстановить полную копию', exact: true })).toBeDisabled()
   expect(decode).toHaveBeenCalledTimes(1)
   const decoded: unknown = await decode.mock.results[0]?.value
   if (!(decoded instanceof ImageBitmap)) throw new Error('Предпросмотр должен использовать настоящий bitmap')

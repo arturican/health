@@ -324,3 +324,9 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 ## T056 — проверка и предпросмотр полной копии без записи
 
 проверка и предпросмотр полной копии без записи. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+После push до T055b [GitHub CI](https://github.com/arturican/health/actions/runs/38661584105) завершился success на 9f824da: установка и полный check — OK.
+
+## T057 — атомарное восстановление полной копии после согласия
+
+атомарное восстановление полной копии после согласия. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
