@@ -4,6 +4,7 @@ import type { registerAuthentication } from './auth.js'
 import { createProfileRecord, getProfileRecord, updateProfileRecord } from './profileRecords.js'
 import { diaryDate } from './recordValidation.js'
 import { withUser } from './userTransaction.js'
+import { withCommand } from './writeCommand.js'
 
 export function registerProfile(app: FastifyInstance, pool: Pool, authorize: Awaited<ReturnType<typeof registerAuthentication>>, clock = () => new Date()) {
   app.get('/api/v1/profile', async (request, reply) => {
@@ -14,12 +15,12 @@ export function registerProfile(app: FastifyInstance, pool: Pool, authorize: Awa
   app.post('/api/v1/profile', async (request, reply) => {
     const account = await authorize(request, reply)
     if (!account) return
-    const record = await withUser(pool, account, client => createProfileRecord(client, account.id, request.body, diaryDate(account.timezone, clock())), true)
+    const record = await withCommand(pool, account, request, client => createProfileRecord(client, account.id, request.body, diaryDate(account.timezone, clock())))
     return reply.code(201).send(record)
   })
   app.put('/api/v1/profile', async (request, reply) => {
     const account = await authorize(request, reply)
     if (!account) return
-    return withUser(pool, account, client => updateProfileRecord(client, account.id, request.body, diaryDate(account.timezone, clock())), true)
+    return withCommand(pool, account, request, client => updateProfileRecord(client, account.id, request.body, diaryDate(account.timezone, clock())))
   })
 }

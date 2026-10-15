@@ -5,6 +5,7 @@ import type { registerAuthentication } from './auth.js'
 import { DataError, inputValue } from './httpErrors.js'
 import { getProductRecord, listProductRecords, saveProductRecord } from './productRecords.js'
 import { withUser } from './userTransaction.js'
+import { withCommand } from './writeCommand.js'
 
 const routeId = (params: unknown) => inputValue(() => z.object({ id: z.string() }).parse(params).id)
 
@@ -24,12 +25,12 @@ export function registerProducts(app: FastifyInstance, pool: Pool, authorize: Aw
   app.post('/api/v1/products', async (request, reply) => {
     const account = await authorize(request, reply)
     if (!account) return
-    const record = await withUser(pool, account, client => saveProductRecord(client, account.id, request.body), true)
+    const record = await withCommand(pool, account, request, client => saveProductRecord(client, account.id, request.body))
     return reply.code(201).send(record)
   })
   app.put('/api/v1/products/:id', async (request, reply) => {
     const account = await authorize(request, reply)
     if (!account) return
-    return withUser(pool, account, client => saveProductRecord(client, account.id, request.body, routeId(request.params)), true)
+    return withCommand(pool, account, request, client => saveProductRecord(client, account.id, request.body, routeId(request.params)))
   })
 }
