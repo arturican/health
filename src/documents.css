@@ -1,0 +1,23 @@
+.documents-steps { display: flex; flex-wrap: wrap; gap: 16px 36px; margin: 24px 0; padding: 20px 20px 20px 40px; border-radius: 16px; background: var(--accent-soft); font-size: 14px; color: var(--accent-dark); }
+.documents-steps li { padding-left: 4px; }
+.documents-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; align-items: start; margin: 24px 0; }
+.documents-page .documents-layout > .card { margin: 0; min-width: 0; }
+.document-editor { grid-column: 2; grid-row: 1; }
+.document-library { grid-column: 1; grid-row: 1; }
+.document-editor p, .lab-entry > p { font-size: 13px; color: var(--muted); }
+.documents-page .document-editor .form-grid { grid-template-columns: minmax(0, 1fr); margin-bottom: 0; padding: 0; border: 0; }
+.documents-page .document-editor fieldset { border: 0; padding: 0; }
+.documents-page .document-editor legend { margin-bottom: 12px; }
+.documents-page .document-library > .record-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 24px; }
+.documents-page .document-library .record-list > li { display: block; border: 1px solid var(--line); border-radius: 14px; padding: 0; }
+.documents-page .document-library article { margin: 0; padding: 20px; }
+.documents-page .document-library article h3 { margin-top: 0; }
+.document-library h3 .icon { vertical-align: middle; color: var(--accent); margin-right: 8px; }
+.document-library article p { color: var(--muted); font-size: 13px; }
+.document-library article .actions + .actions { margin-top: 8px; }
+.documents-page .document-library img { display: block; max-width: 100%; max-height: 200px; width: auto; height: auto; margin-top: 16px; }
+.lab-entry-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; margin-top: 24px; align-items: start; }
+.lab-editor, .lab-records { min-width: 0; }
+.documents-page .lab-editor .form-grid { grid-template-columns: minmax(0, 1fr); margin-top: 0; max-width: none; border: 0; padding: 20px; background: #F6F8FA; }
+.documents-page .lab-records h3 { margin-top: 0; }
+@media (max-width: 1199px) { .documents-layout, .lab-entry-layout { grid-template-columns: minmax(0, 1fr); } .document-editor, .document-library { grid-column: auto; grid-row: auto; } }

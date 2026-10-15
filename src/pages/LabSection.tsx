@@ -22,7 +22,7 @@ export function LabSection({ blocked = false, onBusyChange }: LabSectionProps = 
   useEffect(() => {
     if (focusAfterEdit.current && !activeEditing) { focusAfterEdit.current = false; section.current?.querySelector<HTMLInputElement>('[name="name"]')?.focus() }
   }, [activeEditing])
-  return <section ref={section} className="card" aria-labelledby="lab-section-title">
+  return <section ref={section} className="card lab-entry" aria-labelledby="lab-section-title">
     <h2 id="lab-section-title">Показатели документа</h2>
     <p>Введите результат вручную как на бланке. Дневник не интерпретирует референсы, не сравнивает разные единицы и не определяет диагноз.</p>
     {documents === undefined ? <p role="status">Загружаем бланки…</p> : documents.length === 0 ? <p>Сначала добавьте документ-источник.</p> : <>
@@ -34,12 +34,18 @@ export function LabSection({ blocked = false, onBusyChange }: LabSectionProps = 
       {selected ? <>
         <h3>Источник: {selected.title}</h3>
         <p>Дата документа: {selected.date}</p>
+        <div className="lab-entry-layout">
+        <div className="lab-editor">
         <LabForm key={activeEditing?.id ?? selected.id} documentId={selected.id} defaultDate={selected.date} disabled={blocked || listBusy} onBusyChange={setBusy} entry={activeEditing} onSaved={() => {
           if (activeEditing) { focusAfterEdit.current = true; setEditing(null); setNotice('Показатель обновлён') }
           else setNotice(null)
         }} onCancel={() => { focusAfterEdit.current = true; setEditing(null); setNotice(null) }} />
         {notice && <p role="status">{notice}</p>}
+        </div>
+        <div className="lab-records">
         <LabList key={`list-${selected.id}`} documentId={selected.id} blocked={blocked || busy || activeEditing !== null} onBusyChange={setListBusy} onEdit={result => { setNotice(null); setEditing(result) }} />
+        </div>
+        </div>
       </> : <p>{documentId ? 'Документ больше недоступен. Выберите другой.' : 'Выберите бланк для ввода показателей.'}</p>}
     </>}
   </section>
