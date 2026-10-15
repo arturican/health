@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg'
 import { z } from 'zod'
 import { entityId } from '../domain/schema'
 import { visibilitySchema } from '../domain/visibility'
+import { BACKUP_MAX_RECORDS } from '../domain/backup'
 import { DataError, inputValue } from './httpErrors.js'
 import { revisionInput, storedRevision } from './profileRecords.js'
 
@@ -24,6 +25,9 @@ export async function saveSettings(client: PoolClient, owner: string, input: unk
   const { value, revision } = inputValue(() => z.strictObject({ value: visibilitySchema, revision: revisionInput }).parse(input))
   const previous = await ensureDiaryState(client, owner)
   if (previous.revision !== revision) throw new DataError(409)
+  const capacity = await client.query<Record<string, unknown>>(`SELECT visibility_defined OR
+    (SELECT count(*) FROM health.legacy_metadata) + catalog_seeded::int < $1 AS available FROM health.settings`, [BACKUP_MAX_RECORDS])
+  if (!z.object({ available: z.boolean() }).parse(capacity.rows[0]).available) throw new DataError(400)
   const result = await client.query(`UPDATE health.settings SET show_photos=$1,show_documents=$2,visibility_defined=true,revision=revision+1,updated_at=now()
     WHERE revision=$3`, [value.showPhotos, value.showDocuments, revision])
   if (result.rowCount !== 1) throw new DataError(409)

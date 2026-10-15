@@ -8,6 +8,8 @@ import { FULL_BACKUP_MAX_BYTES, readFullBackup, type FullBackup } from '../domai
 import { readVisibilityValue } from '../domain/visibility'
 import { registerBackups } from './backupRoutes'
 import { registerSettings } from './settingsRoutes'
+import { BACKUP_MAX_RECORDS } from '../domain/backup'
+import { DEFAULT_VISIBILITY } from '../domain/visibility'
 
 let context: Awaited<ReturnType<typeof testApi>>
 let headers: Awaited<ReturnType<typeof context.headers>>
@@ -32,6 +34,23 @@ function canonical(backup: FullBackup) {
     .map(row => row.id === 'section-visibility' ? { ...row, value: JSON.stringify(readVisibilityValue(row.value)) } : row)
     .sort((a, b) => a.id.localeCompare(b.id)) }
 }
+
+it('сохраняет возможность экспорта после импорта предельного числа метаданных', async () => {
+  const backup = await download()
+  backup.metadata = Array.from({ length: BACKUP_MAX_RECORDS }, (_, index) => ({ id: `legacy-${String(index)}`, value: 'synthetic' }))
+  const imported = await restore(await confirmation(), backup)
+  expect(imported.statusCode).toBe(200)
+  const generation = z.object({ generation: z.uuid() }).parse(imported.json<unknown>()).generation
+  const save = (revision: number) => context.app.inject({ method: 'PUT', url: '/api/v1/settings',
+    headers: { ...headers, 'x-diary-generation': generation }, payload: { value: DEFAULT_VISIBILITY, revision } })
+  expect((await save(2)).statusCode).toBe(400)
+  expect((await download()).metadata).toHaveLength(BACKUP_MAX_RECORDS)
+  expect((await context.app.inject({ url: '/api/v1/diary-state', headers })).json<unknown>()).toMatchObject({ revision: 2, changeRevision: 1 })
+  await context.database.pool.query('DELETE FROM health.legacy_metadata WHERE user_id=$1 AND id=$2', [context.alice.id, 'legacy-0'])
+  expect((await save(2)).statusCode).toBe(200)
+  expect((await save(3)).statusCode).toBe(200)
+  expect((await download()).metadata).toHaveLength(BACKUP_MAX_RECORDS)
+})
 
 it('полностью восстанавливает байты и связи, повторяется и сохраняет чужие одинаковые UUID', async () => {
   const backup = await fullBackupFixture(), confirmed = await confirmation()
