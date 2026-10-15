@@ -1,13 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "lib": ["ES2023"],
     "types": ["node"],
-    "noEmit": false,
-    "rootDir": "src/server",
-    "outDir": "build-api"
+    "noEmit": true
   },
   "include": ["src/server/**/*.ts"],
   "exclude": ["src/server/**/*.test.ts"]

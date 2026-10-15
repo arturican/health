@@ -1,5 +1,16 @@
 # Прогресс
 
+## T165a — общая валидация и серверная сборка
+
+Vite собирает отдельные Node entrypoints после строгого tsc. Общие domain Zod-
+схемы переиспользуются без изменения frontend; календарный день задаётся IANA
+timezone аккаунта. Сборка не подставляет секреты окружения в JS.
+
+Проверки: 8 targeted validation/runtime tests PASS, включая выполнение
+собранного JS и проверку всех JS-чанков на synthetic sentinel. Полный
+npm run check PASS (1198 unit, 91 browser, 54 E2E, lint/types/coverage/build),
+git diff --check PASS. Новые зависимости не добавлены.
+
 ## T164 — RLS профиля и веса
 
 Созданы profiles/weights с FK, уникальной датой на аккаунт, numeric без округления,

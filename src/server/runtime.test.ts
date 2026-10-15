@@ -3,11 +3,24 @@ import { execFile, spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { createServer } from 'node:net'
 import { promisify } from 'node:util'
+import { readFile, readdir } from 'node:fs/promises'
 import { beforeAll, expect, it } from 'vitest'
 
 beforeAll(async () => {
   await promisify(execFile)(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.server.json'])
+  await promisify(execFile)(process.execPath, ['node_modules/vite/bin/vite.js', 'build', '--config', 'vite.server.config.ts'], {
+    env: { ...process.env, DATABASE_URL: 'postgresql://synthetic:secret-build-sentinel@localhost/health' },
+  })
 }, 30000)
+
+it('Node-сборка выполняет общую валидацию и не содержит реквизитов окружения', async () => {
+  const result = await promisify(execFile)(process.execPath, ['--input-type=module', '-e',
+    "const {diaryDate}=await import('./build-api/validation.js'); console.log(diaryDate('Europe/Moscow',new Date('2026-10-14T22:30:00Z')))" ])
+  expect(result.stdout.trim()).toBe('2026-10-15')
+  for (const name of await readdir('build-api', { recursive: true })) {
+    if (name.endsWith('.js')) expect(await readFile(`build-api/${name}`, 'utf8')).not.toContain('secret-build-sentinel')
+  }
+})
 
 async function reservePort() {
   const server = createServer()
