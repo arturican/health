@@ -30,7 +30,8 @@ async function login() {
   expect(response.statusCode).toBe(200)
   const cookie = response.headers['set-cookie']
   if (typeof cookie !== 'string') throw new Error('Нет cookie')
-  const body = z.object({ csrf: z.string(), account: z.object({ login: z.string() }) }).parse(response.json<unknown>())
+  const body = z.object({ csrf: z.string(), account: z.object({ id: z.uuid(), login: z.string() }) }).parse(response.json<unknown>())
+  expect(response.headers['x-account-id']).toBe(body.account.id)
   return { cookie, csrf: body.csrf }
 }
 
@@ -41,6 +42,9 @@ it('устанавливает защищённую cookie, читает сес�
   const session = await app.inject({ url: '/api/v1/auth/session', headers: { cookie } })
   expect(session.statusCode).toBe(200)
   expect(session.headers['cache-control']).toBe('no-store')
+  const owner = z.object({ account: z.object({ id: z.uuid() }) }).parse(session.json<unknown>()).account.id
+  expect(session.headers['x-account-id']).toBe(owner)
+  expect((await app.inject({ url: '/api/test/private', headers: { cookie } })).headers['x-account-id']).toBe(owner)
   expect(session.body).not.toContain('password')
   expect(session.body).not.toContain(readCookie(cookie))
   const headers = { cookie, origin, 'x-csrf-token': csrf }
@@ -48,12 +52,15 @@ it('устанавливает защищённую cookie, читает сес�
     const response = await app.inject({ method: 'POST', url: '/api/v1/auth/logout', headers })
     expect(response.statusCode).toBe(204)
     expect(response.headers['set-cookie']).toContain('Max-Age=0')
+    expect(response.headers['x-account-id']).toBe(i === 0 ? owner : undefined)
   }
   expect((await app.inject({ url: '/api/test/private', headers: { cookie } })).statusCode).toBe(401)
 })
 
 it('неавторизованный и просроченный запросы не получают аккаунт', async () => {
-  expect((await app.inject({ url: '/api/test/private' })).statusCode).toBe(401)
+  const anonymous = await app.inject({ url: '/api/test/private' })
+  expect(anonymous.statusCode).toBe(401)
+  expect(anonymous.headers['x-account-id']).toBeUndefined()
   const { cookie } = await login()
   time = new Date(time.getTime() + 86400000)
   expect((await app.inject({ url: '/api/v1/auth/session', headers: { cookie } })).statusCode).toBe(401)

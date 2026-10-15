@@ -23,6 +23,7 @@ export async function registerAuthentication(app: FastifyInstance, pool: Pool, o
   async function authorize(request: FastifyRequest, reply: FastifyReply) {
     const account = await sessions.read(readCookie(request.headers.cookie), clock())
     if (!account) { await deny(reply, 401); return null }
+    reply.header('X-Account-Id', account.id)
     return account
   }
   app.post('/api/v1/auth/login', async (request, reply) => {
@@ -33,6 +34,7 @@ export async function registerAuthentication(app: FastifyInstance, pool: Pool, o
       const session = await sessions.login(request.body, readCookie(request.headers.cookie), clock())
       if (!session) return await deny(reply, 401)
       reply.header('Set-Cookie', sessionCookie(session.token, SESSION_LIFETIME_MS / 1000))
+      reply.header('X-Account-Id', session.account.id)
       return { account: session.account, csrf: csrfToken(session.token) }
     } finally { inFlight-- }
   })
@@ -43,6 +45,8 @@ export async function registerAuthentication(app: FastifyInstance, pool: Pool, o
     return { account, csrf: token ? csrfToken(token) : null }
   })
   app.post('/api/v1/auth/logout', async (request, reply) => {
+    const account = await sessions.read(readCookie(request.headers.cookie), clock())
+    if (account) reply.header('X-Account-Id', account.id)
     await sessions.logout(readCookie(request.headers.cookie), clock())
     return reply.header('Set-Cookie', sessionCookie('', 0)).code(204).send()
   })

@@ -2,14 +2,15 @@ import { z } from 'zod'
 import { loginSchema, sessionSchema, type Session } from '../domain/session'
 import { ApiError, requestApi, requestJSON } from './http'
 import { diaryStateSchema, getClientSession, setClientSession } from './session'
+import { notifyAccountChange } from './accountChanges'
 
-let restoring: Promise<void> | null = null
+let restoring: { epoch: number, promise: Promise<void> } | null = null
 function assertEpoch(epoch: number) {
   if (getClientSession().epoch !== epoch) throw new Error('Вход изменился. Повторите действие.')
 }
 async function publish(session: Session, epoch: number) {
   assertEpoch(epoch)
-  const diary = await requestJSON('/api/v1/diary-state', diaryStateSchema, { anonymous: true })
+  const diary = await requestJSON('/api/v1/diary-state', diaryStateSchema, { anonymous: true, expectedAccountId: session.account.id })
   assertEpoch(epoch)
   setClientSession(session, diary)
 }
@@ -17,16 +18,17 @@ async function publish(session: Session, epoch: number) {
 export function restoreSession(): Promise<void> {
   const current = getClientSession()
   if (current.session && current.diary) return Promise.resolve()
-  if (restoring) return restoring
-  restoring = (async () => {
+  if (restoring?.epoch === current.epoch) return restoring.promise
+  const promise = (async () => {
     try { await publish(await requestJSON('/api/v1/auth/session', sessionSchema, { anonymous: true }), current.epoch) }
     catch (error) {
       assertEpoch(current.epoch)
       if (!(error instanceof ApiError) || error.status !== 401) throw error
       setClientSession(null)
     }
-  })().finally(() => { restoring = null })
-  return restoring
+  })().finally(() => { if (restoring?.epoch === current.epoch) restoring = null })
+  restoring = { epoch: current.epoch, promise }
+  return promise
 }
 
 export async function login(input: unknown) {
@@ -40,6 +42,7 @@ export async function login(input: unknown) {
     throw error
   }
   await publish(session, epoch)
+  notifyAccountChange()
 }
 
 export async function logout() {
@@ -51,8 +54,10 @@ export async function logout() {
     }, { method: 'POST' })
   } catch (error) {
     if (!(error instanceof ApiError) || error.status !== 401) throw error
+    notifyAccountChange()
     return
   }
   assertEpoch(epoch)
   setClientSession(null)
+  notifyAccountChange()
 }

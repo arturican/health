@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore, type PropsWithChildren, type SyntheticEvent } from 'react'
-import { getClientSession, subscribeSession } from './session'
+import { getClientSession, setClientSession, subscribeSession } from './session'
+import { listenAccountChanges } from './accountChanges'
 import { login, logout, restoreSession } from './auth'
 import { Feedback, useAction } from '../ui/actions'
 import { Field } from '../ui/Field'
@@ -9,6 +10,12 @@ export function AuthBoundary({ children }: PropsWithChildren) {
   const [checking, setChecking] = useState(true)
   const [attempt, setAttempt] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  useEffect(() => listenAccountChanges(() => {
+    setClientSession(null)
+    setError(null)
+    setChecking(true)
+    setAttempt(value => value + 1)
+  }), [])
   useEffect(() => {
     let active = true
     void restoreSession().catch((reason: unknown) => {

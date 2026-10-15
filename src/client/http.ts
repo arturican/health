@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-type Options = { method?: 'GET' | 'POST' | 'PUT' | 'DELETE', headers?: HeadersInit, body?: BodyInit | null, anonymous?: boolean }
+type Options = { method?: 'GET' | 'POST' | 'PUT' | 'DELETE', headers?: HeadersInit, body?: BodyInit | null, anonymous?: boolean, expectedAccountId?: string }
 export async function requestApi<T>(path: string, read: (response: Response) => Promise<T>, options: Options = {}): Promise<T> {
   const url = new URL(path, 'https://health.invalid')
   if (!path.startsWith('/api/v1/') || url.origin !== 'https://health.invalid' || !url.pathname.startsWith('/api/v1/') || url.hash || path.includes('\\')) {
@@ -30,6 +30,11 @@ export async function requestApi<T>(path: string, read: (response: Response) => 
     if (!response.ok) {
       if (response.status === 401 && !options.anonymous) setClientSession(null)
       throw new ApiError(response.status)
+    }
+    const owner = options.expectedAccountId ?? (options.anonymous ? null : session?.account.id)
+    if (owner && response.headers.get('X-Account-Id') !== owner) {
+      setClientSession(null)
+      throw new ApiError(401)
     }
     const value = await read(response)
     request.assertCurrent()

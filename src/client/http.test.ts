@@ -33,7 +33,7 @@ it('проверяет контракт и хранит сессию тольк�
 })
 
 it('отправляет cookie/CSRF без кеша и проверяет JSON до выдачи вызывающему коду', async () => {
-  network.mockResolvedValue(new Response(JSON.stringify({ ok: true })))
+  network.mockResolvedValue(new Response(JSON.stringify({ ok: true }), { headers: { 'X-Account-Id': alice.account.id } }))
   await expect(requestJSON('/api/v1/settings', z.strictObject({ ok: z.boolean() }), { method: 'PUT', value: { version: 1 } })).resolves.toEqual({ ok: true })
   const options = network.mock.calls[0]?.[1]
   expect(options).toMatchObject({ method: 'PUT', credentials: 'same-origin', cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer', body: '{"version":1}' })
@@ -52,7 +52,7 @@ it.each([400, 401, 403, 404, 409, 413, 429, 500])('обрабатывает HTTP
 
 it('отклоняет некорректный ответ и сетевой сбой безопасным сообщением', async () => {
   for (const body of ['not-json', '{"count":"wrong"}']) {
-    network.mockResolvedValue(new Response(body))
+    network.mockResolvedValue(new Response(body, { headers: { 'X-Account-Id': alice.account.id } }))
     await expect(requestJSON('/api/v1/steps', z.strictObject({ count: z.number() }))).rejects.toThrow('Не удалось получить данные')
   }
   network.mockRejectedValue(new Error('synthetic-network-detail'))
@@ -76,7 +76,7 @@ it('отклоняет внешний origin, выход из API и фрагм�
 
 it('смена пользователя отменяет запрос и не возвращает тело прежнего пользователя', async () => {
   const body = deferred<string>(), reading = deferred<undefined>()
-  network.mockResolvedValue(new Response(''))
+  network.mockResolvedValue(new Response('', { headers: { 'X-Account-Id': alice.account.id } }))
   const pending = requestApi('/api/v1/profile', () => { reading.resolve(undefined); return body.promise })
   const rejected = expect(pending).rejects.toThrow('прежнему входу')
   await reading.promise
@@ -96,4 +96,12 @@ it('прерывает зависшее соединение по тайм-ау�
   await vi.advanceTimersByTimeAsync(130000)
   await rejected
   expect(network.mock.calls[0]?.[1]?.signal?.aborted).toBe(true)
+})
+
+it.each([null, bob.account.id])('не читает тело ответа с несовпадающим владельцем %s', async owner => {
+  network.mockResolvedValue(new Response('Учебные данные другого входа', { headers: owner ? { 'X-Account-Id': owner } : {} }))
+  const read = vi.fn((response: Response) => response.text())
+  await expect(requestApi('/api/v1/profile', read)).rejects.toMatchObject({ status: 401 })
+  expect(read).not.toHaveBeenCalled()
+  expect(getClientSession().session).toBeNull()
 })

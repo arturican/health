@@ -4,10 +4,12 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { AuthBoundary, SessionControls } from './AuthBoundary'
 import { getClientSession, setClientSession } from './session'
 import { clientDiary, clientSession, jsonResponse } from '../../tests/clientSession'
+import { ClientChannel } from '../../tests/clientChannel'
+import { notifyAccountChange } from './accountChanges'
 
 const network = vi.fn<typeof fetch>()
-beforeEach(() => { setClientSession(null); network.mockReset(); vi.stubGlobal('fetch', network) })
-afterEach(() => { cleanup(); setClientSession(null); vi.unstubAllGlobals() })
+beforeEach(() => { setClientSession(null); network.mockReset(); vi.stubGlobal('fetch', network); vi.stubGlobal('BroadcastChannel', undefined) })
+afterEach(() => { cleanup(); setClientSession(null); ClientChannel.open.clear(); ClientChannel.messages = []; vi.unstubAllGlobals() })
 const view = () => render(<StrictMode><AuthBoundary><p>Содержимое дневника</p><SessionControls /></AuthBoundary></StrictMode>)
 
 it('восстанавливает вход один раз в StrictMode, открывая дневник после проверки состояния', async () => {
@@ -52,7 +54,7 @@ it('сохраняет ввод после неверного пароля и у
 
 it('ошибка выхода оставляет повтор, подтверждённый выход закрывает дневник', async () => {
   setClientSession(clientSession, clientDiary)
-  network.mockResolvedValueOnce(new Response('', { status: 500 })).mockResolvedValueOnce(new Response(null, { status: 204 }))
+  network.mockResolvedValueOnce(new Response('', { status: 500 })).mockResolvedValueOnce(new Response(null, { status: 204, headers: { 'X-Account-Id': clientSession.account.id } }))
   view()
   fireEvent.click(screen.getByRole('button', { name: 'Выйти' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Сервер временно недоступен')
@@ -71,4 +73,27 @@ it('смена входа уничтожает состояние прежнег
   act(() => { setClientSession({ ...clientSession, account: { ...clientSession.account, login: 'bob', id: '30000000-0000-4000-8000-000000000001' } }, clientDiary) })
   expect(await screen.findByLabelText('Учебный черновик')).toHaveValue('')
   expect(field).not.toBeInTheDocument()
+})
+
+it('сигнал другой вкладки закрывает прежние данные и повторно проверяет общую cookie', async () => {
+  vi.stubGlobal('BroadcastChannel', ClientChannel)
+  setClientSession(clientSession, clientDiary)
+  const bob = { ...clientSession, account: { ...clientSession.account, login: 'bob', id: '30000000-0000-4000-8000-000000000001' } }
+  network.mockResolvedValueOnce(jsonResponse(bob, bob.account.id)).mockResolvedValueOnce(jsonResponse(clientDiary, bob.account.id))
+  view()
+  act(() => { const otherTab = new ClientChannel('health-diary-auth'); otherTab.postMessage('changed'); otherTab.close() })
+  expect(screen.queryByText('Содержимое дневника')).not.toBeInTheDocument()
+  expect(await screen.findByText('bob')).toBeVisible()
+  expect(getClientSession().session).toEqual(bob)
+  expect(ClientChannel.messages).toEqual(['changed'])
+})
+
+it('собственное уведомление не закрывает уже открытый дневник', () => {
+  vi.stubGlobal('BroadcastChannel', ClientChannel)
+  setClientSession(clientSession, clientDiary)
+  view()
+  act(() => { notifyAccountChange() })
+  expect(getClientSession().session).toEqual(clientSession)
+  expect(screen.getByText('Содержимое дневника')).toBeVisible()
+  expect(network).not.toHaveBeenCalled()
 })
