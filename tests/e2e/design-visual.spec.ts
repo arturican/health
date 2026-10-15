@@ -1,8 +1,31 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
 test.use({ timezoneId: 'Europe/Moscow' })
 
 const observations = new WeakMap<Page, { errors: string[]; external: string[] }>()
+
+async function expectPlotScreenshot(surface: Locator, name: string) {
+  await surface.scrollIntoViewIfNeeded()
+  const canvas = surface.locator('..')
+  const original = await canvas.evaluate(element => {
+    if (!(element instanceof HTMLElement)) throw new Error('Область графика должна быть HTML-элементом')
+    const bounds = element.getBoundingClientRect()
+    const original = { top: element.style.top, left: element.style.left }
+    // Дробное положение текста выше графика не должно менять сглаживание его линии.
+    element.style.left = `${String(Math.round(bounds.left) - bounds.left)}px`
+    element.style.top = `${String(Math.round(bounds.top) - bounds.top)}px`
+    return original
+  })
+  try { await expect(surface).toHaveScreenshot(name) }
+  finally {
+    await canvas.evaluate((element, saved) => {
+      if (element instanceof HTMLElement) {
+        element.style.top = saved.top
+        element.style.left = saved.left
+      }
+    }, original)
+  }
+}
 
 test.beforeEach(async ({ page, baseURL }) => {
   const errors: string[] = []
@@ -52,7 +75,7 @@ test('график сохраняет круглые точки, линию и �
   const readout = chart.getByRole('status', { name: 'Выбранное измерение', exact: true })
   await page.setViewportSize({ width: 375, height: 812 })
   await expect(readout).toContainText('72 кг')
-  await expect(surface).toHaveScreenshot('plot-single-375.png')
+  await expectPlotScreenshot(surface, 'plot-single-375.png')
 
   const form = page.getByRole('form', { name: 'Новое измерение', exact: true })
   const measurements = [['2026-10-02', '71,5'], ['2026-10-14', '70']] as const
@@ -64,14 +87,21 @@ test('график сохраняет круглые точки, линию и �
   }
   for (const width of [320, 375]) {
     await page.setViewportSize({ width, height: 812 })
-    await chart.getByLabel('Измерение на графике', { exact: true }).selectOption({ label: '14.10.2026 — 70 кг' })
-    await expect(readout).toContainText('14.10.2026')
-    await chart.getByRole('heading', { name: 'График веса', exact: true }).click()
-    await expect(surface).toHaveScreenshot(`plot-latest-${String(width)}.png`)
-    await chart.getByLabel('Измерение на графике', { exact: true }).selectOption({ label: '01.10.2026 — 72 кг' })
-    await expect(readout).toContainText('01.10.2026')
-    await chart.getByRole('heading', { name: 'График веса', exact: true }).click()
-    await expect(surface).toHaveScreenshot(`plot-first-${String(width)}.png`)
+    for (const font of ['', 'Arial', 'DejaVu Sans']) {
+      await test.step(`${String(width)} px, ${font || 'системный шрифт'}`, async () => {
+        const style = font ? await page.addStyleTag({ content: `:root { font-family: "${font}", sans-serif; }` }) : null
+        try {
+          await chart.getByLabel('Измерение на графике', { exact: true }).selectOption({ label: '14.10.2026 — 70 кг' })
+          await expect(readout).toContainText('14.10.2026')
+          await chart.getByRole('heading', { name: 'График веса', exact: true }).click()
+          await expectPlotScreenshot(surface, `plot-latest-${String(width)}.png`)
+          await chart.getByLabel('Измерение на графике', { exact: true }).selectOption({ label: '01.10.2026 — 72 кг' })
+          await expect(readout).toContainText('01.10.2026')
+          await chart.getByRole('heading', { name: 'График веса', exact: true }).click()
+          await expectPlotScreenshot(surface, `plot-first-${String(width)}.png`)
+        } finally { await style?.evaluate(element => { element.parentNode?.removeChild(element) }) }
+      })
+    }
   }
   for (const width of [320, 768, 1440]) {
     await page.setViewportSize({ width, height: 812 })
