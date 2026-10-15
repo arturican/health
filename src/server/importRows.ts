@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg'
 
 type ImportTable = 'profiles' | 'weights' | 'products' | 'food_entries' | 'nutrition_days' | 'steps' | 'workouts' | 'energy_plans'
+  | 'files' | 'photos' | 'documents' | 'lab_results' | 'legacy_metadata'
 type Cell = string | number | boolean | null | Buffer
 
 // Имена таблиц/колонок задаются только кодом; все данные идут параметрами.
