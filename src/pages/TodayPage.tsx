@@ -1,7 +1,4 @@
-import { useLiveQuery } from 'dexie-react-hooks'
-import { getProfile } from '../data/profileRepository'
-import { listWeights } from '../data/weightRepository'
-import { db } from '../data/db'
+import { useDiaryQuery, getWeightOverview, listFood } from '../dataAccess'
 import { BmiCard } from '../ui/BmiCard'
 import { NutritionSummary } from '../ui/NutritionSummary'
 import { EnergySummary } from '../ui/EnergySummary'
@@ -10,14 +7,13 @@ import { useDay } from '../ui/DayContext'
 import { WeightChart } from '../ui/WeightChart'
 import { Icon } from '../ui/Icon'
 import { useVisibility } from '../ui/useVisibility'
-import { listFood } from '../data/foodRepository'
 import { foodTotals, mealNames } from '../domain/nutrition'
 import '../today.css'
 
 export function TodayPage() {
   const { day } = useDay()
   const visibility = useVisibility()
-  const result = useLiveQuery(() => db.transaction('r', db.profiles, db.weights, async () => ({ day, profile: await getProfile(), weights: await listWeights(day) })), [day])
+  const result = useDiaryQuery(() => getWeightOverview(day), [day])
   const data = result?.day === day ? result : undefined
   const weight = data?.weights[0] ?? null
   return <section className="page today-page" aria-labelledby="today-title">
@@ -62,7 +58,7 @@ export function TodayPage() {
 
 function TodayMeals() {
   const { day } = useDay()
-  const result = useLiveQuery(async () => ({ day, entries: await listFood(day) }), [day])
+  const result = useDiaryQuery(async () => ({ day, entries: await listFood(day) }), [day])
   const entries = result?.day === day ? result.entries : undefined
   const meals = (['breakfast', 'lunch', 'snack', 'dinner'] as const).map(meal => ({
     meal, kcal: entries ? foodTotals(entries.filter(entry => entry.meal === meal), false).kcal : null,
