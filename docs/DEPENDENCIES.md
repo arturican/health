@@ -63,3 +63,16 @@ actions/checkout d23441a48e516b6c34aea4fa41551a30e30af803,
 actions/setup-node 249970729cb0ef3589644e2896645e5dc5ba9c38,
 actions/upload-artifact b7c566a772e6b6bfb58ed0dc250532a479d7789f.
 Workflow использует SHA вместо изменяемого тега.
+
+## T128: серверный API factory
+
+Fastify 5.12.7 — точная стабильная версия из официального registry.npmjs.org,
+проверенная 15 октября 2026 года через npm view (version, engines,
+peerDependencies, dist.integrity, repository). Метаданные этой версии не содержат
+отдельных engines/peerDependencies; npm repository указывает fastify/fastify.
+[Официальная LTS-политика](https://github.com/fastify/fastify/blob/v5.12.7/docs/Reference/LTS.md)
+предусматривает поддерживаемые Node LTS; совместимость конкретного Node 24.22.0
+проверяется установкой, строгими типами и HTTP-тестами. Native addons не нужны.
+Транзитивные версии закреплены lock-файлом. Пакет нужен для изолированного
+backend factory, frontend не импортирует его. Новые PostgreSQL/auth-пакеты
+будут проверяться в соответствующих задачах.

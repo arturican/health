@@ -721,3 +721,27 @@ CSRF, ownership/RLS, даты и числовую совместимость, п
 Изменены только SERVER_STORAGE, DEPLOYMENT, карточка и статусы. Пользовательские
 данные не переносились. Проверки: `npm run check:docs` (125 файлов, 191 ссылка)
 и `git diff --check` PASS. Полный runtime check не требуется для документации.
+
+## T128 — изолированный каркас серверного API
+
+Добавлен src/server/app.ts: Fastify factory с GET /api/v1/health, no-store и
+nosniff, безопасными 400/404/413/415/500 без исходного URL, ввода, cookies или
+stack trace. Логирование выключено; чужим proxy headers доверие не даётся,
+тело ограничено 16 KiB, таймауты заданы. Никакого API данных или авторизации
+пока нет. frontend не импортирует factory, текущий дневник остаётся локальным.
+
+Fastify 5.12.7 проверен по официальным npm metadata/repository/LTS до установки
+и закреплён вместе с транзитивными зависимостями. Lock изменяет только добавления
+и три dev-флага общих зависимостей. Targeted 10/10 Node HTTP injection PASS;
+реальный HTTP smoke через TypeScript import в Node на временном loopback-порту
+также PASS, процесс закрыт. Проверены malformed/prototype JSON, MIME, UTF-8 size,
+точный предел и лишний байт, отсутствие утечки ошибок и cache headers.
+
+Полный `npm run check` PASS: 1104 unit, 91 Native Browser, build, 48 E2E,
+документы, lint, типы и coverage gates. Python установщика 4/4 PASS;
+npm audit — 0 известных уязвимостей из 464 зависимостей. SHA-256 всех 4 файлов
+frontend dist до/после совпадает. Node 24.22.0 / npm 11.19.1, Chromium 154 через
+override; прежнее предупреждение JS >500 kB. Только синтетические данные.
+Изменены package/lock, app/app.test, SERVER_STORAGE, DEPENDENCIES, TESTING,
+карточка и статусы. VPS, Nginx, БД и работающая публикация не менялись.
+Следующий локальный этап T129 — запуск/сборка API и проверка настроек.
