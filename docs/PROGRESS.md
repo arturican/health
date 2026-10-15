@@ -344,3 +344,7 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 ## T058c — подтверждённое удаление дневника и сброс черновиков
 
 подтверждённое удаление дневника и сброс черновиков. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+## T059 — сквозные дневные сценарии на Desktop Chrome и Pixel 7
+
+сквозные дневные сценарии на Desktop Chrome и Pixel 7. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
