@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import type { FastifyInstance } from 'fastify'
 import type { Pool } from 'pg'
 import { z } from 'zod'
@@ -9,6 +10,7 @@ import { createPhotoRecord, deletePhotoRecord, listPhotoRecords, readPhotoUpload
 import { diaryDate } from './recordValidation.js'
 import type { createUploadTransport } from './uploadTransport.js'
 import { withUser } from './userTransaction.js'
+import { withCommand } from './writeCommand.js'
 
 const routeId = (params: unknown) => inputValue(() => z.object({ id: z.string() }).parse(params).id)
 
@@ -22,19 +24,19 @@ export function registerPhotos(app: FastifyInstance, pool: Pool, authorize: Awai
     const record = await uploads.run(request, async (account, metadata, bytes) => {
       const values = readPhotoUpload(metadata, diaryDate(account.timezone, clock()))
       const file = await validateServerAttachment(bytes, 'photo', values.mime)
-      return withUser(pool, account, client => createPhotoRecord(client, account.id, values, file), true)
+      return withCommand(pool, account, request, client => createPhotoRecord(client, account.id, values, file), { metadata, sha256: createHash('sha256').update(file.bytes).digest('hex') })
     })
     return reply.code(201).send(record)
   })
   app.put('/api/v1/photos/:id', async (request, reply) => {
     const account = await authorize(request, reply)
     if (!account) return
-    return withUser(pool, account, client => updatePhotoRecord(client, routeId(request.params), request.body, diaryDate(account.timezone, clock())), true)
+    return withCommand(pool, account, request, client => updatePhotoRecord(client, routeId(request.params), request.body, diaryDate(account.timezone, clock())))
   })
   app.delete('/api/v1/photos/:id', async (request, reply) => {
     const account = await authorize(request, reply)
     if (!account) return
-    await withUser(pool, account, client => deletePhotoRecord(client, routeId(request.params), request.body), true)
+    await withCommand(pool, account, request, client => deletePhotoRecord(client, routeId(request.params), request.body))
     return reply.code(204).send()
   })
 }

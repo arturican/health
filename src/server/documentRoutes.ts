@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import type { FastifyInstance } from 'fastify'
 import type { Pool } from 'pg'
 import { z } from 'zod'
@@ -9,6 +10,7 @@ import { inputValue } from './httpErrors.js'
 import { diaryDate } from './recordValidation.js'
 import type { createUploadTransport } from './uploadTransport.js'
 import { withUser } from './userTransaction.js'
+import { withCommand } from './writeCommand.js'
 
 const routeId = (params: unknown) => inputValue(() => z.object({ id: z.string() }).parse(params).id)
 
@@ -32,19 +34,19 @@ export function registerDocuments(app: FastifyInstance, pool: Pool, authorize: A
     const record = await uploads.run(request, async (account, metadata, bytes) => {
       const values = readDocumentUpload(metadata, diaryDate(account.timezone, clock()))
       const file = await validateServerAttachment(bytes, 'document', values.mime)
-      return withUser(pool, account, client => createDocumentRecord(client, account.id, values, file), true)
+      return withCommand(pool, account, request, client => createDocumentRecord(client, account.id, values, file), { metadata, sha256: createHash('sha256').update(file.bytes).digest('hex') })
     })
     return reply.code(201).send(record)
   })
   app.put('/api/v1/documents/:id', async (request, reply) => {
     const account = await authorize(request, reply)
     if (!account) return
-    return withUser(pool, account, client => updateDocumentRecord(client, routeId(request.params), request.body, diaryDate(account.timezone, clock())), true)
+    return withCommand(pool, account, request, client => updateDocumentRecord(client, routeId(request.params), request.body, diaryDate(account.timezone, clock())))
   })
   app.delete('/api/v1/documents/:id', async (request, reply) => {
     const account = await authorize(request, reply)
     if (!account) return
-    await withUser(pool, account, client => deleteDocumentRecord(client, routeId(request.params), request.body), true)
+    await withCommand(pool, account, request, client => deleteDocumentRecord(client, routeId(request.params), request.body))
     return reply.code(204).send()
   })
 }
