@@ -20,12 +20,15 @@ export function WeightPage() {
   const action = useAction()
   const formRef = useRef<HTMLFormElement>(null)
   const dialog = useRef<HTMLDivElement>(null)
-  const focusAfterChange = useRef<'date' | 'kg' | null>(null)
+  // Запрос принадлежит render вместе с новой формой: эффект прежнего render
+  // не должен забрать его из изменяемого ref до замены DOM.
+  const [focusRequest, setFocusRequest] = useState<{ field: 'date' | 'kg' } | null>(null)
+  const handledFocus = useRef<typeof focusRequest>(null)
   useEffect(() => {
-    if (action.pending || !data?.profile || !focusAfterChange.current) return
-    const control = formRef.current?.querySelector<HTMLInputElement>(`[name="${focusAfterChange.current}"]`)
-    if (control) { control.focus(); focusAfterChange.current = null }
-  }, [editing, deleting, revision, action.pending, data])
+    if (action.pending || !data?.profile || !focusRequest || handledFocus.current === focusRequest) return
+    const control = formRef.current?.querySelector<HTMLInputElement>(`[name="${focusRequest.field}"]`)
+    if (control) { control.focus(); handledFocus.current = focusRequest }
+  }, [focusRequest, action.pending, data])
   useEffect(() => { if (action.error && deleting) dialog.current?.querySelector<HTMLButtonElement>('button')?.focus() }, [action.error, deleting])
 
   function submit(event: SyntheticEvent<HTMLFormElement>) {
@@ -45,7 +48,7 @@ export function WeightPage() {
       if (first) event.currentTarget.querySelector<HTMLElement>(`[name="${first}"]`)?.focus()
       return
     }
-    focusAfterChange.current = 'kg'
+    setFocusRequest({ field: 'kg' })
     action.run(async () => {
       if (editing) await updateWeight(editing.id, { date, kg })
       else await saveWeight({ date, kg })
@@ -70,7 +73,7 @@ export function WeightPage() {
             {Object.keys(errors).length > 0 && <p role="alert">Проверьте отмеченные поля.</p>}
             <div className="actions">
               <button type="submit" disabled={action.pending}>{action.pending ? 'Сохраняем…' : 'Сохранить вес'}</button>
-              {editing && <button type="button" className="secondary" disabled={action.pending} onClick={() => { focusAfterChange.current = 'kg'; setEditing(null); setErrors({}); action.reset() }}>Отменить изменение</button>}
+              {editing && <button type="button" className="secondary" disabled={action.pending} onClick={() => { setFocusRequest({ field: 'kg' }); setEditing(null); setErrors({}); action.reset() }}>Отменить изменение</button>}
             </div>
           </form>
           <h2>История измерений</h2>
@@ -84,7 +87,7 @@ export function WeightPage() {
                   <div className="actions">
                     <button type="button" className="secondary" disabled={action.pending} aria-label={`Изменить вес за ${dateLabel}`} onClick={() => {
                       if (editing?.id === weight.id) formRef.current?.querySelector<HTMLInputElement>('[name="date"]')?.focus()
-                      else focusAfterChange.current = 'date'
+                      else setFocusRequest({ field: 'date' })
                       setEditing(weight); setErrors({}); action.reset()
                     }}>Изменить</button>
                     <button type="button" className="secondary" disabled={action.pending} aria-label={`Удалить вес за ${dateLabel}`} onClick={() => { setDeleting(weight); action.reset() }}>Удалить</button>
@@ -96,7 +99,7 @@ export function WeightPage() {
           <div ref={dialog}>{deleting && <Confirmation question={`Удалить измерение за ${deleting.date.split('-').reverse().join('.')}?`} pending={action.pending} onCancel={() => { setDeleting(null); action.reset() }} onConfirm={() => {
             action.run(async () => {
               await deleteWeight(deleting.id)
-              focusAfterChange.current = 'kg'
+              setFocusRequest({ field: 'kg' })
               setDeleting(null)
               if (editing?.id === deleting.id) { setEditing(null); setErrors({}) }
             }, 'Измерение удалено')

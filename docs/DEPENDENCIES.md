@@ -64,7 +64,7 @@ actions/setup-node 249970729cb0ef3589644e2896645e5dc5ba9c38,
 actions/upload-artifact b7c566a772e6b6bfb58ed0dc250532a479d7789f.
 Workflow использует SHA вместо изменяемого тега.
 
-## T128: серверный API factory
+## T130: серверный API factory
 
 Fastify 5.12.7 — точная стабильная версия из официального registry.npmjs.org,
 проверенная 15 октября 2026 года через npm view (version, engines,
