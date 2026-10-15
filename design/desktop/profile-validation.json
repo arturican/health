@@ -1,0 +1,26 @@
+[
+  {
+    "screen": "profile-desktop",
+    "overflow": [],
+    "overlaps": [],
+    "texts": 54,
+    "images": 0,
+    "panels": 7,
+    "fontLoaded": true,
+    "structural": true,
+    "minTextContrast": 5.16,
+    "lowContrast": []
+  },
+  {
+    "screen": "profile-states",
+    "overflow": [],
+    "overlaps": [],
+    "texts": 66,
+    "images": 0,
+    "panels": 9,
+    "fontLoaded": true,
+    "structural": true,
+    "minTextContrast": 5.16,
+    "lowContrast": []
+  }
+]
