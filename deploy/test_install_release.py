@@ -5,6 +5,7 @@ import tarfile
 import tempfile
 import unittest
 from install_release import install, read_build
+from verify_build import verify_build
 
 
 def archive(entries=None):
@@ -24,6 +25,23 @@ def archive(entries=None):
 
 
 class Releases(unittest.TestCase):
+    def test_actual_archive_preserves_license_in_supported_assets_directory(self):
+        license_bytes = (Path(__file__).resolve().parent.parent /
+                         'public/assets/Roboto-LICENSE.txt').read_bytes()
+        with tempfile.TemporaryDirectory() as directory:
+            build = Path(directory)
+            (build / 'assets').mkdir()
+            (build / 'index.html').write_bytes(b'<html>synthetic</html>')
+            (build / 'assets/app.js').write_bytes(b'/* synthetic */')
+            (build / 'Roboto-LICENSE.txt').write_bytes(license_bytes)
+            with self.assertRaisesRegex(ValueError, 'Invalid or duplicate archive entry'):
+                verify_build(build)
+            (build / 'Roboto-LICENSE.txt').rename(build / 'assets/Roboto-LICENSE.txt')
+            self.assertEqual(verify_build(build), 3)
+            (build / 'assets/Roboto-LICENSE.txt').write_bytes(b'truncated license')
+            with self.assertRaisesRegex(ValueError, 'preserve the bundled Roboto license'):
+                verify_build(build)
+
     def test_install_repeat_and_previous_release(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
