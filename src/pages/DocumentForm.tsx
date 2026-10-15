@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
-import { addDocument, updateDocument } from '../data/documentRepository'
+import { addDocument, updateDocument } from '../dataAccess'
 import { documentInputSchema, documentKinds, type DiaryDocument } from '../domain/document'
 import { localDate } from '../domain/input'
 import { validate } from '../domain/schema'
@@ -44,7 +44,7 @@ export function DocumentForm({ entry = null, disabled = false, onSaved, onCancel
     }
     action.run(async () => {
       try {
-        if (entry) await updateDocument(entry.id, { date, title, kind, note })
+        if (entry) await updateDocument(entry, { date, title, kind, note })
         else await addDocument({ date, title, kind, note }, file)
       }
       catch (reason: unknown) {
@@ -68,7 +68,7 @@ export function DocumentForm({ entry = null, disabled = false, onSaved, onCancel
         <Field label="Заметка к документу (необязательно)" name="note" maxLength={500} defaultValue={entry?.note ?? ''} error={errors['note']} />
         {!entry && <>
           <Field label="Файл документа" name="file" type="file" required accept="application/pdf,image/jpeg,image/png,image/webp" aria-describedby="document-file-help" error={errors['file']} />
-          <p id="document-file-help">PDF, JPEG, PNG или WebP до 20 MiB. Изображения — до 64 млн пикселей и 32768 px по стороне. Оригинал сохраняется локально без изменений, включая метаданные файла. Общий предел вложений — 100 MiB. PDF можно скачать и открыть в своей программе.</p>
+          <p id="document-file-help">PDF, JPEG, PNG или WebP до 20 MiB. Изображения — до 64 млн пикселей и 32768 px по стороне. Оригинал сохраняется без изменений, включая метаданные файла. Общий предел вложений — 100 MiB. PDF можно скачать и открыть в своей программе.</p>
         </>}
       </fieldset>
       <div className="actions">

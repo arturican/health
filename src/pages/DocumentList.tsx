@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { countDocumentResults, deleteDocument, deleteDocumentWithResults, listDocuments } from '../data/documentRepository'
+import { useDiaryQuery, countDocumentResults, deleteDocument, deleteDocumentWithResults, listDocuments } from '../dataAccess'
 import { documentKinds, type DiaryDocument } from '../domain/document'
 import { Field } from '../ui/Field'
 import { DocumentFile } from './DocumentFile'
@@ -10,10 +9,10 @@ import { Icon } from '../ui/Icon'
 
 interface DocumentListProps { onEdit: (document: DiaryDocument) => void; blocked: boolean; onBusyChange: (busy: boolean) => void }
 export function DocumentList({ onEdit, blocked, onBusyChange }: DocumentListProps) {
-  const documents = useLiveQuery(() => listDocuments())
+  const documents = useDiaryQuery(() => listDocuments())
   const [query, setQuery] = useState('')
   const [deleting, setDeleting] = useState<DiaryDocument | null>(null)
-  const linked = useLiveQuery(async () => deleting ? { id: deleting.id, count: await countDocumentResults(deleting.id) } : null, [deleting?.id])
+  const linked = useDiaryQuery(async () => deleting ? { id: deleting.id, count: await countDocumentResults(deleting) } : null, [deleting?.id])
   const count = linked?.id === deleting?.id ? linked?.count : undefined
   const action = useAction()
   const heading = useRef<HTMLHeadingElement>(null)
@@ -52,8 +51,8 @@ export function DocumentList({ onEdit, blocked, onBusyChange }: DocumentListProp
     {deleting && count !== undefined && <Confirmation question={count > 0 ? `Удалить документ «${deleting.title}» за ${deleting.date}, его файл и показатели (${String(count)})?` : `Удалить документ «${deleting.title}» за ${deleting.date} и его файл?`} pending={action.pending} onCancel={() => { focusAfterAttempt.current = 'opener'; setDeleting(null) }} onConfirm={() => {
       action.run(async () => {
         try {
-          if (count > 0) await deleteDocumentWithResults(deleting.id, count)
-          else await deleteDocument(deleting.id)
+          if (count > 0) await deleteDocumentWithResults(deleting, count)
+          else await deleteDocument(deleting)
         } catch (reason: unknown) { focusAfterAttempt.current = 'cancel'; throw reason }
         focusAfterAttempt.current = 'heading'
         setDeleting(null)

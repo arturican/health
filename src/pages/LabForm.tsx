@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
-import { addLabResult, updateLabResult } from '../data/labRepository'
+import { addLabResult, updateLabResult } from '../dataAccess'
 import { labInputSchema, labOperatorSchema, labOperators, labValueSchema, type LabResult } from '../domain/labResult'
 import { localDate, parseNumber } from '../domain/input'
 import { validate } from '../domain/schema'
@@ -44,7 +44,7 @@ export function LabForm({ documentId, defaultDate, disabled, onBusyChange, entry
     action.run(async () => {
       try {
         const values = { documentId, date, name, value, unit, reference, note }
-        if (entry) await updateLabResult(entry.id, values)
+        if (entry) await updateLabResult(entry, values)
         else await addLabResult(values)
       }
       catch (reason: unknown) { focusAfterAttempt.current = true; throw reason }

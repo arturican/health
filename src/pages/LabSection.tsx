@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { listDocuments } from '../data/documentRepository'
+import { useDiaryQuery, listDocuments } from '../dataAccess'
 import { SelectField } from '../ui/Field'
 import { LabForm } from './LabForm'
 import { LabList } from './LabList'
@@ -8,7 +7,7 @@ import { type LabResult } from '../domain/labResult'
 
 interface LabSectionProps { blocked?: boolean; onBusyChange?: (busy: boolean) => void }
 export function LabSection({ blocked = false, onBusyChange }: LabSectionProps = {}) {
-  const documents = useLiveQuery(() => listDocuments())
+  const documents = useDiaryQuery(() => listDocuments())
   const [documentId, setDocumentId] = useState('')
   const [busy, setBusy] = useState(false)
   const [listBusy, setListBusy] = useState(false)

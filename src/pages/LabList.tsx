@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { deleteLabResult, listLabResults } from '../data/labRepository'
+import { useDiaryQuery, deleteLabResult, listLabResults } from '../dataAccess'
 import { formatLabValue, type LabResult } from '../domain/labResult'
 import { Confirmation } from '../ui/Confirmation'
 import { Feedback, useAction } from '../ui/actions'
 
 interface LabListProps { documentId: string; blocked: boolean; onEdit: (result: LabResult) => void; onBusyChange: (busy: boolean) => void }
 export function LabList({ documentId, blocked, onEdit, onBusyChange }: LabListProps) {
-  const data = useLiveQuery(async () => ({ documentId, results: await listLabResults(documentId) }), [documentId])
+  const data = useDiaryQuery(async () => ({ documentId, results: await listLabResults(documentId) }), [documentId])
   const results = data?.documentId === documentId ? data.results : undefined
   const [deleting, setDeleting] = useState<LabResult | null>(null)
   const action = useAction()
@@ -39,7 +38,7 @@ export function LabList({ documentId, blocked, onEdit, onBusyChange }: LabListPr
     </ul>}
     {deleting && <Confirmation question={`Удалить показатель «${deleting.name}» за ${deleting.date}?`} pending={action.pending} onCancel={() => { setDeleting(null) }} onConfirm={() => {
       action.run(async () => {
-        try { await deleteLabResult(deleting.id) }
+        try { await deleteLabResult(deleting) }
         catch (reason: unknown) { focusAfterAttempt.current = 'cancel'; throw reason }
         focusAfterAttempt.current = 'heading'
         setDeleting(null)
