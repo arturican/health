@@ -4,6 +4,7 @@ import { createPool } from './database.js'
 import { registerAuthentication } from './auth.js'
 import { registerProfile } from './profileRoutes.js'
 import { registerWeights } from './weightRoutes.js'
+import { registerProducts } from './productRoutes.js'
 
 export async function startApi(environment: Record<string, string | undefined>) {
   const config = readServerConfig(environment)
@@ -16,6 +17,7 @@ export async function startApi(environment: Record<string, string | undefined>) 
       const authorize = await registerAuthentication(app, pool, dataConfig.origin)
       registerProfile(app, pool, authorize)
       registerWeights(app, pool, authorize)
+      registerProducts(app, pool, authorize)
     }
     await app.listen(config)
     return await app
