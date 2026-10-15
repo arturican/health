@@ -2,6 +2,7 @@ import { createApi } from './app.js'
 import { readDataConfig, readServerConfig } from './config.js'
 import { createPool } from './database.js'
 import { registerAuthentication } from './auth.js'
+import { registerProfile } from './profileRoutes.js'
 
 export async function startApi(environment: Record<string, string | undefined>) {
   const config = readServerConfig(environment)
@@ -11,7 +12,8 @@ export async function startApi(environment: Record<string, string | undefined>) 
     if (dataConfig) {
       const pool = createPool(dataConfig.connectionString)
       app.addHook('onClose', async () => { await pool.end() })
-      await registerAuthentication(app, pool, dataConfig.origin)
+      const authorize = await registerAuthentication(app, pool, dataConfig.origin)
+      registerProfile(app, pool, authorize)
     }
     await app.listen(config)
     return await app
