@@ -87,18 +87,23 @@ export function WeightPage() {
                       else focusAfterChange.current = 'date'
                       setEditing(weight); setErrors({}); action.reset()
                     }}>Изменить</button>
-                    <button type="button" className="secondary" disabled={action.pending} aria-label={`Удалить вес за ${dateLabel}`} onClick={() => { setDeleting(weight); setErrors({}); action.reset() }}>Удалить</button>
+                    <button type="button" className="secondary" disabled={action.pending} aria-label={`Удалить вес за ${dateLabel}`} onClick={() => { setDeleting(weight); action.reset() }}>Удалить</button>
                   </div>
                 </li>
               })}
             </ul>
           )}
           <div ref={dialog}>{deleting && <Confirmation question={`Удалить измерение за ${deleting.date.split('-').reverse().join('.')}?`} pending={action.pending} onCancel={() => { setDeleting(null); action.reset() }} onConfirm={() => {
-            action.run(async () => { await deleteWeight(deleting.id); focusAfterChange.current = 'kg'; setDeleting(null); setEditing(null); setErrors({}) }, 'Измерение удалено')
+            action.run(async () => {
+              await deleteWeight(deleting.id)
+              focusAfterChange.current = 'kg'
+              setDeleting(null)
+              if (editing?.id === deleting.id) { setEditing(null); setErrors({}) }
+            }, 'Измерение удалено')
           }} />}</div>
         </>
       )}
-      <Feedback error={Object.keys(errors).length > 0 ? null : action.error} message={Object.keys(errors).length > 0 ? null : action.message} />
+      <Feedback error={deleting || Object.keys(errors).length === 0 ? action.error : null} message={Object.keys(errors).length > 0 ? null : action.message} />
     </section>
   )
 }

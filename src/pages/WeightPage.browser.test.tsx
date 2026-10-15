@@ -68,6 +68,34 @@ function expectNoExternalRequests() {
   expect(externalRequests).toEqual([])
 }
 
+test('удаление другой записи сохраняет черновик веса до явного сохранения', async () => {
+  const second = { ...initialWeight, id: '00000000-0000-4000-8000-000000000002', date: '2026-10-02', kg: 72 }
+  await db.weights.put(second)
+  const view = await openWeightPage()
+  await page.getByRole('button', { name: 'Изменить вес за 01.10.2026' }).click()
+  await page.getByLabelText('Дата измерения').fill('2026-10-03')
+  await page.getByLabelText('Вес, кг').fill('77,7')
+  const remove = page.getByRole('button', { name: 'Удалить вес за 02.10.2026' })
+  await remove.click()
+  await page.getByRole('button', { name: 'Отмена', exact: true }).click()
+  await expect.element(remove).toHaveFocus()
+  await expect.element(page.getByLabelText('Вес, кг')).toHaveValue('77,7')
+  expect(await db.weights.count()).toBe(2)
+  await remove.click()
+  await page.getByRole('button', { name: 'Подтвердить удаление' }).click()
+  await expect.element(page.getByRole('alertdialog')).not.toBeInTheDocument()
+  await expect.element(page.getByRole('form', { name: 'Редактирование веса' })).toBeVisible()
+  await expect.element(page.getByLabelText('Дата измерения')).toHaveValue('2026-10-03')
+  await expect.element(page.getByLabelText('Вес, кг')).toHaveValue('77,7')
+  await expect.element(page.getByLabelText('Вес, кг')).toHaveFocus()
+  expect(await db.weights.toArray()).toEqual([initialWeight])
+  expect((await axe.run(view.container)).violations).toEqual([])
+  await page.getByRole('button', { name: 'Сохранить вес' }).click()
+  await expect.element(page.getByRole('form', { name: 'Новое измерение' })).toBeVisible()
+  expect(await db.weights.toArray()).toEqual([{ ...initialWeight, date: '2026-10-03', kg: 77.7 }])
+  expectNoExternalRequests()
+})
+
 test('история веса поддерживает добавление, исправление, отмену и подтверждённое удаление', async () => {
   const view = await openWeightPage()
   await expectChart('01.10.2026', '01.10.2026', 70, 70)
