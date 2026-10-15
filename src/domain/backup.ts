@@ -49,7 +49,7 @@ export function readTextBackup(input: unknown): TextBackup {
 
 export function serializeTextBackup(input: unknown): string {
   const backup = readTextBackup(input)
-  const text = JSON.stringify(backup, null, 2)
+  const text = JSON.stringify(backup)
   if (new TextEncoder().encode(text).byteLength > TEXT_BACKUP_MAX_BYTES) throw new Error('Текстовая копия превышает 20 MiB')
   return text
 }

@@ -4,7 +4,7 @@ import { DiaryDatabase } from './db'
 import { addProduct, archiveProduct } from './productRepository'
 import { exportTextBackup, restoreTextBackup } from './backupRepository'
 import { exportFullBackup } from './fullBackupRepository'
-import { BACKUP_MAX_RECORDS, serializeTextBackup, type TextBackup } from '../domain/backup'
+import { BACKUP_MAX_RECORDS, readTextBackup, serializeTextBackup, TEXT_BACKUP_MAX_BYTES, type TextBackup } from '../domain/backup'
 
 const database = new DiaryDatabase('health-diary-test-record-boundary')
 beforeEach(() => {
@@ -21,12 +21,15 @@ it('реальные 100000 продуктов после импорта ост�
   expect(BACKUP_MAX_RECORDS).toBe(100000)
   const products = Array.from({ length: BACKUP_MAX_RECORDS }, (_, index) => ({
     id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
-    name: 'А', source: '', kcal: 0, protein: null, fat: null, carbs: null, archived: false,
+    name: 'Синтетический продукт', source: '', kcal: 0, protein: null, fat: null, carbs: null, archived: false,
   }))
   const input: TextBackup = {
     format: 'health-diary-text', version: 1, exportedAt: '2026-10-14T12:00:00.000Z',
     profile: null, weights: [], products, foodEntries: [], nutritionDays: [], steps: [], workouts: [], energyPlans: [],
   }
+  const encoder = new TextEncoder()
+  expect(encoder.encode(JSON.stringify(input)).byteLength).toBeLessThan(TEXT_BACKUP_MAX_BYTES)
+  expect(encoder.encode(JSON.stringify(input, null, 2)).byteLength).toBeGreaterThan(TEXT_BACKUP_MAX_BYTES)
   await restoreTextBackup(input, database)
   const extra = { ...products[0], id: 'ffffffff-0000-4000-8000-000000000001' }
   await expect(addProduct(extra, database)).rejects.toThrow(/лимит/i)
@@ -37,9 +40,26 @@ it('реальные 100000 продуктов после импорта ост�
   const text = await exportTextBackup(database)
   expect(text.products).toHaveLength(BACKUP_MAX_RECORDS)
   expect(text.products.find(product => product.id === first.id)).toEqual({ ...first, archived: true })
-  expect(new TextEncoder().encode(serializeTextBackup(text)).byteLength).toBeLessThanOrEqual(20 * 1024 * 1024)
+  const serialized = serializeTextBackup(text)
+  expect(encoder.encode(serialized).byteLength).toBeLessThanOrEqual(TEXT_BACKUP_MAX_BYTES)
+  expect(readTextBackup(JSON.parse(serialized))).toEqual(text)
   const full = await exportFullBackup(database)
   expect(full.text).toEqual(text)
   expect(full.metadata).toEqual([])
   expect(await database.products.count()).toBe(BACKUP_MAX_RECORDS)
+
+  const remaining = TEXT_BACKUP_MAX_BYTES - encoder.encode(serialized).byteLength
+  const perProduct = Math.floor(remaining / BACKUP_MAX_RECORDS)
+  const remainder = remaining % BACKUP_MAX_RECORDS
+  const boundary = { ...text, products: text.products.map((product, index) => ({
+    ...product, source: 'A'.repeat(perProduct + (index < remainder ? 1 : 0)),
+  })) }
+  const exact = serializeTextBackup(boundary)
+  expect(encoder.encode(exact).byteLength).toBe(TEXT_BACKUP_MAX_BYTES)
+  expect(readTextBackup(JSON.parse(exact))).toEqual(boundary)
+  const boundaryFirst = boundary.products[0]
+  if (!boundaryFirst) throw new Error('Синтетический каталог пуст')
+  boundaryFirst.source += 'A'
+  expect(encoder.encode(JSON.stringify(boundary)).byteLength).toBe(TEXT_BACKUP_MAX_BYTES + 1)
+  expect(() => serializeTextBackup(boundary)).toThrow('Текстовая копия превышает 20 MiB')
 }, 30000)
