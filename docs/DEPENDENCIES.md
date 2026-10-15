@@ -1,5 +1,13 @@
 # Версии и совместимость T001
 
+## Хеширование, T162
+
+argon2 0.45.1, Node >=16.17; npm metadata и Linux prebuilt проверены
+на Node 24.22.0. Argon2id использует 19 MiB, t=2, p=1 и случайную соль.
+Источники: [node-argon2](https://github.com/ranisalt/node-argon2),
+[OWASP Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+Это серверная зависимость, в frontend она не импортируется.
+
 ## Серверный PostgreSQL, T160
 
 15 октября 2026 проверены npm metadata: pg 8.23.1 (Node >=16),

@@ -9,6 +9,7 @@
     "npm": ">=11.19.1 <12"
   },
   "scripts": {
+    "account:create": "npm run build:api && node build-api/createAccount.js",
     "db:migrate": "npm run build:api && node --env-file-if-exists=.env build-api/migrate.js",
     "build:api": "tsc -p tsconfig.server.json",
     "start:api": "node --env-file-if-exists=.env build-api/main.js",
@@ -31,6 +32,7 @@
     "test:design:ui": "playwright test design- --ui"
   },
   "dependencies": {
+    "argon2": "0.45.1",
     "dexie": "4.4.6",
     "dexie-react-hooks": "1.1.7",
     "fastify": "5.12.7",
