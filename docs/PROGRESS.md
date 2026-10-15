@@ -348,3 +348,9 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 ## T059 — сквозные дневные сценарии на Desktop Chrome и Pixel 7
 
 сквозные дневные сценарии на Desktop Chrome и Pixel 7. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+[GitHub CI на b6d95ac](https://github.com/arturican/health/actions/runs/38663792933) обнаружил гонку ожидания React-эффекта в unit-проверке фокуса предпросмотра (1002 других теста прошли). В T060 проверка ожидает сам фокус через `waitFor`; требование к поведению сохранено.
+
+## T060 — сквозные сценарии файлов и полного восстановления
+
+сквозные сценарии файлов и полного восстановления. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.

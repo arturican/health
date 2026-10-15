@@ -23,7 +23,7 @@ it('показывает полностью проверенный состав,
   const preview = await screen.findByRole('region', { name: 'Предпросмотр полной копии' })
   expect(preview).toHaveTextContent('Файлов: 0. Размер вложений: 0 байт.')
   expect(preview).toHaveTextContent('Фото: 0. Документов: 0. Показателей: 0. Настроек: 0.')
-  expect(screen.getByRole('heading', { name: 'Предпросмотр полной копии' })).toHaveFocus()
+  await waitFor(() => { expect(screen.getByRole('heading', { name: 'Предпросмотр полной копии' })).toHaveFocus() })
   fireEvent.change(screen.getByLabelText('Файл полной копии'), { target: { files: [new File(['{}'], 'synthetic-next.json')] } })
   expect(screen.queryByRole('region', { name: 'Предпросмотр полной копии' })).not.toBeInTheDocument()
   expect(screen.queryByRole('status')).not.toBeInTheDocument()
