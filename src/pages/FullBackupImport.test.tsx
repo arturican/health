@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { Profiler } from 'react'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { FullBackupImport } from './FullBackupImport'
 import { readFullBackupFile } from '../media/fullBackupFile'
@@ -13,6 +14,26 @@ const backup: FullBackup = {
   metadata: [], photos: [], documents: [], labResults: [], files: [],
 }
 beforeEach(() => { vi.resetAllMocks() })
+
+it('возвращает фокус файлу при отмене сразу после появления доступного предпросмотра', async () => {
+  vi.mocked(readFullBackupFile).mockResolvedValue(backup)
+  let cancelled = false
+  // Клик между commit и пассивным эффектом заголовка воспроизводит раннюю отмену.
+  render(<Profiler id="early-backup-cancel" onRender={() => {
+    const button = screen.queryByRole('button', { name: 'Отменить полную копию' })
+    if (!(button instanceof HTMLButtonElement) || button.disabled || cancelled) return
+    cancelled = true
+    button.focus()
+    button.click()
+  }}><FullBackupImport /></Profiler>)
+  fireEvent.submit(screen.getByRole('form', { name: 'Импорт полной копии' }))
+  await waitFor(() => {
+    expect(readFullBackupFile).toHaveBeenCalledOnce()
+    expect(screen.getByLabelText('Файл полной копии')).toHaveFocus()
+  })
+  expect(screen.queryByRole('region', { name: 'Предпросмотр полной копии' })).not.toBeInTheDocument()
+  expect(restoreFullBackup).not.toHaveBeenCalled()
+})
 
 it('показывает полностью проверенный состав, переносит фокус и очищает предпросмотр по выбору и отмене', async () => {
   vi.mocked(readFullBackupFile).mockResolvedValue(backup)
@@ -31,7 +52,7 @@ it('показывает полностью проверенный состав,
   await screen.findByRole('region', { name: 'Предпросмотр полной копии' })
   fireEvent.click(screen.getByRole('button', { name: 'Отменить полную копию' }))
   expect(screen.queryByRole('region', { name: 'Предпросмотр полной копии' })).not.toBeInTheDocument()
-  expect(screen.getByLabelText('Файл полной копии')).toHaveFocus()
+  await waitFor(() => { expect(screen.getByLabelText('Файл полной копии')).toHaveFocus() })
 })
 
 it('блокирует повторную проверку, не показывает старый предпросмотр при отказе и позволяет повторить', async () => {

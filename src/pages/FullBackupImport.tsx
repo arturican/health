@@ -10,6 +10,7 @@ export function FullBackupImport() {
   const restoring = useAction()
   const [preview, setPreview] = useState<FullBackup | null>(null)
   const [consent, setConsent] = useState(false)
+  const [cancelled, setCancelled] = useState(false)
   const title = useRef<HTMLHeadingElement>(null)
   const form = useRef<HTMLFormElement>(null)
   const confirmation = useRef<HTMLFormElement>(null)
@@ -22,6 +23,7 @@ export function FullBackupImport() {
     const file = new FormData(event.currentTarget).get('fullBackup')
     setPreview(null)
     setConsent(false)
+    setCancelled(false)
     restoring.reset()
     importing.run(async () => { setPreview(await readFullBackupFile(file)) }, 'Полная копия проверена; база не изменена')
   }
@@ -35,7 +37,7 @@ export function FullBackupImport() {
       importing.reset()
     }, 'Полная копия восстановлена')
   }
-  useEffect(() => { if (restoring.message) form.current?.querySelector<HTMLInputElement>('input[type="file"]')?.focus() }, [restoring.message])
+  useEffect(() => { if (cancelled || restoring.message) form.current?.querySelector<HTMLInputElement>('input[type="file"]')?.focus() }, [cancelled, restoring.message])
   const pending = importing.pending || restoring.pending
   return <section aria-labelledby="full-import-title">
     <h2 id="full-import-title">Восстановление полной копии</h2>
@@ -58,7 +60,7 @@ export function FullBackupImport() {
         <Field label="Согласен заменить весь дневник, включая файлы и показатели" name="fullConsent" type="checkbox" required checked={consent} disabled={pending} onChange={event => { setConsent(event.target.checked) }} />
         <div className="actions">
           <button type="submit" disabled={!consent || pending}>{restoring.pending ? 'Восстанавливаем полную копию…' : 'Восстановить полную копию'}</button>
-          <button type="button" disabled={pending} onClick={() => { setPreview(null); setConsent(false); importing.reset(); restoring.reset(); form.current?.querySelector<HTMLInputElement>('input[type="file"]')?.focus() }}>Отменить полную копию</button>
+          <button type="button" disabled={pending} onClick={() => { setPreview(null); setConsent(false); setCancelled(true); importing.reset(); restoring.reset() }}>Отменить полную копию</button>
         </div>
       </form>
     </section>}
