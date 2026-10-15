@@ -75,6 +75,64 @@ test('заполненные разделы и длинные значения �
   expect(external).toEqual([])
 })
 
+test('запись веса, отмена и подтверждение доступны на шести точных размерах экрана', async ({ page, baseURL }) => {
+  test.setTimeout(60000)
+  const { errors, external } = observeBrowser(page, baseURL)
+  await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'))
+  await page.goto('/#profile')
+  await page.getByLabel('Имя (необязательно)', { exact: true }).fill('Синтетическая матрица экранов')
+  await page.getByLabel('Рост, см', { exact: true }).fill('170')
+  await page.getByLabel('Вес, кг', { exact: true }).fill('70')
+  await page.getByLabel('Дата первого измерения', { exact: true }).fill('2026-10-13')
+  await page.getByRole('button', { name: 'Создать профиль', exact: true }).click()
+  await expect(page.getByText('Профиль и первое измерение сохранены', { exact: true })).toBeVisible()
+  const navigation = page.getByRole('navigation', { name: 'Разделы дневника', exact: true })
+  const main = page.getByRole('main')
+  const sizes = [
+    { width: 375, height: 812 }, { width: 390, height: 844 },
+    { width: 768, height: 1024 }, { width: 1280, height: 800 },
+    { width: 1440, height: 900 }, { width: 1920, height: 1080 },
+  ]
+  for (const [index, size] of sizes.entries()) {
+    await page.setViewportSize(size)
+    await test.step(`${String(size.width)}×${String(size.height)}`, async () => {
+      await navigation.getByRole('link', { name: 'Профиль', exact: true }).click()
+      await expect(main.getByRole('heading', { level: 1, name: 'Профиль', exact: true })).toBeVisible()
+      await navigation.getByRole('link', { name: 'Вес', exact: true }).focus()
+      await page.keyboard.press('Enter')
+      await expect(page).toHaveURL(/#weight$/)
+      await expect(main).toBeFocused()
+      const form = main.getByRole('form', { name: 'Новое измерение' })
+      const day = String(index + 1).padStart(2, '0')
+      await form.getByLabel('Дата измерения', { exact: true }).fill(`2026-10-${day}`)
+      await form.getByLabel('Вес, кг', { exact: true }).fill('71,5')
+      await form.getByRole('button', { name: 'Сохранить вес', exact: true }).click()
+      const remove = main.getByRole('button', { name: `Удалить вес за ${day}.10.2026`, exact: true })
+      await expect(remove).toBeVisible()
+      await expect(main.getByRole('list', { name: 'История веса' }).getByText('71,5 кг', { exact: true })).toBeVisible()
+      await remove.click()
+      await expect(main.getByRole('alertdialog')).toBeVisible()
+      await expect(main.getByRole('button', { name: 'Отмена', exact: true })).toBeFocused()
+      await page.keyboard.press('Enter')
+      await expect(main.getByRole('alertdialog')).toHaveCount(0)
+      await expect(remove).toBeFocused()
+      await remove.click()
+      await main.getByRole('button', { name: 'Подтвердить удаление', exact: true }).click()
+      await expect(remove).toHaveCount(0)
+      await expect(main.getByText('Измерение удалено', { exact: true })).toBeVisible()
+      await expect(form.getByLabel('Вес, кг', { exact: true })).toBeFocused()
+      await expect(form.getByLabel('Вес, кг', { exact: true })).toBeInViewport()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    })
+  }
+  await page.reload()
+  const history = page.getByRole('list', { name: 'История веса' })
+  await expect(history.getByRole('listitem')).toHaveCount(1)
+  await expect(history.getByText('70 кг', { exact: true })).toBeVisible()
+  expect(errors).toEqual([])
+  expect(external).toEqual([])
+})
+
 test('боковое меню прокручивается на коротком экране и открывает настройки с клавиатуры', async ({ page, baseURL }) => {
   test.setTimeout(60000)
   const { errors, external } = observeBrowser(page, baseURL)
