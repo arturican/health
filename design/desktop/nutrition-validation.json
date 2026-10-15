@@ -1,0 +1,26 @@
+[
+  {
+    "screen": "nutrition-desktop",
+    "overflow": [],
+    "overlaps": [],
+    "texts": 83,
+    "images": 0,
+    "panels": 7,
+    "fontLoaded": true,
+    "structural": true,
+    "minTextContrast": 5.16,
+    "lowContrast": []
+  },
+  {
+    "screen": "nutrition-states",
+    "overflow": [],
+    "overlaps": [],
+    "texts": 87,
+    "images": 0,
+    "panels": 12,
+    "fontLoaded": true,
+    "structural": true,
+    "minTextContrast": 5.16,
+    "lowContrast": []
+  }
+]
