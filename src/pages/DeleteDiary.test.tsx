@@ -49,7 +49,7 @@ it('блокирует повтор/отмену в pending, сохраняет 
   fireEvent.click(confirm)
   expect(await screen.findByRole('status')).toHaveTextContent('Все данные дневника удалены')
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
-  expect(button).toHaveFocus()
+  await waitFor(() => { expect(button).toHaveFocus() })
   expect(clearDiary).toHaveBeenCalledTimes(2)
   expect(onCleared).toHaveBeenCalledTimes(1)
 })

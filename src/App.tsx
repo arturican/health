@@ -70,6 +70,12 @@ function DiaryApp() {
         </section> : route === 'today' ? <TodayPage /> : route === 'profile' ? <ProfilePage /> : route === 'weight' ? <WeightPage /> : route === 'nutrition' ? <NutritionPage /> : route === 'activity' ? <ActivityPage /> : route === 'photos' ? <PhotosPage /> : route === 'documents' ? <DocumentsPage /> : <SettingsPage />}
         </StorageBoundary>
       </main>
+      <aside className="storage-note" aria-label="Хранение дневника">
+        <Icon name="documents" />
+        <strong>Ваши записи — рядом</strong>
+        <p>Хранятся в этом браузере.</p>
+        <a href="#settings">Резервная копия</a>
+      </aside>
       <footer className="site-footer">
         <span>Наблюдать. Записывать. Заботиться о себе.</span>
         <span>Дневник не заменяет консультацию специалиста.</span>

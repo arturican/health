@@ -40,7 +40,7 @@ describe('Навигация', () => {
     const navigation = screen.getByRole('navigation', { name: 'Разделы дневника' })
     const links = within(navigation).getAllByRole('link')
     expect(links.map(link => link.textContent)).toEqual([
-      'Сегодня', 'Профиль', 'Вес', 'Питание', 'Активность', 'Фото', 'Документы', 'Настройки',
+      'Сегодня', 'Питание', 'Активность', 'Вес', 'Фото', 'Документы', 'Профиль', 'Настройки',
     ])
     expect(within(navigation).getByRole('link', { name: 'Вес' })).toHaveAttribute('href', '#weight')
     expect(within(navigation).getByRole('link', { name: 'Сегодня' })).toHaveAttribute('href', '#today')

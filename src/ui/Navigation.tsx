@@ -2,12 +2,12 @@ import { Icon } from './Icon'
 
 export const routes = {
   today: 'Сегодня',
-  profile: 'Профиль',
-  weight: 'Вес',
   nutrition: 'Питание',
   activity: 'Активность',
+  weight: 'Вес',
   photos: 'Фото',
   documents: 'Документы',
+  profile: 'Профиль',
   settings: 'Настройки',
 } as const
 

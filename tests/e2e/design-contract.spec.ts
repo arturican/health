@@ -91,7 +91,7 @@ test('переходы клавиатурой показывают фокус н
   await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'))
   await page.goto('/')
   const navigation = page.getByRole('navigation', { name: 'Разделы дневника', exact: true })
-  await navigation.getByRole('link', { name: 'Сегодня', exact: true }).focus()
+  await navigation.getByRole('link', { name: 'Документы', exact: true }).focus()
   await page.keyboard.press('Tab')
   const profileLink = navigation.getByRole('link', { name: 'Профиль', exact: true })
   await expectVisibleKeyboardFocus(profileLink)
