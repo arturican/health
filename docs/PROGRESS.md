@@ -423,3 +423,7 @@ modulepreload локальных модулей. Это описание про�
 ## T065 — проверка адаптивности всех разделов и короткого меню
 
 проверка адаптивности всех разделов и короткого меню. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+## T066 — светлый стиль Telegram и Material Symbols Rounded
+
+светлый стиль Telegram и Material Symbols Rounded. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
