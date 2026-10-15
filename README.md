@@ -91,6 +91,12 @@ Europe/Moscow. Команда не печатает пароль или хеш. 
 Лимит попыток находится в памяти одного API и сбрасывается при перезапуске;
 X-Forwarded-For не доверяется, поэтому за proxy лимит IP общий.
 
+Вес: GET `/api/v1/weights?asOf=YYYY-MM-DD&before=YYYY-MM-DD&limit=100`
+возвращает `{ items: [{ value, revision }], nextBefore }`; параметры необязательны.
+POST принимает `{ value: { id, date, kg }, revision: null }`, PUT `/:id` —
+тот же value с текущей revision, DELETE `/:id` — `{ revision }`.
+Конфликт даты/ревизии возвращает 409; чужая запись недоступна.
+
 Профиль: GET `/api/v1/profile` возвращает null либо `{ value, revision }`.
 POST принимает `{ profile, weight }` и атомарно создаёт профиль с первым весом;
 PUT принимает `{ value, revision }`. Устаревшая правка возвращает 409, неверный
