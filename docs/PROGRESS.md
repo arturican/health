@@ -293,6 +293,8 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 
 редактирование и подтверждённое удаление документов. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
 
+После push до T051 [GitHub CI](https://github.com/arturican/health/actions/runs/38657362364) завершился success на 1eeafd5: установка и полный check — OK.
+
 ## T052 — ручные лабораторные показатели с документом-источником
 
 ручные лабораторные показатели с документом-источником. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
@@ -300,3 +302,7 @@ CI T018: [первый запуск](https://github.com/arturican/health/actions
 ## T053 — ручной ввод и просмотр показателей бланка
 
 ручной ввод и просмотр показателей бланка. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.
+
+## T054a — правка и подтверждённое удаление показателей
+
+правка и подтверждённое удаление показателей. Проверки: `npm run check` — OK (Node 24.22.0, Chromium); `git diff --check` — OK. Только синтетические данные.

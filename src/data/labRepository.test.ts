@@ -2,7 +2,7 @@ import { Blob as NativeBlob } from 'node:buffer'
 import Dexie from 'dexie'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { db, DiaryDatabase } from './db'
-import { addLabResult, listLabResults } from './labRepository'
+import { addLabResult, deleteLabResult, listLabResults, updateLabResult } from './labRepository'
 import { addDocument, deleteDocument } from './documentRepository'
 
 const pdf = new TextEncoder().encode('%PDF-1.7\nSynthetic laboratory document\n%%EOF\n')
@@ -169,4 +169,140 @@ it('добавляет и читает показатели через default s
   expect(await listLabResults(document.id)).toEqual([result])
   await expect(deleteDocument(document.id)).rejects.toThrow('Нельзя удалить документ с показателями без отдельного подтверждения')
   expect(await db.files.count()).toBe(1)
+})
+
+it('правит все поля и меняет число на текст и обратно без смены ID, источника или оригинального файла', async () => {
+  const database = createDatabase()
+  const document = await source(database)
+  const neighbor = await addLabResult({ ...values, documentId: document.id, date: '2026-10-12', name: 'Соседний синтетический показатель' }, database)
+  const result = await addLabResult({ ...values, documentId: document.id, date: '2026-10-12' }, database)
+  const text = { documentId: document.id, date: '2026-10-14', name: 'Изменённый показатель', value: { type: 'text', text: 'Изменённый синтетический текст' }, unit: '', reference: 'Буквальный новый референс', note: 'Изменённая заметка' }
+  await updateLabResult(result.id, { ...text, name: `  ${text.name}  `, value: { type: 'text', text: `  ${text.value.text}  ` } }, database)
+  expect(await listLabResults(document.id, database)).toEqual([{ ...text, id: result.id }, neighbor])
+  const number = { ...text, date: '2026-10-13', value: { type: 'number', number: -0.00001, operator: 'gte' }, unit: 'синт. единицы', reference: '', note: '' }
+  await updateLabResult(result.id, number, database)
+  expect(await listLabResults(document.id, database)).toEqual([{ ...number, id: result.id }, neighbor])
+  expect(await database.documents.get(document.id)).toEqual(document)
+  const file = await database.files.get(document.fileId)
+  if (!file) throw new Error('Синтетический оригинал утрачен при правке показателя')
+  expect(Array.from(new Uint8Array(await file.blob.arrayBuffer()))).toEqual(Array.from(pdf))
+  expect(await database.files.count()).toBe(1)
+})
+
+it('валидирует ID и неверные поля до RW, отклоняет отсутствующий показатель и смену documentId', async () => {
+  const database = createDatabase()
+  const document = await source(database)
+  const other = await source(database)
+  const valid = { ...values, documentId: document.id }
+  const result = await addLabResult(valid, database)
+  const transaction = vi.spyOn(database, 'transaction')
+  for (const id of [null, 'unknown', 1, {}]) {
+    await expect(updateLabResult(id, valid, database)).rejects.toThrow()
+    await expect(deleteLabResult(id, database)).rejects.toThrow()
+  }
+  for (const input of [null, { ...valid, date: '2026-10-15' }, { ...valid, value: { type: 'number', number: NaN, operator: 'eq' } }, { ...valid, extra: true }]) {
+    await expect(updateLabResult(result.id, input, database)).rejects.toThrow()
+  }
+  expect(transaction).not.toHaveBeenCalled()
+  transaction.mockRestore()
+  const missing = '00000000-0000-4000-8000-000000000999'
+  await expect(updateLabResult(missing, valid, database)).rejects.toThrow('Показатель не найден')
+  await expect(deleteLabResult(missing, database)).rejects.toThrow('Показатель не найден')
+  await expect(updateLabResult(result.id, { ...valid, documentId: other.id }, database)).rejects.toThrow('Источник показателя менять нельзя')
+  expect(await listLabResults(document.id, database)).toEqual([result])
+  expect(await listLabResults(other.id, database)).toEqual([])
+  expect(await database.documents.count()).toBe(2)
+  expect(await database.files.count()).toBe(2)
+})
+
+it('не правит показатель исчезнувшего документа, но позволяет очистить отдельную осиротевшую строку', async () => {
+  const database = createDatabase()
+  const document = await source(database)
+  const input = { ...values, documentId: document.id }
+  const result = await addLabResult(input, database)
+  await database.documents.delete(document.id)
+  await expect(updateLabResult(result.id, { ...input, name: 'Несохранённая правка' }, database)).rejects.toThrow('Документ-источник не найден')
+  expect(await database.labResults.get(result.id)).toEqual(result)
+  await deleteLabResult(result.id, database)
+  expect(await database.labResults.count()).toBe(0)
+  expect(await database.documents.count()).toBe(0)
+  expect(await database.files.count()).toBe(1)
+})
+
+it('отвергает повреждённый документ при правке и повреждённый показатель при правке/удалении', async () => {
+  const database = createDatabase()
+  const document = await source(database)
+  const input = { ...values, documentId: document.id }
+  const result = await addLabResult(input, database)
+  await database.table<unknown, string>('documents').put({ ...document, kind: 'unknown' })
+  await expect(updateLabResult(result.id, input, database)).rejects.toThrow()
+  expect(await database.labResults.get(result.id)).toEqual(result)
+  await database.documents.put(document)
+  const corrupted = { ...result, value: { type: 'number', number: Infinity, operator: 'eq' } }
+  await database.table<unknown, string>('labResults').put(corrupted)
+  await expect(updateLabResult(result.id, input, database)).rejects.toThrow()
+  await expect(deleteLabResult(result.id, database)).rejects.toThrow()
+  expect(await database.table<unknown, string>('labResults').get(result.id)).toEqual(corrupted)
+  expect(await database.documents.get(document.id)).toEqual(document)
+  expect(await database.files.count()).toBe(1)
+})
+
+it('поздние updating/deleting hook-отказы сохраняют показатель, документ и файл', async () => {
+  const database = createDatabase()
+  const document = await source(database)
+  const input = { ...values, documentId: document.id }
+  const result = await addLabResult(input, database)
+  function failUpdate() {
+    expect(Dexie.currentTransaction.mode).toBe('readwrite')
+    throw new Error('Синтетический отказ правки показателя')
+  }
+  function failDelete() {
+    expect(Dexie.currentTransaction.mode).toBe('readwrite')
+    throw new Error('Синтетический отказ удаления показателя')
+  }
+  database.labResults.hook('updating', failUpdate)
+  await expect(updateLabResult(result.id, { ...input, name: 'Несохранённая правка' }, database)).rejects.toThrow('Синтетический отказ правки показателя')
+  database.labResults.hook('updating').unsubscribe(failUpdate)
+  expect(await database.labResults.get(result.id)).toEqual(result)
+  database.labResults.hook('deleting', failDelete)
+  await expect(deleteLabResult(result.id, database)).rejects.toThrow('Синтетический отказ удаления показателя')
+  database.labResults.hook('deleting').unsubscribe(failDelete)
+  expect(await database.labResults.get(result.id)).toEqual(result)
+  expect(await database.documents.get(document.id)).toEqual(document)
+  expect(await database.files.count()).toBe(1)
+})
+
+it('удаляет только выбранный показатель, сохраняя соседей и оба документа с файлами', async () => {
+  const database = createDatabase()
+  const document = await source(database)
+  const other = await source(database)
+  const selected = await addLabResult({ ...values, documentId: document.id }, database)
+  const neighbor = await addLabResult({ ...values, documentId: document.id, name: 'Соседний показатель' }, database)
+  const unrelated = await addLabResult({ ...values, documentId: other.id }, database)
+  await deleteLabResult(selected.id, database)
+  expect(await listLabResults(document.id, database)).toEqual([neighbor])
+  expect(await listLabResults(other.id, database)).toEqual([unrelated])
+  await deleteLabResult(neighbor.id, database)
+  expect(await listLabResults(document.id, database)).toEqual([])
+  expect(await listLabResults(other.id, database)).toEqual([unrelated])
+  expect(await database.documents.count()).toBe(2)
+  expect(await database.files.count()).toBe(2)
+})
+
+it('правит и удаляет показатель через default singleton после повторного открытия', async () => {
+  expect(db.name).toBe('health-diary-tests')
+  connections.push(db)
+  await db.open()
+  const document = await addDocument(documentInput, new NativeBlob([pdf], { type: 'application/pdf' }))
+  const input = { ...values, documentId: document.id }
+  const result = await addLabResult(input)
+  await updateLabResult(result.id, { ...input, value: { type: 'text', text: 'Синтетический изменённый текст' } })
+  expect((await listLabResults(document.id))[0]?.value).toEqual({ type: 'text', text: 'Синтетический изменённый текст' })
+  await deleteLabResult(result.id)
+  expect(await listLabResults(document.id)).toEqual([])
+  expect(await db.documents.get(document.id)).toEqual(document)
+  expect(await db.files.count()).toBe(1)
+  await deleteDocument(document.id)
+  expect(await db.documents.count()).toBe(0)
+  expect(await db.files.count()).toBe(0)
 })

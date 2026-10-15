@@ -18,3 +18,26 @@ export async function addLabResult(input: unknown, database: DiaryDatabase = db)
   })
   return result
 }
+
+export async function updateLabResult(idInput: unknown, input: unknown, database: DiaryDatabase = db): Promise<void> {
+  const id = validate(entityId, idInput)
+  const values = readLabInput(input)
+  await database.transaction('rw', database.documents, database.labResults, async () => {
+    const old: unknown = await database.labResults.get(id)
+    if (old === undefined) throw new Error('Показатель не найден')
+    const previous = readLabResult(old)
+    if (previous.documentId !== values.documentId) throw new Error('Источник показателя менять нельзя')
+    const source: unknown = await database.documents.get(previous.documentId)
+    if (source === undefined) throw new Error('Документ-источник не найден')
+    readDocument(source)
+    await database.labResults.put(readLabResult({ ...values, id }))
+  })
+}
+export async function deleteLabResult(idInput: unknown, database: DiaryDatabase = db): Promise<void> {
+  const id = validate(entityId, idInput)
+  await database.transaction('rw', database.labResults, async () => {
+    const old: unknown = await database.labResults.get(id)
+    if (old === undefined) throw new Error('Показатель не найден')
+    await database.labResults.delete(readLabResult(old).id)
+  })
+}
