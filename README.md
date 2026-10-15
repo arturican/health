@@ -159,7 +159,8 @@ CREATEDB/CREATEROLE в выделенном тестовом контейнер�
 применённые файлы нельзя редактировать или удалять — добавляйте новый файл.
 Повтор безопасен, ошибка откатывает весь новый набор, параллельные запуски
 сериализованы. Созданы служебная история, users, sessions, profiles, weights,
-products, food_entries, nutrition_days, commands, steps, workouts и energy_plans;
+products, food_entries, nutrition_days, commands, steps, workouts, energy_plans,
+files, photos, documents и lab_results;
 остальные таблицы дневника добавляются следующими задачами.
 Профиль и вес защищены RLS; без транзакционного владельца строки недоступны.
 Перед миграциями рабочей БД нужна резервная копия.
