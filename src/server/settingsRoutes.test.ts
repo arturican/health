@@ -17,12 +17,12 @@ it('создаёт настройки один раз и сохраняет их
   const first = await read()
   expect(first.statusCode).toBe(200)
   const generation = z.object({ generation: z.uuid() }).parse(first.json<unknown>()).generation
-  expect(first.json<unknown>()).toEqual({ generation, value: DEFAULT_VISIBILITY, revision: 1, catalogSeeded: false })
+  expect(first.json<unknown>()).toEqual({ generation, value: DEFAULT_VISIBILITY, revision: 1, changeRevision: 0, catalogSeeded: false })
   expect((await read()).json<unknown>()).toEqual(first.json<unknown>())
   const value = { ...DEFAULT_VISIBILITY, showPhotos: false }
-  expect((await save(value)).json<unknown>()).toEqual({ generation, value, revision: 2, catalogSeeded: false })
+  expect((await save(value)).json<unknown>()).toEqual({ generation, value, revision: 2, changeRevision: 1, catalogSeeded: false })
   headers = await context.headers()
-  expect((await read()).json<unknown>()).toEqual({ generation, value, revision: 2, catalogSeeded: false })
+  expect((await read()).json<unknown>()).toEqual({ generation, value, revision: 2, changeRevision: 1, catalogSeeded: false })
   expect((await context.database.pool.query('SELECT * FROM health.settings')).rowCount).toBe(1)
 })
 

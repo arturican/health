@@ -59,3 +59,32 @@ it('коллизия вложенного ключа откатывает изм
   expect((await context.database.pool.query('SELECT * FROM health.commands')).rowCount).toBe(0)
   expect((await context.app.inject({ url: '/api/v1/diary-state', headers })).json<unknown>()).toMatchObject({ value: DEFAULT_VISIBILITY, revision: 1 })
 })
+
+it('версия защищает подтверждение и увеличивается только для новой успешной команды', async () => {
+  const key = randomUUID()
+  const confirmed = { ...headers, 'x-diary-revision': '0' }
+  const results = await Promise.all([save(key, payload, confirmed), save(randomUUID(), payload, confirmed)])
+  expect(results.map(result => result.statusCode).sort()).toEqual([200, 409])
+  const read = () => context.app.inject({ url: '/api/v1/diary-state', headers })
+  expect((await read()).json<unknown>()).toMatchObject({ changeRevision: 1 })
+  expect((await save(randomUUID(), { ...payload, revision: 2 }, confirmed)).statusCode).toBe(409)
+  expect((await save(randomUUID(), { ...payload, revision: 99 })).statusCode).toBe(409)
+  expect((await read()).json<unknown>()).toMatchObject({ changeRevision: 1 })
+  const nextKey = randomUUID()
+  const nextHeaders = { ...headers, 'x-diary-revision': '1' }
+  const next = await save(nextKey, { ...payload, revision: 2 }, nextHeaders)
+  expect(next.statusCode).toBe(200)
+  expect((await save(nextKey, { ...payload, revision: 2 }, nextHeaders)).json<unknown>()).toEqual(next.json<unknown>())
+  expect((await read()).json<unknown>()).toMatchObject({ changeRevision: 2 })
+  const bob = await context.headers('bob')
+  expect((await context.app.inject({ url: '/api/v1/diary-state', headers: bob })).json<unknown>()).toMatchObject({ changeRevision: 0 })
+})
+
+it('не допускает неверную версию и переполнение счётчика', async () => {
+  for (const revision of ['', '-1', '1.5', '9007199254740992']) {
+    expect((await save(randomUUID(), payload, { ...headers, 'x-diary-revision': revision })).statusCode).toBe(400)
+  }
+  await context.database.pool.query('UPDATE health.settings SET change_revision=9007199254740991 WHERE user_id=$1', [context.alice.id])
+  expect((await save(randomUUID())).statusCode).toBe(409)
+  expect((await context.app.inject({ url: '/api/v1/diary-state', headers })).json<unknown>()).toMatchObject({ value: DEFAULT_VISIBILITY, changeRevision: Number.MAX_SAFE_INTEGER })
+})

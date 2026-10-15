@@ -5,12 +5,17 @@ import { visibilitySchema } from '../domain/visibility'
 import { DataError, inputValue } from './httpErrors.js'
 import { revisionInput, storedRevision } from './profileRecords.js'
 
-const stateSchema = z.object({ generation: entityId, value: visibilitySchema, revision: storedRevision, catalogSeeded: z.boolean() })
+const counter = z.string().regex(/^(0|[1-9]\d{0,15})$/).transform(Number).pipe(z.number().int().max(Number.MAX_SAFE_INTEGER))
+const stateSchema = z.object({ generation: entityId, value: visibilitySchema, revision: storedRevision,
+  changeRevision: counter, catalogSeeded: z.boolean(),
+})
+
+export const readChangeRevision = (input: unknown) => inputValue(() => counter.parse(input))
 
 // Вызывается под блокировкой владельца: первый GET создаёт только настройки.
 export async function ensureDiaryState(client: PoolClient, owner: string) {
   await client.query('INSERT INTO health.settings(user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING', [owner])
-  const result = await client.query<Record<string, unknown>>(`SELECT generation,revision::text,catalog_seeded AS "catalogSeeded",
+  const result = await client.query<Record<string, unknown>>(`SELECT generation,revision::text,change_revision::text AS "changeRevision",catalog_seeded AS "catalogSeeded",
     jsonb_build_object('version',1,'showPhotos',show_photos,'showDocuments',show_documents) AS value FROM health.settings`)
   return stateSchema.parse(result.rows[0])
 }
