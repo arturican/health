@@ -10,6 +10,8 @@ import { Feedback, readField, useAction } from '../ui/actions'
 import { Confirmation } from '../ui/Confirmation'
 import { BmiCard } from '../ui/BmiCard'
 import { WeightChart } from '../ui/WeightChart'
+import { Icon } from '../ui/Icon'
+import '../weight.css'
 
 export function WeightPage() {
   const data = useLiveQuery(async () => ({ profile: await getProfile(), weights: await listWeights() }), [])
@@ -58,15 +60,23 @@ export function WeightPage() {
   }
 
   return (
-    <section className="page" aria-labelledby="weight-title">
+    <section className="page weight-page" aria-labelledby="weight-title">
       <h1 id="weight-title">Вес</h1>
+      <p>Измерения по датам · наблюдайте свою динамику.</p>
       {data === undefined ? <p role="status">Загружаем историю…</p> : !data.profile ? (
         <p>Для измерений <a href="#profile">создайте профиль</a>.</p>
       ) : (
         <>
-          <BmiCard profile={data.profile} weight={data.weights[0] ?? null} />
+          <div className="weight-metrics">
+            <section className="card"><Icon name="weight" /><h2>Последнее измерение</h2><strong>{data.weights[0] ? String(data.weights[0].kg).replace('.', ',') : 'Нет данных'}</strong><p>{data.weights[0] ? `кг · ${data.weights[0].date.split('-').reverse().join('.')}` : 'Добавьте первое измерение'}</p></section>
+            <section className="card"><Icon name="weight" /><h2>Записей в истории</h2><strong>{data.weights.length}</strong><p>Одна запись на дату</p></section>
+            <section className="card"><Icon name="weight" /><h2>Начало наблюдений</h2><strong className="weight-start">{data.weights.at(-1)?.date.split('-').reverse().join('.') ?? 'Нет данных'}</strong><p>По первой сохранённой записи</p></section>
+          </div>
+          <div className="weight-layout">
           <WeightChart weights={data.weights} />
+          <div className="weight-editor">
           <form key={editing?.id ?? revision} ref={formRef} className="form-grid" aria-label={editing ? 'Редактирование веса' : 'Новое измерение'} onSubmit={submit} noValidate aria-busy={action.pending}>
+            <h2>{editing ? 'Изменить измерение' : 'Записать вес'}</h2>
             <Field label="Дата измерения" name="date" type="date" defaultValue={editing?.date ?? localDate()} max={localDate()} required disabled={action.pending} error={errors['date']} />
             <Field label="Вес, кг" name="kg" inputMode="decimal" defaultValue={editing?.kg ?? ''} required disabled={action.pending} error={errors['kg']} />
             <p>Одна запись на дату. Повторный ввод обновляет вес этой даты.</p>
@@ -76,6 +86,9 @@ export function WeightPage() {
               {editing && <button type="button" className="secondary" disabled={action.pending} onClick={() => { setFocusRequest({ field: 'kg' }); setEditing(null); setErrors({}); action.reset() }}>Отменить изменение</button>}
             </div>
           </form>
+          <BmiCard profile={data.profile} weight={data.weights[0] ?? null} />
+          </div>
+          <section className="card weight-history" aria-label="Журнал измерений">
           <h2>История измерений</h2>
           {data.weights.length === 0 ? <p>Измерений пока нет. Отсутствие записи не означает нулевой вес.</p> : (
             <ul className="record-list" aria-label="История веса">
@@ -104,6 +117,8 @@ export function WeightPage() {
               if (editing?.id === deleting.id) { setEditing(null); setErrors({}) }
             }, 'Измерение удалено')
           }} />}</div>
+          </section>
+          </div>
         </>
       )}
       <Feedback error={deleting || Object.keys(errors).length === 0 ? action.error : null} message={Object.keys(errors).length > 0 ? null : action.message} />
