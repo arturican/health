@@ -4,6 +4,7 @@ import { DocumentsPage } from './DocumentsPage'
 import { db } from '../data/db'
 import * as repository from '../data/documentRepository'
 import { readDocumentInput, type DiaryDocument } from '../domain/document'
+import { type LabResult } from '../domain/labResult'
 
 vi.mock('./DocumentFile', () => ({ DocumentFile: () => <p>Вложение доступно локально.</p> }))
 
@@ -43,11 +44,13 @@ beforeEach(async () => {
   vi.setSystemTime(new Date(2026, 9, 14, 12))
   vi.stubGlobal('FormData', FormDataWithSelectedFile)
   await db.open()
+  await db.labResults.clear()
   await db.documents.clear()
 })
 afterEach(async () => {
   cleanup()
   vi.restoreAllMocks()
+  await db.labResults.clear()
   await db.documents.clear()
   vi.unstubAllGlobals()
   vi.useRealTimers()
@@ -118,6 +121,59 @@ it('связывает будущую дату, пустое название и
   expect(screen.getByLabelText('Файл документа')).toHaveAccessibleDescription(/Выберите файл документа/)
   expect(add).not.toHaveBeenCalled()
   expect(await db.documents.count()).toBe(0)
+})
+
+function linkedResult(id = '00000000-0000-4000-8000-000000000301'): LabResult {
+  return { id, documentId: document.id, date: document.date, name: 'Синтетический показатель каскада', value: { type: 'number', number: 0, operator: 'eq' }, unit: '', reference: '', note: '' }
+}
+
+it('показывает число показателей, отменяет каскад и подтверждённо удаляет только выбранный источник', async () => {
+  const neighbor = { ...document, id: '00000000-0000-4000-8000-000000000002', fileId: '00000000-0000-4000-8000-000000000102', date: '2026-10-13', title: 'Другой синтетический источник' }
+  const retained = { ...linkedResult('00000000-0000-4000-8000-000000000303'), documentId: neighbor.id }
+  await db.documents.bulkAdd([document, neighbor])
+  await db.labResults.bulkAdd([linkedResult(), linkedResult('00000000-0000-4000-8000-000000000302'), retained])
+  render(<DocumentsPage />)
+  fireEvent.change(await screen.findByLabelText('Бланк для показателей'), { target: { value: document.id } })
+  await screen.findByRole('list', { name: 'Показатели выбранного документа' })
+  const remove = await screen.findByRole('button', { name: 'Удалить документ 1: Синтетический анализ' })
+  remove.focus()
+  fireEvent.click(remove)
+  expect(await screen.findByRole('alertdialog')).toHaveTextContent('его файл и показатели (2)?')
+  expect(screen.getByLabelText('Бланк для показателей')).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Отмена' }))
+  await waitFor(() => { expect(remove).toHaveFocus() })
+  expect(await db.documents.count()).toBe(2)
+  expect(await db.labResults.count()).toBe(3)
+  fireEvent.click(remove)
+  fireEvent.click(await screen.findByRole('button', { name: 'Подтвердить удаление' }))
+  expect(await screen.findByText('Документ удалён')).toBeVisible()
+  await screen.findByText('Документ больше недоступен. Выберите другой.')
+  expect(screen.queryByRole('list', { name: 'Показатели выбранного документа' })).not.toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Документы по датам' })).toHaveFocus()
+  expect(await db.documents.toArray()).toEqual([neighbor])
+  expect(await db.labResults.toArray()).toEqual([retained])
+})
+
+it('обновляет количество в подтверждении, сохраняет его при отказе и допускает повторный каскад', async () => {
+  await db.documents.add(document)
+  await db.labResults.add(linkedResult())
+  const removeWithResults = vi.spyOn(repository, 'deleteDocumentWithResults').mockRejectedValueOnce(Object.assign(new Error('private'), { name: 'QuotaExceededError' }))
+  render(<DocumentsPage />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Удалить документ 1: Синтетический анализ' }))
+  expect(await screen.findByRole('alertdialog')).toHaveTextContent('показатели (1)?')
+  await db.labResults.add(linkedResult('00000000-0000-4000-8000-000000000302'))
+  await waitFor(() => { expect(screen.getByRole('alertdialog')).toHaveTextContent('показатели (2)?') })
+  fireEvent.click(screen.getByRole('button', { name: 'Подтвердить удаление' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось выполнить действие')
+  await waitFor(() => { expect(screen.getByRole('button', { name: 'Отмена' })).toHaveFocus() })
+  expect(screen.queryByText('private')).not.toBeInTheDocument()
+  expect(removeWithResults).toHaveBeenCalledWith(document.id, 2)
+  expect(await db.documents.get(document.id)).toEqual(document)
+  expect(await db.labResults.count()).toBe(2)
+  fireEvent.click(screen.getByRole('button', { name: 'Подтвердить удаление' }))
+  expect(await screen.findByText('Документ удалён')).toBeVisible()
+  await screen.findByText('Документов пока нет.')
+  expect(await db.labResults.count()).toBe(0)
 })
 
 it('показывает ошибку содержимого у файла и сохраняет введённые метаданные и File', async () => {
@@ -208,14 +264,14 @@ it('отмена правки/удаления сохраняет докумен
   const remove = screen.getByRole('button', { name: 'Удалить документ 1: Синтетический анализ' })
   remove.focus()
   fireEvent.click(remove)
-  expect(screen.getByRole('alertdialog')).toHaveTextContent('и его файл?')
+  expect(await screen.findByRole('alertdialog')).toHaveTextContent('и его файл?')
   expect(screen.getByRole('button', { name: 'Отмена' })).toHaveFocus()
   expect(screen.getByLabelText('Файл документа')).toBeDisabled()
   fireEvent.click(screen.getByRole('button', { name: 'Отмена' }))
   expect(remove).toHaveFocus()
   expect(await db.documents.get(document.id)).toEqual(document)
   fireEvent.click(remove)
-  fireEvent.click(screen.getByRole('button', { name: 'Подтвердить удаление' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Подтвердить удаление' }))
   expect(await screen.findByText('Документ удалён')).toBeVisible()
   await screen.findByText('Документов пока нет.')
   expect(screen.getByRole('heading', { name: 'Документы по датам' })).toHaveFocus()

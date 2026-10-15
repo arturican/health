@@ -2,8 +2,9 @@ import { Blob as NativeBlob } from 'node:buffer'
 import Dexie from 'dexie'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { db, DiaryDatabase } from './db'
-import { addDocument, deleteDocument, listDocuments, updateDocument } from './documentRepository'
+import { addDocument, countDocumentResults, deleteDocument, deleteDocumentWithResults, listDocuments, updateDocument } from './documentRepository'
 import { prepareFile } from './fileRepository'
+import { addLabResult, deleteLabResult, listLabResults } from './labRepository'
 import { DOCUMENT_MAX_BYTES } from '../domain/attachment'
 import { FILE_STORAGE_MAX_BYTES } from '../domain/storedFile'
 
@@ -15,6 +16,9 @@ function createDatabase() {
   const database = new DiaryDatabase(`health-diary-test-documents-${String(++sequence)}`)
   connections.push(database)
   return database
+}
+function labInput(documentId: string, name = 'Синтетический показатель') {
+  return { documentId, date: '2026-10-14', name, value: { type: 'number', number: 0, operator: 'eq' }, unit: '', reference: '', note: '' }
 }
 
 beforeEach(() => {
@@ -243,5 +247,145 @@ it('правит и удаляет документ через default singleton
   expect(await listDocuments()).toEqual([{ ...document, title: 'Изменённый синтетический документ', kind: 'other', note: '' }])
   await deleteDocument(document.id)
   expect(await listDocuments()).toEqual([])
+  expect(await db.files.count()).toBe(0)
+})
+
+it('явный каскад удаляет документ, его файл и два показателя, сохраняя чужие документы, показатели и фото', async () => {
+  const database = createDatabase()
+  const selected = await addDocument(values, new NativeBlob([pdf]), database)
+  const neighbor = await addDocument({ ...values, title: 'Соседний синтетический документ' }, new NativeBlob([pdf]), database)
+  await addLabResult(labInput(selected.id, 'Первый показатель'), database)
+  await addLabResult(labInput(selected.id, 'Второй показатель'), database)
+  const unrelated = await addLabResult(labInput(neighbor.id), database)
+  const photoFile = await prepareFile(new NativeBlob([new Uint8Array([255, 216, 255, 224, 0, 4, 1, 2, 255, 217])], { type: 'image/jpeg' }), 'photo')
+  const photo = { id: '00000000-0000-4000-8000-000000000888', fileId: photoFile.id, date: '2026-10-14', title: 'Синтетическое фото', note: '', width: 320, height: 240 }
+  await database.files.add(photoFile)
+  await database.photos.add(photo)
+  expect(await countDocumentResults(selected.id, database)).toBe(2)
+  await expect(deleteDocument(selected.id, database)).rejects.toThrow('Нельзя удалить документ с показателями без отдельного подтверждения')
+  await deleteDocumentWithResults(selected.id, 2, database)
+  expect(await listDocuments(database)).toEqual([neighbor])
+  expect(await listLabResults(selected.id, database)).toEqual([])
+  expect(await listLabResults(neighbor.id, database)).toEqual([unrelated])
+  expect(await database.files.get(selected.fileId)).toBeUndefined()
+  expect((await database.files.toArray()).map(file => file.id).sort()).toEqual([neighbor.fileId, photoFile.id].sort())
+  expect(await database.photos.toArray()).toEqual([photo])
+})
+
+it('явный нулевой count удаляет документ без показателей и не затрагивает соседние записи', async () => {
+  const database = createDatabase()
+  const selected = await addDocument(values, new NativeBlob([pdf]), database)
+  const neighbor = await addDocument(values, new NativeBlob([pdf]), database)
+  expect(await countDocumentResults(selected.id, database)).toBe(0)
+  await deleteDocumentWithResults(selected.id, 0, database)
+  expect(await listDocuments(database)).toEqual([neighbor])
+  expect((await database.files.toArray()).map(file => file.id)).toEqual([neighbor.fileId])
+  expect(await database.labResults.count()).toBe(0)
+})
+
+it('валидирует ID и ожидаемый count до RW и отклоняет отсутствующий или повреждённый документ', async () => {
+  const database = createDatabase()
+  const document = await addDocument(values, new NativeBlob([pdf]), database)
+  const result = await addLabResult(labInput(document.id), database)
+  const transaction = vi.spyOn(database, 'transaction')
+  const where = vi.spyOn(database.labResults, 'where')
+  for (const id of [null, 'unknown', 1, {}]) {
+    await expect(countDocumentResults(id, database)).rejects.toThrow()
+    await expect(deleteDocumentWithResults(id, 1, database)).rejects.toThrow()
+  }
+  for (const count of [null, '1', -1, 1.5, NaN, Infinity]) await expect(deleteDocumentWithResults(document.id, count, database)).rejects.toThrow()
+  expect(transaction).not.toHaveBeenCalled()
+  expect(where).not.toHaveBeenCalled()
+  transaction.mockRestore()
+  where.mockRestore()
+  const missing = '00000000-0000-4000-8000-000000000999'
+  expect(await countDocumentResults(missing, database)).toBe(0)
+  await expect(deleteDocumentWithResults(missing, 0, database)).rejects.toThrow('Документ не найден')
+  const corrupted = { ...document, kind: 'unknown' }
+  await database.table<unknown, string>('documents').put(corrupted)
+  await expect(deleteDocumentWithResults(document.id, 1, database)).rejects.toThrow()
+  expect(await database.table<unknown, string>('documents').get(document.id)).toEqual(corrupted)
+  expect(await listLabResults(document.id, database)).toEqual([result])
+  expect(await database.files.count()).toBe(1)
+})
+
+it('требует новое подтверждение при увеличении или уменьшении количества показателей', async () => {
+  const database = createDatabase()
+  const document = await addDocument(values, new NativeBlob([pdf]), database)
+  const first = await addLabResult(labInput(document.id, 'Первый показатель'), database)
+  const captured = await countDocumentResults(document.id, database)
+  const second = await addLabResult(labInput(document.id, 'Второй показатель'), database)
+  await expect(deleteDocumentWithResults(document.id, captured, database)).rejects.toThrow('Количество показателей изменилось. Проверьте подтверждение.')
+  expect(await database.labResults.count()).toBe(2)
+  const updatedCount = await countDocumentResults(document.id, database)
+  await deleteLabResult(second.id, database)
+  await expect(deleteDocumentWithResults(document.id, updatedCount, database)).rejects.toThrow('Количество показателей изменилось. Проверьте подтверждение.')
+  expect(await listLabResults(document.id, database)).toEqual([first])
+  expect(await database.documents.get(document.id)).toEqual(document)
+  expect(await database.files.count()).toBe(1)
+})
+
+it('поздний files deleting-hook откатывает все три таблицы и исходные PDF-байты', async () => {
+  const database = createDatabase()
+  const document = await addDocument(values, new NativeBlob([pdf]), database)
+  const first = await addLabResult(labInput(document.id, 'Первый показатель'), database)
+  const second = await addLabResult(labInput(document.id, 'Второй показатель'), database)
+  let deletedResults = 0
+  let deletedDocument = false
+  function observeResult() { deletedResults++ }
+  function observeDocument() { deletedDocument = true }
+  function failFile() {
+    expect(deletedResults).toBe(2)
+    expect(deletedDocument).toBe(true)
+    expect(Dexie.currentTransaction.mode).toBe('readwrite')
+    throw new Error('Синтетический поздний отказ каскада')
+  }
+  database.labResults.hook('deleting', observeResult)
+  database.documents.hook('deleting', observeDocument)
+  database.files.hook('deleting', failFile)
+  await expect(deleteDocumentWithResults(document.id, 2, database)).rejects.toThrow('Синтетический поздний отказ каскада')
+  database.labResults.hook('deleting').unsubscribe(observeResult)
+  database.documents.hook('deleting').unsubscribe(observeDocument)
+  database.files.hook('deleting').unsubscribe(failFile)
+  expect(await database.documents.get(document.id)).toEqual(document)
+  expect((await database.labResults.toArray()).map(result => result.id).sort()).toEqual([first.id, second.id].sort())
+  const file = await database.files.get(document.fileId)
+  if (!file) throw new Error('Синтетический файл не восстановлен при каскадном откате')
+  expect(Array.from(new Uint8Array(await file.blob.arrayBuffer()))).toEqual(Array.from(pdf))
+  expect(await database.files.count()).toBe(1)
+})
+
+it.each([false, true])('конкурентный add после показанного count и каскад не удаляют неподтверждённый результат, deleteFirst=%s', async deleteFirst => {
+  const database = createDatabase()
+  const document = await addDocument(values, new NativeBlob([pdf]), database)
+  await addLabResult(labInput(document.id), database)
+  const captured = await countDocumentResults(document.id, database)
+  const add = () => addLabResult(labInput(document.id, 'Новый показатель после подтверждения'), database)
+  const remove = () => deleteDocumentWithResults(document.id, captured, database)
+  const settled = await Promise.allSettled(deleteFirst ? [remove(), add()] : [add(), remove()])
+  expect(settled.filter(result => result.status === 'fulfilled')).toHaveLength(1)
+  const results = await database.labResults.toArray()
+  if (results.length) {
+    expect(results).toHaveLength(2)
+    expect(results.every(result => result.documentId === document.id)).toBe(true)
+    expect(await database.documents.get(document.id)).toEqual(document)
+    expect(await database.files.count()).toBe(1)
+  } else {
+    expect(await database.documents.count()).toBe(0)
+    expect(await database.files.count()).toBe(0)
+  }
+})
+
+it('считает и удаляет каскадом через default singleton после повторного открытия', async () => {
+  expect(db.name).toBe('health-diary-tests')
+  connections.push(db)
+  await db.open()
+  const document = await addDocument(values, new NativeBlob([pdf]))
+  await addLabResult(labInput(document.id))
+  expect(await countDocumentResults(document.id)).toBe(1)
+  await deleteDocumentWithResults(document.id, 1)
+  expect(await countDocumentResults(document.id)).toBe(0)
+  expect(await db.documents.count()).toBe(0)
+  expect(await db.labResults.count()).toBe(0)
   expect(await db.files.count()).toBe(0)
 })

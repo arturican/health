@@ -5,6 +5,7 @@ import axe from 'axe-core'
 import { App } from '../App'
 import { db } from '../data/db'
 import { addDocument } from '../data/documentRepository'
+import { addLabResult, listLabResults } from '../data/labRepository'
 import '../styles.css'
 
 const clickObservers: ((event: MouseEvent) => void)[] = []
@@ -12,7 +13,7 @@ async function resetTestState() {
   await cleanup()
   expect(import.meta.env.MODE).toBe('test')
   expect(db.name).toBe('health-diary-tests')
-  await db.transaction('rw', [db.metadata, db.profiles, db.weights, db.products, db.foodEntries, db.nutritionDays, db.steps, db.workouts, db.energyPlans, db.files, db.photos, db.documents], async () => {
+  await db.transaction('rw', [db.metadata, db.profiles, db.weights, db.products, db.foodEntries, db.nutritionDays, db.steps, db.workouts, db.energyPlans, db.files, db.photos, db.documents, db.labResults], async () => {
     await db.metadata.clear()
     await db.profiles.clear()
     await db.weights.clear()
@@ -24,6 +25,7 @@ async function resetTestState() {
     await db.energyPlans.clear()
     await db.photos.clear()
     await db.documents.clear()
+    await db.labResults.clear()
     await db.files.clear()
   })
   window.history.replaceState(null, '', window.location.pathname)
@@ -174,6 +176,104 @@ test('документы загружаются через форму, ищут�
   expect(await db.files.count()).toBe(2)
   expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
   expect((await axe.run(reopened.container)).violations).toEqual([])
+  const externalRequests = performance.getEntriesByType('resource').map(entry => new URL(entry.name)).filter(url =>
+    ['http:', 'https:'].includes(url.protocol) && url.origin !== window.location.origin,
+  )
+  expect(externalRequests).toEqual([])
+}, 15000)
+
+test('каскадное удаление подтверждает актуальное число показателей, откатывает отказ и сохраняет соседний источник', async () => {
+  const png = await syntheticPng()
+  const original = await addDocument({ date: '2026-10-14', title: 'Синтетический бланк для подтверждённого удаления', kind: 'lab', note: '' }, png)
+  const neighbour = await addDocument({ date: '2026-10-13', title: 'Соседний синтетический бланк', kind: 'lab', note: '' },
+    new File(['%PDF-1.7\nsynthetic-neighbour-lab\n%%EOF\n'], 'synthetic-neighbour-lab.pdf', { type: 'application/pdf' }))
+  const input = { documentId: original.id, date: '2026-10-14', name: 'Синтетический нулевой показатель', value: { type: 'number', number: 0, operator: 'eq' }, unit: '', reference: '', note: '' }
+  await addLabResult(input)
+  await addLabResult({ ...input, name: 'Синтетический текстовый показатель', value: { type: 'text', text: 'Без интерпретации' } })
+  const neighbourResult = await addLabResult({ ...input, documentId: neighbour.id, name: 'Соседний синтетический показатель' })
+  let view = await render(<App />)
+  await page.getByRole('link', { name: 'Документы', exact: true }).click()
+  await expectOriginalImage(original.title, png)
+  const image = page.getByRole('img', { name: `Документ: ${original.title}`, exact: true }).element()
+  if (!(image instanceof HTMLImageElement)) throw new Error('Нужно настоящее изображение перед каскадным удалением')
+  const originalUrl = image.src
+  const source = page.getByLabelText('Бланк для показателей', { exact: true })
+  await source.selectOptions(original.id)
+  const results = page.getByRole('list', { name: 'Показатели выбранного документа', exact: true })
+  await expect.element(results).toHaveTextContent('Синтетический текстовый показатель')
+  const remove = page.getByRole('button', { name: `Удалить документ 1: ${original.title}`, exact: true })
+  const confirmation = page.getByRole('alertdialog')
+  const cancel = confirmation.getByRole('button', { name: 'Отмена', exact: true })
+  const confirm = confirmation.getByRole('button', { name: 'Подтвердить удаление', exact: true })
+  const question = (count: number) => `Удалить документ «${original.title}» за ${original.date}, его файл и показатели (${String(count)})?`
+  let locked = false
+  let release = false
+  const lock = db.transaction('rw', db.labResults, async () => {
+    locked = true
+    while (!release) await db.labResults.count()
+  })
+  await expect.poll(() => locked).toBe(true)
+  try {
+    await remove.click()
+    await expect.element(page.getByRole('status').filter({ hasText: 'Проверяем связанные показатели…' })).toHaveTextContent('Проверяем связанные показатели…')
+    await expect.element(confirmation).not.toBeInTheDocument()
+    await expect.element(source).toBeDisabled()
+  } finally { release = true; await lock }
+  await expect.element(confirmation).toHaveTextContent(question(2))
+  await expect.element(cancel).toHaveFocus()
+  await expect.element(page.getByRole('form', { name: 'Добавление показателя', exact: true }).getByLabelText('Название показателя', { exact: true })).toBeDisabled()
+  await expect.element(page.getByRole('form', { name: 'Добавление документа', exact: true }).getByLabelText('Название документа', { exact: true })).toBeDisabled()
+  expect((await axe.run(view.container)).violations).toEqual([])
+  await userEvent.keyboard('{Enter}')
+  await expect.element(confirmation).not.toBeInTheDocument()
+  await expect.element(remove).toHaveFocus()
+  expect(await listLabResults(original.id)).toHaveLength(2)
+  expect(await db.documents.get(original.id)).toEqual(original)
+  await remove.click()
+  await expect.element(confirmation).toHaveTextContent(question(2))
+  await addLabResult({ ...input, name: 'Новый синтетический показатель во время подтверждения' })
+  await expect.element(confirmation).toHaveTextContent(question(3))
+  const beforeFailure = await listLabResults(original.id)
+  const failure = () => { throw new DOMException('synthetic-private-storage-detail', 'QuotaExceededError') }
+  db.files.hook('deleting', failure)
+  try {
+    await confirm.click()
+    await expect.element(page.getByRole('alert')).toHaveTextContent('Не удалось выполнить действие')
+    await expect.element(cancel).toHaveFocus()
+    await expect.element(confirmation).toHaveTextContent(question(3))
+  } finally { db.files.hook('deleting').unsubscribe(failure) }
+  expect(view.container.textContent).not.toContain('synthetic-private-storage-detail')
+  expect(await listLabResults(original.id)).toEqual(beforeFailure)
+  expect(await db.documents.get(original.id)).toEqual(original)
+  const retainedFile = await db.files.get(original.fileId)
+  if (!retainedFile) throw new Error('Отказ должен откатить удаление исходного файла')
+  expect(new Uint8Array(await retainedFile.blob.arrayBuffer())).toEqual(new Uint8Array(await png.arrayBuffer()))
+  await confirm.click()
+  await expect.element(page.getByRole('status').filter({ hasText: 'Документ удалён' })).toHaveTextContent('Документ удалён')
+  await expect.element(page.getByRole('heading', { level: 2, name: 'Документы по датам', exact: true })).toHaveFocus()
+  await expect.element(confirmation).not.toBeInTheDocument()
+  await expect.element(results).not.toBeInTheDocument()
+  await expect.element(page.getByRole('form', { name: 'Добавление показателя', exact: true })).not.toBeInTheDocument()
+  await expect.element(page.getByRole('img', { name: `Документ: ${original.title}`, exact: true })).not.toBeInTheDocument()
+  await expect.element(page.getByText('Документ больше недоступен. Выберите другой.', { exact: true })).toBeVisible()
+  expect(await db.documents.toArray()).toEqual([neighbour])
+  expect(await db.files.get(original.fileId)).toBeUndefined()
+  expect((await db.files.toArray()).map(file => file.id)).toEqual([neighbour.fileId])
+  expect(await db.labResults.toArray()).toEqual([neighbourResult])
+  await expect(fetch(originalUrl)).rejects.toThrow()
+  await source.selectOptions(neighbour.id)
+  await expect.element(results).toHaveTextContent(neighbourResult.name)
+  await expect.element(results).not.toHaveTextContent(input.name)
+  await view.unmount()
+  view = await render(<App />)
+  await source.selectOptions(neighbour.id)
+  await expect.element(results).toHaveTextContent(neighbourResult.name)
+  await expect.element(page.getByRole('button', { name: `Скачать оригинал: ${neighbour.title}`, exact: true })).toBeVisible()
+  expect(await db.documents.toArray()).toEqual([neighbour])
+  expect(await db.labResults.toArray()).toEqual([neighbourResult])
+  expect(await db.files.count()).toBe(1)
+  expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
+  expect((await axe.run(view.container)).violations).toEqual([])
   const externalRequests = performance.getEntriesByType('resource').map(entry => new URL(entry.name)).filter(url =>
     ['http:', 'https:'].includes(url.protocol) && url.origin !== window.location.origin,
   )
