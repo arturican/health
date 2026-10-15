@@ -2,6 +2,7 @@ import { db, type DiaryDatabase } from './db'
 import { readSteps, type Steps } from '../domain/activity'
 import { localDate } from '../domain/input'
 import { calendarDate, validate } from '../domain/schema'
+import { assertRecordCapacity } from './recordLimit'
 
 export async function getSteps(date: unknown = localDate(), database: DiaryDatabase = db): Promise<Steps | null> {
   const day = validate(calendarDate, date)
@@ -12,7 +13,10 @@ export async function getSteps(date: unknown = localDate(), database: DiaryDatab
 export async function saveSteps(input: unknown, database: DiaryDatabase = db): Promise<void> {
   const steps = readSteps(input)
   if (steps.date > localDate()) throw new Error('Дата шагов не может быть в будущем')
-  await database.steps.put(steps)
+  await database.transaction('rw', database.steps, async () => {
+    if (await database.steps.get(steps.date) === undefined) assertRecordCapacity(await database.steps.count())
+    await database.steps.put(steps)
+  })
 }
 
 export async function deleteSteps(date: unknown, database: DiaryDatabase = db): Promise<void> {

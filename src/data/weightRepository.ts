@@ -3,6 +3,7 @@ import { getProfile } from './profileRepository'
 import { readWeight, weightSchema, type Weight } from '../domain/profile'
 import { entityId, validate } from '../domain/schema'
 import { localDate, parseDate } from '../domain/input'
+import { assertRecordCapacity } from './recordLimit'
 
 const measurementSchema = weightSchema.omit({ id: true })
 
@@ -28,6 +29,7 @@ export async function saveWeight(input: unknown, database: DiaryDatabase = db): 
   await database.transaction('rw', database.profiles, database.weights, async () => {
     await checkDate(measurement.date, database)
     const existing = await database.weights.where('date').equals(measurement.date).first()
+    if (!existing) assertRecordCapacity(await database.weights.count())
     const id = existing ? readWeight(existing).id : crypto.randomUUID()
     await database.weights.put({ ...measurement, id })
   })

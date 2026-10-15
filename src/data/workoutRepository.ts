@@ -2,6 +2,7 @@ import { db, type DiaryDatabase } from './db'
 import { readWorkout, workoutInputSchema, type Workout } from '../domain/activity'
 import { localDate } from '../domain/input'
 import { calendarDate, entityId, validate } from '../domain/schema'
+import { assertRecordCapacity } from './recordLimit'
 
 export async function listWorkouts(date: unknown = localDate(), database: DiaryDatabase = db): Promise<Workout[]> {
   const day = validate(calendarDate, date)
@@ -13,7 +14,10 @@ export async function addWorkout(input: unknown, database: DiaryDatabase = db): 
   const values = validate(workoutInputSchema, input)
   if (values.date > localDate()) throw new Error('Дата тренировки не может быть в будущем')
   const workout = readWorkout({ ...values, id: crypto.randomUUID() })
-  await database.workouts.add(workout)
+  await database.transaction('rw', database.workouts, async () => {
+    assertRecordCapacity(await database.workouts.count())
+    await database.workouts.add(workout)
+  })
   return workout
 }
 
