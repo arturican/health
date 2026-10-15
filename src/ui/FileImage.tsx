@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { getFile } from '../data/fileRepository'
+import { useDiaryQuery } from '../dataAccess'
+import { getFile } from '../dataAccess'
 
 interface FileImageProps { fileId: string; alt: string; width?: number; height?: number }
 
 export function FileImage({ fileId, alt, width, height }: FileImageProps) {
-  const result = useLiveQuery(async () => {
+  const result = useDiaryQuery(async () => {
     try { return { fileId, file: await getFile(fileId), failed: false } }
     catch { return { fileId, file: null, failed: true } }
   }, [fileId])

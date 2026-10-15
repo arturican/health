@@ -1,5 +1,5 @@
-import { useLiveQuery } from 'dexie-react-hooks'
-import { getFile } from '../data/fileRepository'
+import { useDiaryQuery } from '../dataAccess'
+import { getFile } from '../dataAccess'
 import { FileImage } from '../ui/FileImage'
 import { downloadBlob } from '../ui/download'
 import { Feedback, useAction } from '../ui/actions'
@@ -8,7 +8,7 @@ const extensions = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png':
 interface DocumentFileProps { fileId: string; title: string }
 
 export function DocumentFile({ fileId, title }: DocumentFileProps) {
-  const result = useLiveQuery(async () => {
+  const result = useDiaryQuery(async () => {
     try { return { fileId, file: await getFile(fileId) } }
     catch { return { fileId, file: null } }
   }, [fileId])

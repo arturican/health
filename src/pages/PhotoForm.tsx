@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
-import { addPhoto, updatePhoto } from '../data/photoRepository'
+import { addPhoto, updatePhoto } from '../dataAccess'
 import { photoInputSchema, type Photo } from '../domain/photo'
 import { localDate } from '../domain/input'
 import { validate } from '../domain/schema'
@@ -44,7 +44,7 @@ export function PhotoForm({ entry = null, disabled = false, onSaved, onCancel, o
     }
     action.run(async () => {
       try {
-        if (entry) await updatePhoto(entry.id, { date, title, note })
+        if (entry) await updatePhoto(entry, { date, title, note })
         else await addPhoto({ date, title, note }, file)
       }
       catch (reason: unknown) {
@@ -65,7 +65,7 @@ export function PhotoForm({ entry = null, disabled = false, onSaved, onCancel, o
         <Field label="Заметка к фото (необязательно)" name="note" maxLength={500} defaultValue={entry?.note ?? ''} error={errors['note']} />
         {!entry && <>
           <Field label="Файл фото" name="file" type="file" required accept="image/jpeg,image/png,image/webp" aria-describedby="photo-file-help" error={errors['file']} />
-          <p id="photo-file-help">JPEG, PNG или WebP до 10 MiB, 64 млн пикселей и 32768 px по стороне. Фото сохраняется локально как JPEG без EXIF, максимум 2048 px по большей стороне. Пропорции сохраняются; прозрачность становится белым фоном.</p>
+          <p id="photo-file-help">JPEG, PNG или WebP до 10 MiB, 64 млн пикселей и 32768 px по стороне. Фото сохраняется как JPEG без EXIF, максимум 2048 px по большей стороне. Пропорции сохраняются; прозрачность становится белым фоном.</p>
         </>}
       </fieldset>
       <div className="actions">

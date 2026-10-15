@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { deletePhoto, listPhotos } from '../data/photoRepository'
+import { useDiaryQuery } from '../dataAccess'
+import { deletePhoto, listPhotos } from '../dataAccess'
 import { type Photo } from '../domain/photo'
 import { FileImage } from '../ui/FileImage'
 import { Confirmation } from '../ui/Confirmation'
@@ -8,7 +8,7 @@ import { Feedback, useAction } from '../ui/actions'
 
 interface PhotoGalleryProps { onEdit: (photo: Photo) => void; blocked: boolean; onBusyChange: (busy: boolean) => void }
 export function PhotoGallery({ onEdit, blocked, onBusyChange }: PhotoGalleryProps) {
-  const photos = useLiveQuery(() => listPhotos())
+  const photos = useDiaryQuery(() => listPhotos())
   const [deleting, setDeleting] = useState<Photo | null>(null)
   const action = useAction()
   const heading = useRef<HTMLHeadingElement>(null)
@@ -38,7 +38,7 @@ export function PhotoGallery({ onEdit, blocked, onBusyChange }: PhotoGalleryProp
       </li>)}
     </ul>}
     {deleting && <Confirmation question={`Удалить фото «${deleting.title}» за ${deleting.date} и его файл?`} pending={action.pending} onCancel={() => { setDeleting(null) }} onConfirm={() => {
-      action.run(async () => { await deletePhoto(deleting.id); focusAfterDelete.current = true; setDeleting(null) }, 'Фото удалено')
+      action.run(async () => { await deletePhoto(deleting); focusAfterDelete.current = true; setDeleting(null) }, 'Фото удалено')
     }} />}
   </section>
 }

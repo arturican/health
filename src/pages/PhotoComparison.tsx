@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { listPhotos } from '../data/photoRepository'
+import { useDiaryQuery } from '../dataAccess'
+import { listPhotos } from '../dataAccess'
 import { SelectField } from '../ui/Field'
 import { FileImage } from '../ui/FileImage'
 import { Icon } from '../ui/Icon'
 
 export function PhotoComparison() {
-  const photos = useLiveQuery(() => listPhotos())
+  const photos = useDiaryQuery(() => listPhotos())
   const [firstId, setFirstId] = useState('')
   const [secondId, setSecondId] = useState('')
   const first = photos?.find(photo => photo.id === firstId)
