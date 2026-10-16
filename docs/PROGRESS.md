@@ -1,5 +1,27 @@
 # Прогресс
 
+## T179 — Повторные проверки перед push и deploy
+
+Полный npm run check PASS: 1434 unit, 91 browser, 62 API/PostgreSQL E2E,
+lint, строгие типы, coverage и production build. build:api PASS; Python deploy
+16 PASS; verify_build PASS (6 файлов и сохранённая лицензия). Изменения кода
+не потребовались. HTTPS Desktop/Pixel 7 на прежнем релизе T177: 4 PASS — вход,
+8 экранов, 6 вложений, CRUD/reload с очисткой своей записи, cookie/CSRF/выход,
+ожидаемый SHA, редирект и 404. После публикации требуется повторный live smoke.
+
+Все 22 файла локального API artifact побайтно совпали с установленным backend.
+Health 200; API/tunnel/backup timer работают и включены в автозапуск, новые
+порты остаются loopback. Новая encrypted backup от 2026-10-16T01:21:54Z успешно
+доставлена на второй VPS, SHA256 независимо совпал. Remnawave/DB/Redis healthy;
+их время запуска не менялось, чужие сервисы и БД не перезапускались.
+
+Перед push origin/dev проверен: 69 прежних локальных коммитов, расхождения нет.
+Скан известных форматов private keys/tokens в этих коммитах не нашёл совпадений;
+это не доказательство отсутствия секретов любых форматов. Env/private keys/demo
+credentials не отслеживаются Git. check:docs и diff --check PASS.
+Пользователь разрешил push/deploy. Их итог, SHA и результат CI подтверждаются
+после этого коммита; здесь не заявляется ещё не выполненная публикация.
+
 ## T178b — Восстановление подтверждено
 
 Внешний encrypted health dump скачан со второго VPS, SHA/GPG проверены.
