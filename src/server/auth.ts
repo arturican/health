@@ -6,6 +6,7 @@ import { createSessions, csrfToken, SESSION_LIFETIME_MS } from './sessions.js'
 import { deny, installRequestProtection, readCookie, sessionCookie } from './httpSecurity.js'
 import { createLoginLimit } from './loginLimit.js'
 import { createRegistrationLimit, registerAccount, registrationSchema } from './registration.js'
+import { registerEmailAuth } from './emailAuth.js'
 
 export async function assertRuntimeRole(pool: Pool) {
   const rights = await pool.query<Record<string, unknown>>(`SELECT rolsuper OR rolbypassrls OR rolcreatedb OR rolcreaterole
@@ -19,22 +20,23 @@ export async function registerAuthentication(app: FastifyInstance, pool: Pool, o
   const sessions = await createSessions(pool)
   const allowLogin = createLoginLimit()
   const allowRegistration = createRegistrationLimit()
-  let inFlight = 0
+  const work = { active: 0 }
   installRequestProtection(app, origin)
+  await registerEmailAuth(app, pool, origin, work, clock)
 
   app.post('/api/v1/auth/register', async (request, reply) => {
-    if (inFlight >= 4 || !allowRegistration(request.ip, clock().getTime())) {
+    if (work.active >= 4 || !allowRegistration(request.ip, clock().getTime())) {
       reply.header('Retry-After', '900')
       return deny(reply, 429)
     }
     const values = registrationSchema.safeParse(request.body)
     if (!values.success) return reply.code(400).send({ error: { code: 'invalid_data', message: 'Проверьте логин, пароль и часовой пояс' } })
-    inFlight++
+    work.active++
     try {
       const account = await registerAccount(pool, values.data)
       if (!account) return await reply.code(409).send({ error: { code: 'login_unavailable', message: 'Этот логин уже занят. Выберите другой или войдите.' } })
       return await reply.code(201).send({ account })
-    } finally { inFlight-- }
+    } finally { work.active-- }
   })
 
   async function authorize(request: FastifyRequest, reply: FastifyReply) {
@@ -45,15 +47,15 @@ export async function registerAuthentication(app: FastifyInstance, pool: Pool, o
   }
   app.post('/api/v1/auth/login', async (request, reply) => {
     const body = z.object({ login: loginSchema }).safeParse(request.body)
-    if (inFlight >= 4 || !allowLogin(request.ip, body.success ? body.data.login : 'invalid', clock().getTime())) return deny(reply, 429)
-    inFlight++
+    if (work.active >= 4 || !allowLogin(request.ip, body.success ? body.data.login : 'invalid', clock().getTime())) return deny(reply, 429)
+    work.active++
     try {
       const session = await sessions.login(request.body, readCookie(request.headers.cookie), clock())
       if (!session) return await deny(reply, 401)
       reply.header('Set-Cookie', sessionCookie(session.token, SESSION_LIFETIME_MS / 1000))
       reply.header('X-Account-Id', session.account.id)
       return { account: session.account, csrf: csrfToken(session.token) }
-    } finally { inFlight-- }
+    } finally { work.active-- }
   })
   app.get('/api/v1/auth/session', async (request, reply) => {
     const account = await authorize(request, reply)

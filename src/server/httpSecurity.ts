@@ -22,7 +22,8 @@ export function installRequestProtection(app: FastifyInstance, origin: string) {
     if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return
     if (request.headers.origin !== origin) return deny(reply, 403)
     const path = request.url.split('?')[0]
-    if (path === '/api/v1/auth/login' || path === '/api/v1/auth/register') return
+    if (['/api/v1/auth/login', '/api/v1/auth/register', '/api/v1/auth/email/register',
+      '/api/v1/auth/email/request', '/api/v1/auth/email/complete'].includes(path ?? '')) return
     const token = readCookie(request.headers.cookie)
     if (!token) return path === '/api/v1/auth/logout' ? undefined : deny(reply, 401)
     const csrf = tokenSchema.safeParse(request.headers['x-csrf-token'])

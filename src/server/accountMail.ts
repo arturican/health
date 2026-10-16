@@ -1,15 +1,14 @@
 import nodemailer from 'nodemailer'
 import { z } from 'zod'
+import { emailAddress } from '../domain/emailAccount'
 
 const sender = 'no-reply@auth.arturican.com'
 const configSchema = z.object({
   MAIL_ENABLED: z.enum(['true', 'false']).default('false'),
   MAIL_SMTP_PORT: z.string().regex(/^[0-9]{1,5}$/).transform(Number).pipe(z.number().int().min(1).max(65535)).default(25),
 })
-const address = z.string().max(254).refine(value => (value.split('@')[0]?.length ?? 0) <= 64)
-  .regex(/^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*@([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]([a-z0-9-]{0,61}[a-z0-9])?$/)
 const messageSchema = z.object({
-  to: address,
+  to: emailAddress,
   subject: z.string().min(1).max(120).refine(value => !/\p{Cc}/u.test(value)),
   text: z.string().min(1).max(8192).refine(value => !value.includes(String.fromCharCode(0))),
 }).strict()
