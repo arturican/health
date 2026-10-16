@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { FullBackupImport } from './FullBackupImport'
 import { readFullBackupFile } from '../media/fullBackupFile'
 import { type FullBackup } from '../domain/fullBackup'
+import * as access from '../dataAccess'
 import { restoreFullBackup } from '../data/fullBackupRepository'
 
 vi.mock('../media/fullBackupFile', () => ({ readFullBackupFile: vi.fn() }))
@@ -132,4 +133,23 @@ it('новый файл и отмена сбрасывают согласие н
     expect(screen.queryByRole('region', { name: 'Предпросмотр полной копии' })).not.toBeInTheDocument()
   }
   expect(restoreFullBackup).not.toHaveBeenCalled()
+})
+
+
+it('подготавливает версию до чтения файла и сохраняет её до подтверждения', async () => {
+  const original = { context: { epoch: 1, generation: 'synthetic' }, changeRevision: 7 }
+  const order: string[] = []
+  const prepare = vi.spyOn(access, 'prepareDiaryChange').mockImplementation(() => { order.push('prepare'); return Promise.resolve(original) })
+  vi.mocked(readFullBackupFile).mockImplementation(() => { order.push('read'); return Promise.resolve(backup) })
+  const restore = vi.spyOn(access, 'restoreFullBackup').mockRejectedValue(new Error('Дневник изменился'))
+  render(<FullBackupImport />)
+  fireEvent.submit(screen.getByRole('form', { name: 'Импорт полной копии' }))
+  const consent = await screen.findByLabelText('Согласен заменить весь дневник, включая файлы и показатели')
+  expect(order).toEqual(['prepare', 'read'])
+  prepare.mockResolvedValue({ ...original, changeRevision: 8 })
+  fireEvent.click(consent)
+  fireEvent.click(screen.getByRole('button', { name: 'Восстановить полную копию' }))
+  await screen.findByRole('alert')
+  expect(restore).toHaveBeenCalledWith(backup, original)
+  expect(prepare).toHaveBeenCalledTimes(1)
 })

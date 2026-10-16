@@ -1,5 +1,5 @@
 import { useState, type SyntheticEvent } from 'react'
-import { exportTextBackup, restoreTextBackup } from '../data/backupRepository'
+import { exportTextBackup, restoreTextBackup, prepareDiaryChange, type DiaryConfirmation } from '../dataAccess'
 import { serializeTextBackup, type TextBackup } from '../domain/backup'
 import { localDate } from '../domain/input'
 import { downloadJson } from '../ui/download'
@@ -30,22 +30,27 @@ function SettingsContent() {
   const restoring = useAction()
   const [preview, setPreview] = useState<TextBackup | null>(null)
   const [consent, setConsent] = useState(false)
+  const [confirmation, setConfirmation] = useState<DiaryConfirmation | null>(null)
   function checkFile(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
     const file = new FormData(event.currentTarget).get('backup')
     setPreview(null)
     setConsent(false)
+    setConfirmation(null)
     restoring.reset()
     importing.run(async () => {
       if (!(file instanceof File)) throw new Error('Выберите файл копии')
-      setPreview(await readBackupFile(file))
+      const confirmed = await prepareDiaryChange()
+      const value = await readBackupFile(file)
+      setConfirmation(confirmed)
+      setPreview(value)
     }, 'Файл проверен; база не изменена')
   }
   function restore(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!preview || !consent) return
+    if (!preview || !consent || !confirmation) return
     restoring.run(async () => {
-      await restoreTextBackup(preview)
+      await restoreTextBackup(preview, confirmation)
       importing.reset()
       setPreview(null)
       setConsent(false)
@@ -99,7 +104,7 @@ function SettingsContent() {
         </form>
       </section>}
       <Feedback error={restoring.error} message={restoring.message} />
-      <p>Копия не зашифрована. Данные приложения хранятся в этом браузере; очистка данных браузера удаляет дневник.</p>
+      <p>Копия не зашифрована. Храните её в безопасном месте и обновляйте после важных изменений.</p>
       </section>
     </>
   )

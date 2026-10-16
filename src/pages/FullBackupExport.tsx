@@ -1,4 +1,4 @@
-import { exportFullBackup } from '../data/fullBackupRepository'
+import { exportFullBackup } from '../dataAccess'
 import { serializeFullBackup } from '../domain/fullBackup'
 import { localDate } from '../domain/input'
 import { downloadJson } from '../ui/download'

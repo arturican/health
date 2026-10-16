@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { SettingsPage } from './SettingsPage'
+import * as access from '../dataAccess'
 import { restoreTextBackup } from '../data/backupRepository'
 import { readBackupFile } from '../ui/backupFile'
 import * as energyRepository from '../data/energyPlanRepository'
@@ -8,7 +9,7 @@ import { clearDiary } from '../data/clearDiary'
 
 vi.mock('../data/backupRepository', () => ({ exportTextBackup: vi.fn(), restoreTextBackup: vi.fn() }))
 vi.mock('../ui/backupFile', () => ({ readBackupFile: vi.fn() }))
-vi.mock('../data/clearDiary', () => ({ clearDiary: vi.fn() }))
+vi.mock('../data/clearDiary', () => ({ clearDiary: vi.fn(), readDiaryGeneration: vi.fn() }))
 const backup = { format: 'health-diary-text', version: 1, exportedAt: '2026-10-14T12:00:00Z', profile: null, weights: [], products: [], foodEntries: [], nutritionDays: [], steps: [], workouts: [], energyPlans: [] }
 
 beforeEach(() => { vi.resetAllMocks() })
@@ -22,7 +23,7 @@ it('успешное удаление сбрасывает открытый пр
   fireEvent.click(consent)
   expect(consent).toBeChecked()
   fireEvent.click(screen.getByRole('button', { name: 'Удалить весь дневник' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Подтвердить удаление' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Подтвердить удаление' }))
   await screen.findByText('Все данные дневника удалены')
   expect(screen.queryByRole('region', { name: 'Предпросмотр текстовой копии' })).not.toBeInTheDocument()
   expect(screen.queryByLabelText('Согласен заменить текстовые данные дневника')).not.toBeInTheDocument()
@@ -69,4 +70,26 @@ it('оставляет резервное копирование доступн�
     read.mockRestore()
     diagnostics.mockRestore()
   }
+})
+
+
+it('текстовый импорт фиксирует версию до чтения файла и не обновляет её при согласии', async () => {
+  const original = { context: { epoch: 1, generation: 'synthetic' }, changeRevision: 2 }
+  const order: string[] = []
+  const prepare = vi.spyOn(access, 'prepareDiaryChange').mockImplementation(() => { order.push('prepare'); return Promise.resolve(original) })
+  vi.mocked(readBackupFile).mockImplementation(() => {
+    order.push('read')
+    return Promise.resolve({ ...backup, format: 'health-diary-text', version: 1 })
+  })
+  const restore = vi.spyOn(access, 'restoreTextBackup').mockRejectedValue(new Error('Дневник изменился'))
+  render(<SettingsPage />)
+  fireEvent.submit(screen.getByRole('form', { name: 'Импорт текстовой копии' }))
+  const consent = await screen.findByLabelText('Согласен заменить текстовые данные дневника')
+  expect(order).toEqual(['prepare', 'read'])
+  prepare.mockResolvedValue({ ...original, changeRevision: 3 })
+  fireEvent.click(consent)
+  fireEvent.click(screen.getByRole('button', { name: 'Восстановить текстовую копию' }))
+  await screen.findByRole('alert')
+  expect(restore).toHaveBeenCalledWith(backup, original)
+  expect(prepare).toHaveBeenCalledTimes(1)
 })

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
 import { type FullBackup } from '../domain/fullBackup'
 import { readFullBackupFile } from '../media/fullBackupFile'
-import { restoreFullBackup } from '../data/fullBackupRepository'
+import { restoreFullBackup, prepareDiaryChange, type DiaryConfirmation } from '../dataAccess'
 import { Field } from '../ui/Field'
 import { Feedback, useAction } from '../ui/actions'
 
@@ -10,6 +10,7 @@ export function FullBackupImport() {
   const restoring = useAction()
   const [preview, setPreview] = useState<FullBackup | null>(null)
   const [consent, setConsent] = useState(false)
+  const [source, setSource] = useState<DiaryConfirmation | null>(null)
   const [cancelled, setCancelled] = useState(false)
   const title = useRef<HTMLHeadingElement>(null)
   const form = useRef<HTMLFormElement>(null)
@@ -22,16 +23,22 @@ export function FullBackupImport() {
     if (importing.pending || restoring.pending) return
     const file = new FormData(event.currentTarget).get('fullBackup')
     setPreview(null)
+    setSource(null)
     setConsent(false)
     setCancelled(false)
     restoring.reset()
-    importing.run(async () => { setPreview(await readFullBackupFile(file)) }, 'Полная копия проверена; база не изменена')
+    importing.run(async () => {
+      const confirmed = await prepareDiaryChange()
+      const value = await readFullBackupFile(file)
+      setSource(confirmed)
+      setPreview(value)
+    }, 'Полная копия проверена; база не изменена')
   }
   function restore(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!preview || !consent || importing.pending || restoring.pending) return
+    if (!preview || !consent || !source || importing.pending || restoring.pending) return
     restoring.run(async () => {
-      await restoreFullBackup(preview)
+      await restoreFullBackup(preview, source)
       setPreview(null)
       setConsent(false)
       importing.reset()
