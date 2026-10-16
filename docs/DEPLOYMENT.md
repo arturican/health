@@ -9,7 +9,10 @@
 
 Используется существующий Docker remnawave-db, без замены контейнера/volumes.
 Новая БД health принадлежит health_migrator; health_app наследует ограниченную
-health_runtime. API не имеет superuser/BYPASSRLS/CREATE и не создаёт аккаунты.
+health_runtime. API не имеет superuser/BYPASSRLS/CREATE и прямой записи в users.
+Миграция 011 разрешает регистрацию только через фиксированную SECURITY DEFINER
+функцию с закрытым search_path и без PUBLIC EXECUTE. Миграция аддитивна:
+прежний backend продолжает работать, runtime-права на таблицу не расширяются.
 CONNECT PUBLIC отозван только у новой БД. Прежние базы и сервисы не изменяются.
 
 - PostgreSQL: 127.0.0.1:6767; постоянный volume remnawave-db-data,
