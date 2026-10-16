@@ -1,12 +1,13 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { Pool } from 'pg'
 import { z } from 'zod'
-import { loginSchema } from './accounts.js'
+import { loginIdentity } from '../domain/emailAccount'
 import { createSessions, csrfToken, SESSION_LIFETIME_MS } from './sessions.js'
 import { deny, installRequestProtection, readCookie, sessionCookie } from './httpSecurity.js'
 import { createLoginLimit } from './loginLimit.js'
 import { createRegistrationLimit, registerAccount, registrationSchema } from './registration.js'
 import { registerEmailAuth } from './emailAuth.js'
+import { registerEmailBinding } from './emailBinding.js'
 
 export async function assertRuntimeRole(pool: Pool) {
   const rights = await pool.query<Record<string, unknown>>(`SELECT rolsuper OR rolbypassrls OR rolcreatedb OR rolcreaterole
@@ -45,9 +46,10 @@ export async function registerAuthentication(app: FastifyInstance, pool: Pool, o
     reply.header('X-Account-Id', account.id)
     return account
   }
+  registerEmailBinding(app, pool, authorize, origin, work, clock)
   app.post('/api/v1/auth/login', async (request, reply) => {
-    const body = z.object({ login: loginSchema }).safeParse(request.body)
-    if (work.active >= 4 || !allowLogin(request.ip, body.success ? body.data.login : 'invalid', clock().getTime())) return deny(reply, 429)
+    const body = z.object({ login: loginIdentity }).safeParse(request.body)
+    if (work.active >= 4 || !allowLogin(request.ip, body.success ? body.data.login.toLowerCase() : 'invalid', clock().getTime())) return deny(reply, 429)
     work.active++
     try {
       const session = await sessions.login(request.body, readCookie(request.headers.cookie), clock())
