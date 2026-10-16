@@ -2,7 +2,8 @@
 
 Адрес приложения: <https://dev.arturican.com>. Frontend/Nginx находятся на
 159.194.208.200; PostgreSQL 18.3 и API — на 2.26.54.81, Ubuntu 24.04.
-В T177 backend уже установлен; переключение опубликованного frontend — T178.
+Серверная версия опубликована в T178a; frontend release:
+5551c0f180176938731ade285abcb7ea687983fa.
 
 ## Сервер данных
 
@@ -114,3 +115,23 @@ deploy <SHA>, без shell/forwarding/sudo. CI сверяет HTTPS/release.txt 
 
 Источники: [Nginx buffering](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_request_buffering),
 [OpenSSH Match/PermitOpen](https://man.openbsd.org/sshd_config).
+
+## Проверка опубликованного дневника
+
+В отдельном контексте Desktop/Pixel 7, с вымышленным health-demo:
+
+    export EXPECTED_RELEASE=5551c0f180176938731ade285abcb7ea687983fa
+    export HEALTH_DEMO_CREDENTIALS=/home/artur/.config/health-diary/demo-credentials.json
+    npx playwright test --config tests/deployed/playwright.config.ts
+
+Ожидаемый SHA берите из выбранного артефакта доставки, а не из ответа сайта.
+Тест читает закрытый JSON с login/password; не передавайте пароль аргументом.
+Trace/video/автоматические screenshots отключены, снимок после входа содержит
+только синтетический дневник. Артефакты — tests/deployed/test-results (вне Git).
+Тест добавляет измерение 02.01.2020 только если даты нет и удаляет только
+созданный ID; существующий демонстрационный журнал должен быть неизменен.
+Запускайте только на указанной демонстрации, не на реальных личных данных.
+
+За один прогон выполняются два входа. Ограничение 5 входов на логин за 15 минут
+учитывает и успешные входы; выдерживайте интервал между повторными сериями.
+Автоматического обхода/сброса лимита в тестах нет.

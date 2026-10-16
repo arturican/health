@@ -10,10 +10,12 @@ export default defineConfig({
   testDir: '..',
   testMatch: ['deployed/*.spec.ts'],
   globalSetup: [],
+  outputDir: './test-results',
+  reporter: 'list',
   snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}',
   // Each test owns a fresh browser context; no persistent user profile is opened.
   webServer: [],
-  workers: 2,
+  workers: 1,
   timeout: 60_000,
-  use: { ...local.use, baseURL: 'https://dev.arturican.com' },
+  use: { ...local.use, baseURL: 'https://dev.arturican.com', trace: 'off', video: 'off', screenshot: 'off' },
 })

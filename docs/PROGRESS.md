@@ -1,5 +1,20 @@
 # Прогресс
 
+## T178a — Опубликованный серверный дневник
+
+Frontend 5551c0f180176938731ade285abcb7ea687983fa опубликован штатным installer,
+verify_build/SHA/HTTPS/HTTP redirect/404 PASS. Новый live suite читает закрытые
+demo credentials без trace/video, проверяет 8 экранов, axe/ширины, все 6 файлов,
+CRUD/reload веса с очисткой только своего ID, Secure cookie, CSRF403 и logout401.
+Desktop/Pixel7: 4 PASS, заполненные снимки просмотрены. Старый релиз сохранён.
+
+Первый smoke проверял удаление до обновления журнала и получил ожидаемый409;
+исправлено ожидание видимого сохранённого значения. Серия повторов достигла
+лимита 5 login/15min (429); лимит сохранён, учтён в инструкции. После проверки
+рестарта API итоговый отдельный прогон 4/4 PASS; один аккаунт, 31 вес, 1084 еды,
+6 файлов сохранились. Полный check: 1434 unit, 91 browser, 62 локальных API E2E;
+после уточнения smoke повторные lint/typecheck PASS, docs/diff --check PASS.
+
 ## T177 — PostgreSQL/API на VPS
 
 На 2.26.54.81 создана отдельная health в прежнем PG18.3, роли без elevated
@@ -8,7 +23,7 @@
 Исходные SSH/Nginx конфиги сохранены, чужие сервисы/volumes не остановлены.
 
 10 миграций fresh, 0 repeat; один seed и повторы без изменений. 31 вес, 15 продуктов,
-1084 food, 85 полных дней, 85 steps, 30 workouts, 3 plans, 3 photos/3 PDF/9 labs.
+1084 food, 85 дней питания (есть неполные), 85 steps, 30 workouts, 3 plans, 3 photos/3 PDF/9 labs.
 Counts и хеши файлов совпали после рестарта API и нового seed. HTTPS health 200,
 profile без cookie 401. RLS runtime без CREATE/users INSERT; systemd/sshd/nginx
 validation PASS (предупреждения прежних xray/xhttp конфигов оставлены без изменений).
