@@ -10,6 +10,41 @@ async function login(page: Page, login: string, password: string) {
   await expect(page.getByRole('navigation', { name: 'Разделы дневника', exact: true })).toBeVisible()
 }
 
+test('карточка входа компактна, поля разделены и доступны в узком и низком окне', async ({ page, context }) => {
+  await context.clearCookies()
+  await page.goto('/')
+  const card = page.getByRole('region', { name: 'Вход в дневник', exact: true })
+  const username = page.getByLabel('Логин', { exact: true })
+  const password = page.getByLabel('Пароль', { exact: true })
+  const submit = page.getByRole('button', { name: 'Войти', exact: true })
+  for (const width of [320, 375, 768, 1440]) {
+    await page.setViewportSize({ width, height: 812 })
+    await expect(card).toBeVisible()
+    const bounds = await card.boundingBox()
+    if (!bounds) throw new Error('Нет карточки входа')
+    expect(bounds.width).toBeLessThanOrEqual(480)
+    expect(Math.abs(bounds.x + bounds.width / 2 - width / 2)).toBeLessThanOrEqual(1)
+    const userBounds = await username.boundingBox(), passwordBounds = await password.boundingBox()
+    const buttonBounds = await submit.boundingBox()
+    if (!userBounds || !passwordBounds || !buttonBounds) throw new Error('Нет полей входа')
+    expect(passwordBounds.y - userBounds.y - userBounds.height).toBeGreaterThanOrEqual(16)
+    expect(buttonBounds.y - passwordBounds.y - passwordBounds.height).toBeGreaterThanOrEqual(16)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+  }
+  await page.setViewportSize({ width: 320, height: 400 })
+  await username.fill('synthetic-missing-account')
+  await password.fill('synthetic-wrong-password')
+  await submit.click()
+  await expect(page.getByRole('alert')).toBeVisible()
+  await username.scrollIntoViewIfNeeded()
+  await expect(username).toBeInViewport()
+  await password.scrollIntoViewIfNeeded()
+  await expect(password).toBeInViewport()
+  await submit.scrollIntoViewIfNeeded()
+  await expect(submit).toBeInViewport()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
+})
+
 test('серверный профиль доступен в новом браузере только своему аккаунту без локальной копии', async ({ page, browser, baseURL, account }) => {
   await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'))
   await page.goto('/#profile')

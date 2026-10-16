@@ -4,6 +4,7 @@ import { listenAccountChanges } from './accountChanges'
 import { login, logout, restoreSession } from './auth'
 import { Feedback, useAction } from '../ui/actions'
 import { Field } from '../ui/Field'
+import './auth.css'
 
 export function AuthBoundary({ children }: PropsWithChildren) {
   const state = useSyncExternalStore(subscribeSession, getClientSession)
@@ -24,9 +25,9 @@ export function AuthBoundary({ children }: PropsWithChildren) {
     return () => { active = false }
   }, [attempt])
   if (state.session && state.diary) return <Fragment key={state.epoch}>{children}</Fragment>
-  if (checking) return <main className="page"><p role="status">Проверяем вход…</p></main>
-  if (error) return <main className="page"><h1>Не удалось открыть дневник</h1><p role="alert">{error}</p>
-    <button type="button" onClick={() => { setError(null); setChecking(true); setAttempt(value => value + 1) }}>Повторить подключение</button></main>
+  if (checking) return <main className="page auth-page"><section className="card auth-card"><p role="status">Проверяем вход…</p></section></main>
+  if (error) return <main className="page auth-page"><section className="card auth-card"><h1>Не удалось открыть дневник</h1><p role="alert">{error}</p>
+    <button type="button" onClick={() => { setError(null); setChecking(true); setAttempt(value => value + 1) }}>Повторить подключение</button></section></main>
   return <LoginForm />
 }
 
@@ -38,9 +39,9 @@ function LoginForm() {
     const data = new FormData(event.currentTarget)
     action.run(() => login({ login: data.get('login'), password: data.get('password') }))
   }
-  return <main className="page"><section className="card" aria-labelledby="login-title">
+  return <main className="page auth-page"><section className="card auth-card" aria-labelledby="login-title">
     <h1 id="login-title">Вход в дневник</h1><p>Используйте выданные вам логин и пароль.</p>
-    <form ref={form} onSubmit={submit} aria-label="Вход в дневник">
+    <form className="auth-form" ref={form} onSubmit={submit} aria-label="Вход в дневник">
       <Field label="Логин" name="login" autoComplete="username" required maxLength={64} disabled={action.pending} />
       <Field label="Пароль" name="password" type="password" autoComplete="current-password" required maxLength={1024} disabled={action.pending} />
       <button type="submit" disabled={action.pending}>{action.pending ? 'Входим…' : 'Войти'}</button>
