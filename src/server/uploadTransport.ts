@@ -27,6 +27,8 @@ export function createUploadTransport(app: FastifyInstance, authorize: Awaited<R
     onRequest: async (request: FastifyRequest, reply: FastifyReply) => {
       const account = await authorize(request, reply)
       if (!account) return
+      // The connection may have closed while the session query was pending.
+      if ((request.raw.destroyed && !request.raw.complete) || reply.raw.destroyed) return
       if (active >= 2) return deny(reply, 429)
       const metadata = readMetadata(request.headers['x-record'])
       pending.set(request, { account, metadata, started: false })

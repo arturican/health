@@ -14,6 +14,8 @@ export function createBackupTransport(app: FastifyInstance, authorize: Awaited<R
     onRequest: async (request: FastifyRequest, reply: FastifyReply) => {
       const account = await authorize(request, reply)
       if (!account) return
+      // Do not reserve capacity after missing an abort during authorization.
+      if ((request.raw.destroyed && !request.raw.complete) || reply.raw.destroyed) return
       if (busy) return deny(reply, 429)
       const state = { account, reply, running: false, disconnected: false }
       pending.set(request, state)
