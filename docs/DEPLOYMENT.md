@@ -2,17 +2,18 @@
 
 Адрес приложения: <https://dev.arturican.com>. Frontend/Nginx находятся на
 159.194.208.200; PostgreSQL 18.3 и API — на 2.26.54.81, Ubuntu 24.04.
-Серверная версия опубликована в T178a; frontend release:
-5551c0f180176938731ade285abcb7ea687983fa.
+Email-регистрация и восстановление опубликованы в T196. Проверенный код/артефакт:
+544e60c2b42f8e49f959db301f4babdf019f520e. Последующий docs-коммит публикует
+тот же код через CI; окончательный SHA проверяется по release.txt и отчёту CI.
 
 ## Сервер данных
 
 Используется существующий Docker remnawave-db, без замены контейнера/volumes.
 Новая БД health принадлежит health_migrator; health_app наследует ограниченную
 health_runtime. API не имеет superuser/BYPASSRLS/CREATE и прямой записи в users.
-Миграция 011 разрешает регистрацию только через фиксированную SECURITY DEFINER
-функцию с закрытым search_path и без PUBLIC EXECUTE. Миграция аддитивна:
-прежний backend продолжает работать, runtime-права на таблицу не расширяются.
+Миграции 012–014 добавили email, токены и ограниченные SECURITY DEFINER операции
+с закрытым search_path/без PUBLIC EXECUTE. Прямые runtime-права на users/токены
+не расширены. Старые аккаунты сохранены; прежний HTTP-маршрут регистрации закрыт.
 CONNECT PUBLIC отозван только у новой БД. Прежние базы и сервисы не изменяются.
 
 - PostgreSQL: 127.0.0.1:6767; постоянный volume remnawave-db-data,
@@ -22,7 +23,8 @@ CONNECT PUBLIC отозван только у новой БД. Прежние б
   /opt/health-api/current — ссылка на текущий. Первый: T177-8936dd25b053.
 - /opt/health-node/node-v24.22.0-linux-x64 — официальный Node с проверенным SHA256.
   npm 11.19.1: /opt/health-node/npm-tools/node_modules/npm/bin/npm-cli.js.
-- /etc/health-diary/api.env (root 0600) — только runtime URL, origin и порт.
+- /etc/health-diary/api.env (root 0600, каталог 0700) — runtime URL, origin, порт,
+  MAIL_ENABLED=true и MAIL_SMTP_PORT=25; SMTP без пароля только на loopback.
   /etc/health-diary/admin.env (root 0600) — отдельные migration/seed реквизиты,
   не передаются процессу API. Пароли не включаются в исходники/dist/артефакты.
 - [health-api.service](../deploy/health-api.service): restart on failure,
@@ -63,8 +65,8 @@ HTML перепроверяется, assets кешируются на год. О
 
 Исходящая почта приложения подготовлена отдельно: [DNS и SMTP](MAIL_DNS.md).
 Postfix/OpenDKIM находятся на VPS БД и слушают только loopback. DNS/PTR и
-соответствие DKIM-ключа проверены в T187, внешняя отправка включена; само
-приложение пока не отправляет писем. Штатный hostname сервера, порты API/БД
+соответствие DKIM-ключа повторно проверены в T196; приложение подключено к SMTP.
+Штатный hostname сервера, порты API/БД
 и конфигурация сайта сохранены.
 
 До обновления: полный npm run check, npm run build:api, Python deploy tests,
@@ -129,12 +131,15 @@ deploy <SHA>, без shell/forwarding/sudo. CI сверяет HTTPS/release.txt 
 
 В отдельном контексте Desktop/Pixel 7, с вымышленным health-demo:
 
-    export EXPECTED_RELEASE=5551c0f180176938731ade285abcb7ea687983fa
+    export EXPECTED_RELEASE=544e60c2b42f8e49f959db301f4babdf019f520e
     export HEALTH_DEMO_CREDENTIALS=/home/artur/.config/health-diary/demo-credentials.json
     npx playwright test --config tests/deployed/playwright.config.ts
 
 Ожидаемый SHA берите из выбранного артефакта доставки, а не из ответа сайта.
 Тест читает закрытый JSON с login/password; не передавайте пароль аргументом.
+Формы регистрации/reset проверяются без отправки настоящих писем; тестовые
+mailbox/clock маршруты должны возвращать 404. Полный email-путь через SMTP
+проверяется локальными E2E на синтетическом сервере, реальный ящик не заявляется.
 Trace/video/автоматические screenshots отключены, снимок после входа содержит
 только синтетический дневник. Артефакты — tests/deployed/test-results (вне Git).
 Тест добавляет измерение 02.01.2020 только если даты нет и удаляет только
