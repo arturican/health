@@ -110,6 +110,10 @@ Nginx -t и реальный локальный HTTP проверяются от
 Основания: [W3C CSP](https://www.w3.org/TR/CSP3/),
 [Nginx add_header](https://nginx.org/en/docs/http/ngx_http_headers_module.html#add_header).
 
+Порядок совместного внедрения T200–T203, контроль исходного IP/лимитов/CSP
+и безопасный откат подготовлены в [SECURITY_RELEASE](SECURITY_RELEASE.md).
+Этот локальный отчёт не подтверждает применение настроек на VPS.
+
 ## Обновление и проверки
 
 Исходящая почта приложения подготовлена отдельно: [DNS и SMTP](MAIL_DNS.md).
