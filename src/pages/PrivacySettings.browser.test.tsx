@@ -175,7 +175,7 @@ test('сохранённые флаги управляют меню и прям�
   expect((await axe.run(view.container)).violations).toEqual([])
 }, 15000)
 
-test('отказ записи сохраняет прежнюю видимость, повреждённые флаги скрывают разделы до явного исправления', async () => {
+test('отказ записи сохраняет черновик, ошибка чтения закрывает разделы и блокирует запись до восстановления', async () => {
   const { before } = await populate()
   const view = await render(<App />)
   await page.getByRole('link', { name: 'Настройки', exact: true }).click()
@@ -203,13 +203,16 @@ test('отказ записи сохраняет прежнюю видимост
   await expect.element(page.getByRole('alert')).toHaveTextContent('Не удалось прочитать настройки видимости.')
   await expectNavigation(false, false)
   await expect.element(photos).not.toBeChecked()
-  await expect.element(documents).not.toBeChecked()
+  await expect.element(documents).toBeChecked()
+  await expect.element(save).toBeDisabled()
+  await expect.element(page.getByRole('button', { name: 'Повторить загрузку настроек' })).toBeEnabled()
   window.location.hash = '#photos'
   await expect.element(page.getByRole('heading', { level: 1, name: 'Раздел скрыт', exact: true })).toBeVisible()
   await expect.element(page.getByRole('img')).not.toBeInTheDocument()
   await page.getByRole('link', { name: 'Открыть настройки видимости', exact: true }).click()
-  await photos.click()
-  await documents.click()
+  await expect.element(save).toBeDisabled()
+  await saveVisibility({ version: 1, showPhotos: true, showDocuments: true })
+  await expect.element(save).toBeEnabled()
   await save.click()
   await expect.element(page.getByRole('status').filter({ hasText: 'Видимость разделов сохранена' })).toHaveTextContent('Видимость разделов сохранена')
   await expectNavigation(true, true)

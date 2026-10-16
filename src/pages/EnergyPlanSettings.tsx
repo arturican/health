@@ -1,5 +1,5 @@
-import { useLiveQuery } from 'dexie-react-hooks'
-import { listEnergyPlans } from '../data/energyPlanRepository'
+import { useDiaryQuery, listEnergyPlans } from '../dataAccess'
+import type { EnergyPlan } from '../domain/energyPlan'
 import { calculateRestingEnergy } from '../domain/restingEnergy'
 import { EnergyPlanForm } from './EnergyPlanForm'
 import { Icon } from '../ui/Icon'
@@ -9,12 +9,13 @@ function amount(value: number | null) { return value === null ? 'нет данн
 function precise(value: number | null) { return value === null ? 'нет данных' : String(value).replace('.', ',') }
 
 export function EnergyPlanSettings() {
-  const plans = useLiveQuery(() => listEnergyPlans(), [])
+  const plans = useDiaryQuery(() => listEnergyPlans(), [])
+  const latest = plans?.reduce<EnergyPlan | null>((result, plan) => !result || plan.revision > result.revision ? plan : result, null) ?? null
   return <section className="card" aria-labelledby="energy-settings-title">
     <h2 id="energy-settings-title"><Icon name="nutrition" /> Цель и оценка расхода</h2>
     <p>Новая версия действует с указанной даты. Прежние версии сохраняются вместе с параметрами расчёта.</p>
     <p>Общая оценка расхода включает активность; ручные оценки тренировок сохраняются отдельно в журнале.</p>
-    <EnergyPlanForm />
+    {plans !== undefined && <EnergyPlanForm latest={latest} />}
     <h3>История версий плана</h3>
     {plans === undefined ? <p role="status">Загружаем версии плана…</p> : plans.length === 0 ? <p>План пока не задан.</p> : <ul className="record-list" aria-label="Версии энергетического плана">
       {plans.map(plan => {

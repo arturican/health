@@ -1,9 +1,10 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { PrivacySettings } from './PrivacySettings'
 import { db } from '../data/db'
 import * as repository from '../data/visibilityRepository'
-import { DEFAULT_VISIBILITY, VISIBILITY_SETTING_ID } from '../domain/visibility'
+import * as access from '../dataAccess'
+import { DEFAULT_VISIBILITY } from '../domain/visibility'
 
 beforeEach(async () => { await db.open(); await db.metadata.clear() })
 afterEach(async () => { cleanup(); vi.restoreAllMocks(); await db.metadata.clear() })
@@ -44,21 +45,39 @@ it('сохраняет независимые boolean-флаги только п
   expect(await repository.getVisibility()).toEqual({ version: 1, showPhotos: false, showDocuments: false })
 })
 
-it('сбой чтения консервативно скрывает оба раздела и исправляется явным сохранением без раскрытия JSON', async () => {
+it('сбой чтения скрывает разделы и блокирует запись до успешного повтора без раскрытия деталей', async () => {
   const privateValue = 'Синтетическое закрытое значение metadata'
-  await db.metadata.put({ id: VISIBILITY_SETTING_ID, value: privateValue })
+  vi.spyOn(access, 'getVisibility').mockRejectedValueOnce(new Error(privateValue))
+  const write = vi.spyOn(access, 'saveVisibility')
   render(<PrivacySettings />)
   expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось прочитать настройки видимости. Фото и документы скрыты.')
   expect(screen.queryByText(privateValue)).not.toBeInTheDocument()
-  expect(screen.getByRole('checkbox', { name: 'Показывать фото' })).not.toBeChecked()
-  expect(screen.getByRole('checkbox', { name: 'Показывать документы и показатели' })).not.toBeChecked()
-  expect((await db.metadata.get(VISIBILITY_SETTING_ID))?.value).toBe(privateValue)
-  fireEvent.click(screen.getByRole('checkbox', { name: 'Показывать фото' }))
+  expect(screen.getByRole('checkbox', { name: 'Показывать фото' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Сохранить видимость' })).toBeDisabled()
+  save()
+  expect(write).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Повторить загрузку настроек' }))
+  await waitFor(() => { expect(screen.queryByRole('alert')).not.toBeInTheDocument() })
+  expect(screen.getByRole('checkbox', { name: 'Показывать фото' })).toBeChecked()
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Показывать документы и показатели' }))
   save()
   expect(await screen.findByText('Видимость разделов сохранена')).toBeVisible()
-  await waitFor(() => { expect(screen.queryByRole('alert')).not.toBeInTheDocument() })
   expect(await repository.getVisibility()).toEqual({ version: 1, showPhotos: true, showDocuments: false })
   expect(screen.getByRole('button', { name: 'Сохранить видимость' })).toHaveFocus()
+})
+
+it('фоновая настройка не сбрасывает черновик и исходную версию', async () => {
+  const read = vi.spyOn(access, 'getVisibility')
+  const write = vi.spyOn(access, 'saveVisibility').mockRejectedValue(new Error('Данные изменились'))
+  render(<PrivacySettings />)
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Показывать фото' }))
+  await act(async () => { await repository.saveVisibility({ version: 1, showPhotos: true, showDocuments: false }) })
+  await waitFor(() => { expect(read).toHaveBeenCalledTimes(2) })
+  expect(screen.getByRole('checkbox', { name: 'Показывать фото' })).not.toBeChecked()
+  expect(screen.getByRole('checkbox', { name: 'Показывать документы и показатели' })).toBeChecked()
+  save()
+  await screen.findByRole('alert')
+  expect(write).toHaveBeenCalledWith({ version: 1, showPhotos: false, showDocuments: true }, DEFAULT_VISIBILITY)
 })
 
 it('сохраняет черновик и прежние флаги при отказе DB, возвращает фокус и допускает повтор', async () => {
@@ -100,4 +119,22 @@ it('блокирует поля и повторный submit до заверше
   expect(await screen.findByText('Видимость разделов сохранена')).toBeVisible()
   expect(await repository.getVisibility()).toEqual({ version: 1, showPhotos: false, showDocuments: true })
   await waitFor(() => { expect(screen.getByRole('button', { name: 'Сохранить видимость' })).toHaveFocus() })
+})
+
+
+it('повтор чтения после сбоя обновляет и значения, и исходную запись прежнего черновика', async () => {
+  const latest = { version: 1 as const, showPhotos: false, showDocuments: false }
+  const read = vi.spyOn(access, 'getVisibility')
+  const write = vi.spyOn(access, 'saveVisibility')
+  render(<PrivacySettings />)
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Показывать фото' }))
+  read.mockRejectedValueOnce(new Error('Нет ответа'))
+  await act(async () => { await repository.saveVisibility(latest) })
+  await screen.findByRole('alert')
+  fireEvent.click(screen.getByRole('button', { name: 'Повторить загрузку настроек' }))
+  await waitFor(() => { expect(screen.queryByRole('alert')).not.toBeInTheDocument() })
+  expect(screen.getByRole('checkbox', { name: 'Показывать документы и показатели' })).not.toBeChecked()
+  save()
+  await screen.findByText('Видимость разделов сохранена')
+  expect(write).toHaveBeenCalledWith(latest, latest)
 })

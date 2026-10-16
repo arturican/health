@@ -1,5 +1,7 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { EnergyPlanForm } from './EnergyPlanForm'
+import * as access from '../dataAccess'
 import { EnergyPlanSettings } from './EnergyPlanSettings'
 import { db } from '../data/db'
 import * as repository from '../data/energyPlanRepository'
@@ -45,6 +47,7 @@ it('сохраняет снимок профиля и не округляет к
   await db.profiles.add({ id: 'self', name: '', heightCm: 170, birthDate: '1996-10-14', formulaSex: 'male' })
   await db.weights.add({ id: '00000000-0000-4000-8000-000000000001', date: '2026-10-14', kg: 70 })
   open()
+  await screen.findByRole('form', { name: 'Новая версия энергетического плана' })
   change('Способ оценки суточного расхода', 'manual')
   change('Общая ручная оценка расхода, ккал/сутки', '2500')
   change('Способ оценки суточного расхода', 'factor')
@@ -87,4 +90,35 @@ it('отображает дробные цель и ручную оценку б
   open()
   expect(await screen.findByText('Общая ручная оценка: 0,25 ккал/сутки.')).toBeVisible()
   expect(screen.getByText('Цель: 0,25 ккал/сутки.')).toBeVisible()
+})
+
+it('черновик ссылается на максимальную ревизию, а фон не подменяет её', async () => {
+  const input = { effectiveFrom: '2026-10-20', goalKcal: null, method: 'none', manualKcal: null, factor: null, source: '' }
+  await repository.addEnergyPlan(input)
+  await repository.addEnergyPlan({ ...input, effectiveFrom: '2026-10-14' })
+  const original = (await repository.listEnergyPlans()).find(plan => plan.revision === 2)
+  const write = vi.spyOn(access, 'addEnergyPlan').mockRejectedValue(new Error('Данные изменились'))
+  open()
+  await screen.findByRole('form', { name: 'Новая версия энергетического плана' })
+  change('Калорийная цель, ккал/сутки (необязательно)', '1800')
+  await act(async () => { await repository.addEnergyPlan(input) })
+  await screen.findByText('Версия 3, действует с 2026-10-20')
+  save()
+  await screen.findByRole('alert')
+  expect(write).toHaveBeenCalledWith(expect.objectContaining({ goalKcal: 1800 }), original)
+  expect(screen.getByLabelText('Калорийная цель, ккал/сутки (необязательно)')).toHaveValue('1800')
+})
+
+it('повтор без ввода после неопределённого результата сохраняет исходное отсутствие плана', async () => {
+  const write = vi.spyOn(access, 'addEnergyPlan').mockRejectedValue(new Error('Нет ответа'))
+  const view = render(<EnergyPlanForm />)
+  save()
+  await screen.findByRole('alert')
+  await repository.addEnergyPlan({ effectiveFrom: '2026-10-14', goalKcal: null, method: 'none', manualKcal: null, factor: null, source: '' })
+  const latest = (await repository.listEnergyPlans())[0]
+  if (!latest) throw new Error('Нет тестового плана')
+  view.rerender(<EnergyPlanForm latest={latest} />)
+  save()
+  await waitFor(() => { expect(write).toHaveBeenCalledTimes(2) })
+  expect(write).toHaveBeenLastCalledWith(expect.objectContaining({ method: 'none' }), null)
 })

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
-import { addEnergyPlan } from '../data/energyPlanRepository'
-import { energyPlanInputSchema, type EnergyPlanInput } from '../domain/energyPlan'
+import { addEnergyPlan } from '../dataAccess'
+import { energyPlanInputSchema, type EnergyPlan, type EnergyPlanInput } from '../domain/energyPlan'
 import { localDate, parseNumber } from '../domain/input'
 import { validate } from '../domain/schema'
 import { Field, SelectField } from '../ui/Field'
 import { Feedback, readField, useAction } from '../ui/actions'
 
-export function EnergyPlanForm() {
+export function EnergyPlanForm({ latest = null }: { latest?: EnergyPlan | null } = {}) {
+  const draft = useRef<EnergyPlan | null | undefined>(undefined)
   const action = useAction()
   const [method, setMethod] = useState<EnergyPlanInput['method']>('none')
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -40,8 +41,11 @@ export function EnergyPlanForm() {
       if (first) event.currentTarget.querySelector<HTMLElement>(`[name="${first}"]`)?.focus()
       return
     }
+    if (draft.current === undefined) draft.current = latest
+    const original = draft.current
     action.run(async () => {
-      await addEnergyPlan({ effectiveFrom, goalKcal, method: selectedMethod, manualKcal, factor, source })
+      await addEnergyPlan({ effectiveFrom, goalKcal, method: selectedMethod, manualKcal, factor, source }, original)
+      draft.current = undefined
       setMethod('none')
       focusAfterSave.current = true
       setRevision(value => value + 1)
@@ -49,7 +53,7 @@ export function EnergyPlanForm() {
   }
 
   return <>
-    <form ref={formRef} key={revision} className="form-grid" aria-label="Новая версия энергетического плана" onSubmit={submit} noValidate>
+    <form ref={formRef} key={revision} className="form-grid" aria-label="Новая версия энергетического плана" onSubmit={submit} onChange={() => { if (draft.current === undefined) draft.current = latest }} noValidate>
       <fieldset disabled={action.pending}>
         <legend>Новая версия плана</legend>
         <Field label="Дата начала действия плана" name="effectiveFrom" type="date" required min={localDate()} defaultValue={localDate()} error={errors['effectiveFrom']} />

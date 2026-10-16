@@ -117,7 +117,8 @@ describe('Переходы между разделами', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось прочитать настройки видимости')
     expect(screen.getByLabelText('Показывать фото')).not.toBeChecked()
     expect(screen.getByLabelText('Показывать документы и показатели')).not.toBeChecked()
-    expect(screen.getByRole('button', { name: 'Сохранить видимость' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Сохранить видимость' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Повторить загрузку настроек' })).toBeEnabled()
   })
 
   it('переход к содержимому сохраняет текущий раздел', () => {
