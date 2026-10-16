@@ -7,6 +7,7 @@ const executablePath = process.env['PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH']
 export default defineConfig({
   plugins: [react()],
   test: {
+    setupFiles: ['./tests/browserSetup.ts'],
     include: ['src/**/*.browser.test.tsx'],
     allowOnly: false,
     browser: {

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('пустая production-сводка показывает неизвестные данные без ошибок, внешних запросов и переполнения', async ({ page, baseURL }) => {
   const errors: string[] = []
@@ -49,6 +49,7 @@ test('клавиатура открывает реальные журналы, �
   })
   await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'))
   await page.goto('/#today')
+  await expect(page.getByRole('heading', { name: 'Сегодня', level: 1 })).toBeVisible()
   await page.keyboard.press('Tab')
   await expect(page.getByRole('link', { name: 'Перейти к содержимому' })).toBeFocused()
   await page.keyboard.press('Enter')

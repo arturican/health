@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 import { readFullBackup } from '../../src/domain/fullBackup'
 
 test.use({ timezoneId: 'Europe/Moscow' })
@@ -13,40 +13,20 @@ test('отложенная загрузка документа не возвра
     const url = new URL(request.url())
     if (['http:', 'https:'].includes(url.protocol) && url.origin !== baseURL) external.push(request.url())
   })
-  await page.addInitScript(() => {
-    let armed = false
-    let released = false
-    let release: (() => void) | undefined
-    document.addEventListener('synthetic-document-arm', () => { armed = true }, { once: true })
-    document.addEventListener('synthetic-document-release', () => {
-      released = true
-      release?.()
-    }, { once: true })
-    const blobPrototype: { arrayBuffer: (this: Blob) => Promise<ArrayBuffer> } = Blob.prototype
-    const read = blobPrototype.arrayBuffer
-    Blob.prototype.arrayBuffer = async function () {
-      if (armed) {
-        armed = false
-        await new Promise<void>(resolve => {
-          release = resolve
-          document.documentElement.dataset['syntheticRead'] = 'paused'
-        })
-      }
-      return read.call(this)
-    }
-    const databasePrototype: { transaction: (this: IDBDatabase, stores: string | Iterable<string>, mode?: IDBTransactionMode, options?: IDBTransactionOptions) => IDBTransaction } = IDBDatabase.prototype
-    const transact = databasePrototype.transaction
-    // Observe settlement of the resumed operation; never replace the transaction or its data.
-    IDBDatabase.prototype.transaction = function (stores, mode, options) {
-      const transaction = transact.call(this, stores, mode, options)
-      const names = typeof stores === 'string' ? [stores] : Array.from(stores)
-      if (released && mode === 'readwrite' && names.includes('documents')) {
-        const settled = () => { document.documentElement.dataset['syntheticWrite'] = 'settled' }
-        transaction.addEventListener('complete', settled, { once: true })
-        transaction.addEventListener('abort', settled, { once: true })
-      }
-      return transaction
-    }
+  let release: () => void = () => { throw new Error('Нет задержанного запроса') }
+  let paused: () => void = () => { throw new Error('Нет сигнала запроса') }
+  let settled: (status: number) => void = () => { throw new Error('Нет результата') }
+  const gate = new Promise<void>(resolve => { release = resolve })
+  const arrived = new Promise<void>(resolve => { paused = resolve })
+  const outcome = new Promise<number>(resolve => { settled = resolve })
+  await page.route('**/api/v1/documents', async route => {
+    if (route.request().method() !== 'POST') { await route.continue(); return }
+    paused()
+    await gate
+    // Send the original HTTP command after the diary generation changed.
+    const response = await route.fetch()
+    settled(response.status())
+    await route.fulfill({ response })
   })
   await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'))
   await page.goto('/#documents')
@@ -58,16 +38,15 @@ test('отложенная загрузка документа не возвра
     name: 'synthetic-delayed-document.pdf', mimeType: 'application/pdf',
     buffer: Buffer.from('%PDF-1.7\nSynthetic delayed document\n%%EOF\n'),
   })
-  await page.evaluate(() => { document.dispatchEvent(new Event('synthetic-document-arm')) })
   await form.getByRole('button', { name: 'Добавить документ', exact: true }).click()
-  await expect(page.locator('html')).toHaveAttribute('data-synthetic-read', 'paused')
+  await arrived
   await expect(form.getByRole('button', { name: 'Сохраняем…', exact: true })).toBeDisabled()
   await navigation.getByRole('link', { name: 'Настройки', exact: true }).click()
   await page.getByRole('button', { name: 'Удалить весь дневник', exact: true }).click()
   await page.getByRole('alertdialog').getByRole('button', { name: 'Подтвердить удаление', exact: true }).click()
   await expect(page.getByText('Все данные дневника удалены', { exact: true })).toBeVisible()
-  await page.evaluate(() => { document.dispatchEvent(new Event('synthetic-document-release')) })
-  await expect(page.locator('html')).toHaveAttribute('data-synthetic-write', 'settled')
+  release()
+  expect(await outcome).toBe(409)
   await navigation.getByRole('link', { name: 'Документы', exact: true }).click()
   await expect(page.getByText('Документов пока нет.', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: title, exact: true })).toHaveCount(0)

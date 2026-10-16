@@ -8,7 +8,8 @@ if (!/^[0-9a-f]{40}$/.test(process.env['EXPECTED_RELEASE'] ?? '')) {
 export default defineConfig({
   ...local,
   testDir: '..',
-  testMatch: ['e2e/*.spec.ts', 'deployed/release.spec.ts'],
+  testMatch: ['deployed/*.spec.ts'],
+  globalSetup: [],
   snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}',
   // Each test owns a fresh browser context; no persistent user profile is opened.
   webServer: [],

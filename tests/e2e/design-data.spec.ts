@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 import axe from 'axe-core'
 
 test.use({ timezoneId: 'Europe/Moscow' })

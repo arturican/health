@@ -20,7 +20,7 @@ export function TodayPage() {
     <header className="dashboard-heading">
     <p className="eyebrow">ЛИЧНОЕ ПРОСТРАНСТВО</p>
     <h1 id="today-title">Сегодня</h1>
-    <p>Сводка за {day.split('-').reverse().join('.')}. Дневник хранится в этом браузере.</p>
+    <p>Сводка за {day.split('-').reverse().join('.')}. Дневник хранится на сервере вашего аккаунта.</p>
     <nav className="actions quick-actions" aria-label="Быстрые записи">
       <a href="#weight">Записать вес</a>
       <a href="#nutrition">Записать еду</a>

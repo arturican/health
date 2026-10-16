@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 import axe from 'axe-core'
 
 test('график анализов обновляется из ручных записей, разделяет единицы и скачивает источник', async ({ page, baseURL }) => {

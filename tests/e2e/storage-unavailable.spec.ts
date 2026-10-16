@@ -1,8 +1,8 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 import axe from 'axe-core'
 
 for (const failure of ['missing', 'denied'] as const) {
-  test(`недоступный IndexedDB (${failure}) сообщает об ошибке до запросов и сохраняет прежний дневник`, async ({ page, baseURL }) => {
+  test(`недоступный IndexedDB (${failure}) не мешает серверному дневнику и сохранённым записям`, async ({ page, baseURL }) => {
     const errors: string[] = []
     const externalRequests: string[] = []
     page.on('pageerror', error => errors.push(error.message))
@@ -28,11 +28,12 @@ for (const failure of ['missing', 'denied'] as const) {
 
     for (const route of ['weight', 'photos', 'settings']) {
       await page.goto(`/?synthetic-storage-unavailable=1#${route}`)
-      await expect(page.getByRole('heading', { level: 1, name: 'Хранилище недоступно' })).toBeVisible()
-      await expect(page.getByRole('alert')).toHaveText(/Разрешите хранение данных/)
-      await expect(page.getByRole('main')).toHaveCount(1)
-      await expect(page.getByRole('form')).toHaveCount(0)
+      const heading = route === 'weight' ? 'Вес' : route === 'photos' ? 'Фото' : 'Настройки'
+      await expect(page.getByRole('heading', { level: 1, name: heading, exact: true })).toBeVisible()
       await expect(page.getByRole('status').filter({ hasText: /Загружаем/ })).toHaveCount(0)
+      await expect(page.getByRole('alert')).toHaveCount(0)
+      await expect(page.getByRole('main')).toHaveCount(1)
+      if (route === 'weight') await expect(page.getByRole('list', { name: 'История веса' }).getByText('70 кг', { exact: true })).toBeVisible()
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
       await page.addScriptTag({ content: axe.source })
       expect(await page.evaluate(async () => (await window.axe.run(document)).violations)).toEqual([])

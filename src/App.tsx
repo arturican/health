@@ -13,25 +13,10 @@ import { PhotosPage } from './pages/PhotosPage'
 import { DocumentsPage } from './pages/DocumentsPage'
 import { useVisibility } from './ui/useVisibility'
 import { Icon } from './ui/Icon'
-
-function hasIndexedDB() {
-  try { return typeof window.indexedDB !== 'undefined' }
-  catch { return false }
-}
+import { SessionControls } from './client/AuthBoundary'
+import { QueryFeedback } from './client/QueryFeedback'
 
 export function App() {
-  if (!hasIndexedDB()) return (
-    <main>
-      <section className="page" aria-labelledby="storage-unavailable-title">
-        <h1 id="storage-unavailable-title">Хранилище недоступно</h1>
-        <p role="alert">Браузер не предоставляет доступ к локальной базе дневника. Разрешите хранение данных для сайта в настройках браузера или откройте приложение в другом браузере, затем обновите страницу.</p>
-      </section>
-    </main>
-  )
-  return <DiaryApp />
-}
-
-function DiaryApp() {
   const [route, setRoute] = useState(() => getRoute(window.location.hash))
   const visibility = useVisibility()
   const mediaRoute = route === 'photos' || route === 'documents'
@@ -58,14 +43,15 @@ function DiaryApp() {
       <a className="skip-link" href="#main" onClick={event => { event.preventDefault(); main.current?.focus() }}>Перейти к содержимому</a>
       <header className="site-header">
         <span className="brand"><span className="brand-mark" aria-hidden="true"><Icon name="heart" /></span> Дневник здоровья</span>
-        <span className="edition">Личный дневник · На вашем устройстве</span>
+        <span className="edition">Личный дневник · На сервере</span>
       </header>
       <Navigation active={route} showPhotos={Boolean(visibility?.value.showPhotos)} showDocuments={Boolean(visibility?.value.showDocuments)} />
       <main id="main" tabIndex={-1} ref={main}>
+        <QueryFeedback />
         {(route === 'today' || route === 'nutrition' || route === 'activity') && <DayPicker />}
         <StorageBoundary key={route + String(hidden)}>
         {mediaRoute && !visibility ? <p role="status">Загружаем настройки видимости…</p> : hidden ? <section className="page">
-          <h1>Раздел скрыт</h1><p>Его записи и файлы сохранены в этом браузере.</p>
+          <h1>Раздел скрыт</h1><p>Его записи и файлы сохранены в вашем аккаунте.</p>
           <a href="#settings">Открыть настройки видимости</a>
         </section> : route === 'today' ? <TodayPage /> : route === 'profile' ? <ProfilePage /> : route === 'weight' ? <WeightPage /> : route === 'nutrition' ? <NutritionPage /> : route === 'activity' ? <ActivityPage /> : route === 'photos' ? <PhotosPage /> : route === 'documents' ? <DocumentsPage /> : <SettingsPage />}
         </StorageBoundary>
@@ -73,8 +59,9 @@ function DiaryApp() {
       <aside className="storage-note" aria-label="Хранение дневника">
         <Icon name="documents" />
         <strong>Ваши записи — рядом</strong>
-        <p>Хранятся в этом браузере.</p>
+        <p>Хранятся на сервере вашего дневника.</p>
         <a href="#settings">Резервная копия</a>
+        <div style={{ overflowWrap: 'anywhere' }}><SessionControls /></div>
       </aside>
       <footer className="site-footer">
         <span>Наблюдать. Записывать. Заботиться о себе.</span>

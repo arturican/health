@@ -3,6 +3,8 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [react()],
+  server: { proxy: { '/api/': { target: process.env['HEALTH_API_PROXY'] ?? 'http://127.0.0.1:3001' } } },
+  preview: { proxy: { '/api/': { target: process.env['HEALTH_API_PROXY'] ?? 'http://127.0.0.1:3001' } } },
   test: {
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],

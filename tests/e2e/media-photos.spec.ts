@@ -1,4 +1,6 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { z } from 'zod'
+import { photoSchema } from '../../src/domain/photo'
+import { expect, test, type Locator, type Page } from './fixtures'
 
 test.use({ timezoneId: 'Europe/Moscow' })
 
@@ -46,9 +48,15 @@ async function expectImage(image: Locator, width: number, height: number, channe
 
 test('геометрические фото сравниваются, правки сохраняют JPEG, удаление выбранного кадра восстанавливает выбор', async ({ page, baseURL }) => {
   const errors: string[] = []
+  const deletedResources = new Set<string>()
   const external: string[] = []
   page.on('pageerror', error => { errors.push(error.message) })
-  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('console', message => {
+    if (message.type() !== 'error') return
+    // In-flight reads of the exact resource just deleted may finish with 404.
+    if (deletedResources.has(message.location().url) && message.text() === 'Failed to load resource: the server responded with a status of 404 (Not Found)') return
+    errors.push(message.text())
+  })
   page.on('request', request => {
     const url = new URL(request.url())
     if (['http:', 'https:'].includes(url.protocol) && url.origin !== baseURL) external.push(request.url())
@@ -61,6 +69,7 @@ test('геометрические фото сравниваются, правк
   const blue = { date: '2026-10-13', title: 'Синтетический синий портретный прямоугольник', note: 'Геометрический синий образец', width: 320, height: 640, color: '#0000ff' }
   const add = page.getByRole('form', { name: 'Добавление фото', exact: true })
   const gallery = page.getByRole('list', { name: 'Фотографии по датам', exact: true })
+  const files = new Map<string, string>()
   for (const photo of [red, blue]) {
     await add.getByLabel('Дата фото', { exact: true }).fill(photo.date)
     await add.getByLabel('Подпись фото', { exact: true }).fill(photo.title)
@@ -68,7 +77,10 @@ test('геометрические фото сравниваются, правк
     await add.getByLabel('Файл фото', { exact: true }).setInputFiles({
       name: 'synthetic-geometry.png', mimeType: 'image/png', buffer: await syntheticPng(page, photo.width, photo.height, photo.color),
     })
+    const created = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/v1/photos')
     await add.getByRole('button', { name: 'Добавить фото', exact: true }).click()
+    const raw: unknown = await (await created).json()
+    files.set(photo.title, z.object({ value: photoSchema }).parse(raw).value.fileId)
     await expect(gallery.getByRole('article', { name: `${photo.title}, ${photo.date}`, exact: true })).toContainText(photo.note)
     await expect(add.getByLabel('Подпись фото', { exact: true })).toHaveValue('')
   }
@@ -132,6 +144,9 @@ test('геометрические фото сравниваются, правк
   await expect(gallery.getByRole('listitem')).toHaveCount(2)
   await expectImage(comparison.getByRole('img', { name: `Первое фото: ${updated.title}`, exact: true }), 2048, 1024, 0)
   await remove.click()
+  const removedFile = files.get(red.title)
+  if (!removedFile) throw new Error('Нет созданного файла')
+  deletedResources.add(new URL('/api/v1/files/' + removedFile, baseURL).href)
   await dialog.getByRole('button', { name: 'Подтвердить удаление', exact: true }).click()
   await expect(gallery.getByRole('listitem')).toHaveCount(1)
   await expect(page.getByRole('heading', { name: 'Галерея фото', exact: true })).toBeFocused()

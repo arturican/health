@@ -1,13 +1,19 @@
 import { readFile } from 'node:fs/promises'
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test.use({ timezoneId: 'Europe/Moscow' })
 
 test('PDF скачивается без изменения байтов, показатели правятся и удаляются отдельно и вместе с бланком', async ({ page, baseURL }, info) => {
   const errors: string[] = []
+  const deletedResources = new Set<string>()
   const external: string[] = []
   page.on('pageerror', error => { errors.push(error.message) })
-  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('console', message => {
+    if (message.type() !== 'error') return
+    // In-flight reads of the exact resource just deleted may finish with 404.
+    if (deletedResources.has(message.location().url) && message.text() === 'Failed to load resource: the server responded with a status of 404 (Not Found)') return
+    errors.push(message.text())
+  })
   page.on('request', request => { if (new URL(request.url()).origin !== baseURL) external.push(request.url()) })
   await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'))
   await page.goto('/#documents')
@@ -129,6 +135,11 @@ test('PDF скачивается без изменения байтов, пок�
   await expect(removeDocument).toBeFocused()
   await expect(editedNumericRow).toBeVisible()
   await removeDocument.click()
+  const documentId = await source.inputValue()
+  const fileId = safeFilename.replace('health-document-', '').replace('.pdf', '')
+  for (const path of ['/api/v1/files/' + fileId, '/api/v1/documents/' + documentId + '/results-count', '/api/v1/lab-results?documentId=' + documentId + '&limit=100']) {
+    deletedResources.add(new URL(path, baseURL).href)
+  }
   await dialog.getByRole('button', { name: 'Подтвердить удаление', exact: true }).click()
   await expect(page.getByText('Документов пока нет.', { exact: true })).toBeVisible()
   await expect(labs).toHaveCount(0)

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test.use({ timezoneId: 'Europe/Moscow' })
 
@@ -36,7 +36,7 @@ test('скачанный файл восстанавливает изменён�
   await expect(restore).toBeDisabled()
   await page.getByLabel('Согласен заменить текстовые данные дневника').check()
   await restore.click()
-  await expect(page.getByRole('status')).toHaveText('Текстовая копия восстановлена')
+  await expect(page.getByRole('status').filter({ hasText: 'Текстовая копия восстановлена' })).toHaveText('Текстовая копия восстановлена')
   await page.reload()
   await page.getByRole('link', { name: 'Профиль', exact: true }).click()
   await expect(page.getByText('170 см', { exact: true })).toBeVisible()

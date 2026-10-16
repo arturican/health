@@ -23,18 +23,16 @@ afterEach(async () => {
 })
 
 describe('Стартовый экран', () => {
-  it.each(['missing', 'denied'])('показывает недоступность хранилища без форм при отказе API: %s', failure => {
+  it.each(['missing', 'denied'])('не блокирует оболочку из-за недоступности браузерного IndexedDB: %s', failure => {
     const original = Object.getOwnPropertyDescriptor(window, 'indexedDB')
     Object.defineProperty(window, 'indexedDB', failure === 'missing'
       ? { configurable: true, value: undefined }
       : { configurable: true, get() { throw new DOMException('Synthetic storage refusal', 'SecurityError') } })
     try {
       render(<App />)
-      expect(screen.getByRole('heading', { level: 1, name: 'Хранилище недоступно' })).toBeVisible()
-      expect(screen.getByRole('alert')).toHaveTextContent('Разрешите хранение данных')
+      expect(screen.getByRole('heading', { level: 1, name: 'Сегодня' })).toBeVisible()
       expect(screen.getByRole('main')).toBeVisible()
-      expect(screen.queryByRole('form')).not.toBeInTheDocument()
-      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Хранилище недоступно' })).not.toBeInTheDocument()
     } finally {
       cleanup()
       if (original) Object.defineProperty(window, 'indexedDB', original)

@@ -5,6 +5,9 @@ const executablePath = process.env['PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH']
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
+  globalSetup: './tests/e2e/setup.ts',
+  // Large backups share a bounded server slot; each test still owns its account.
+  workers: 1,
   forbidOnly: true,
   retries: 0,
   updateSnapshots: 'none',
@@ -28,6 +31,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run preview -- --host 127.0.0.1 --port 4173 --strictPort',
+    env: { HEALTH_API_PROXY: 'http://127.0.0.1:4181' },
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
   },

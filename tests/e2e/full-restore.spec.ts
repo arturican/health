@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import { expect, test, type Page, type TestInfo } from './fixtures'
 import { decodeBase64 } from '../../src/domain/base64'
 import { readFullBackup, type FullBackup } from '../../src/domain/fullBackup'
 
@@ -137,7 +137,11 @@ test('полная копия восстанавливает все таблиц
   expect(original.backup.labResults[0]?.documentId).toBe(savedDocument.id)
   expect(original.backup.labResults[0]?.value).toEqual({ type: 'number', number: 0, operator: 'eq' })
   expect(original.backup.text.steps[0]?.count).toBe(0)
-  expect(original.backup.metadata).toEqual([{ id: 'section-visibility', value: JSON.stringify({ version: 1, showPhotos: false, showDocuments: false }) }])
+  expect(original.backup.metadata).toHaveLength(1)
+  const visibility = original.backup.metadata[0]
+  expect(visibility?.id).toBe('section-visibility')
+  const flags: unknown = JSON.parse(visibility?.value ?? 'null')
+  expect(flags).toEqual({ version: 1, showPhotos: false, showDocuments: false })
   const pdfFile = original.backup.files.find(file => file.id === savedDocument.fileId)
   const photoFile = original.backup.files.find(file => file.id === savedPhoto.fileId)
   if (!pdfFile || !photoFile) throw new Error('Нарушены связи вложений')

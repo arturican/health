@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
+import { AuthBoundary } from './client/AuthBoundary'
 import './styles.css'
 import './shell.css'
 
@@ -10,6 +11,6 @@ if (!root) throw new Error('Не найден корневой элемент п
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <AuthBoundary><App /></AuthBoundary>
   </StrictMode>,
 )

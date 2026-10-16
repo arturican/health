@@ -128,7 +128,7 @@ test('сводка использует данные выбранного дня
   await expect.element(page.getByText('Шаги за этот день: нет данных', { exact: true })).toBeVisible()
   await navigation.getByRole('link', { name: 'Сегодня', exact: true }).click()
   await expect.element(day).toHaveValue('2026-10-13')
-  await expect.element(page.getByText('Сводка за 13.10.2026. Дневник хранится в этом браузере.', { exact: true })).toBeVisible()
+  await expect.element(page.getByText('Сводка за 13.10.2026. Дневник хранится на сервере вашего аккаунта.', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Сегодня', exact: true }).click()
   await expect.element(day).toHaveValue(today)
   await expect.element(energy.getByText('Расход минус питание: 500 ккал.', { exact: true })).toBeVisible()
