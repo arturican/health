@@ -1,10 +1,11 @@
 import Fastify from 'fastify'
 import { DataError } from './httpErrors.js'
 
-export function createApi() {
+export function createApi(trustLocalProxy = false) {
   const app = Fastify({
     logger: false,
-    trustProxy: false,
+    trustProxy: trustLocalProxy ? (address, hop) => hop === 0
+      && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(address) : false,
     bodyLimit: 16 * 1024,
     connectionTimeout: 10000,
     requestTimeout: 120000,

@@ -21,9 +21,9 @@ import { registerClear } from './clearRoutes.js'
 import { createAccountMailer } from './accountMail.js'
 
 export async function startApi(environment: Record<string, string | undefined>) {
-  const config = readServerConfig(environment)
+  const { trustLocalProxy, ...config } = readServerConfig(environment)
   const dataConfig = readDataConfig(environment)
-  const app = createApi()
+  const app = createApi(trustLocalProxy)
   try {
     const mail = createAccountMailer(environment)
     app.decorate('accountMail', mail)

@@ -61,6 +61,26 @@ Hash-маршруты (/#weight); неизвестные серверные пу
 HTML перепроверяется, assets кешируются на год. Оболочка сайта публична,
 личные данные выдаются только после входа. noindex не заменяет авторизацию.
 
+## Подготовленная граница proxy IP (T200)
+
+Изменение пока только локальное; включение на VPS относится к T205.
+По умолчанию API_TRUST_PROXY=false, исходное поведение сохранено.
+Для раздельных IP-бюджетов сначала установите Nginx-конфигурацию, заменяющую
+X-Forwarded-For и X-Real-IP на $remote_addr и удаляющую Forwarded, выполните
+nginx -t и reload только целевого virtual host. Только затем добавьте
+API_TRUST_PROXY=true в закрытый api.env и перезапустите API.
+
+Доверяется только hop=0 от 127.0.0.1/::1/IPv4-mapped loopback; более длинная
+цепочка не увеличивает доверие. Прямой запрос с другой сети не может задать IP.
+Другие локальные процессы входят в доверенную границу: публичный доступ к
+loopback API или SSH-туннелю недопустим. Перед добавлением CDN/внешнего proxy
+нужна отдельная схема доверия; не включайте real_ip_recursive без её проверки.
+При откате сначала выключите API_TRUST_PROXY, затем откатывайте Nginx.
+Origin/CSRF и cookie не зависят от forwarded hostname/proto.
+
+Основания: [Fastify trustProxy](https://fastify.dev/docs/latest/Reference/Server/#trustproxy),
+[Nginx proxy_set_header](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header).
+
 ## Обновление и проверки
 
 Исходящая почта приложения подготовлена отдельно: [DNS и SMTP](MAIL_DNS.md).

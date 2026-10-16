@@ -3,11 +3,11 @@ import { expect, it } from 'vitest'
 import { readDataConfig, readServerConfig } from './config'
 
 it('использует loopback и ограниченный порт по умолчанию', () => {
-  expect(readServerConfig({})).toEqual({ host: '127.0.0.1', port: 3001 })
+  expect(readServerConfig({})).toEqual({ host: '127.0.0.1', port: 3001, trustLocalProxy: false })
 })
 
 it.each(['1', '65535'])('принимает границу порта %s', port => {
-  expect(readServerConfig({ API_HOST: '::1', API_PORT: port, NODE_ENV: 'production' })).toEqual({ host: '::1', port: Number(port) })
+  expect(readServerConfig({ API_HOST: '::1', API_PORT: port, NODE_ENV: 'production' })).toEqual({ host: '::1', port: Number(port), trustLocalProxy: false })
 })
 
 it.each(['', '0', '65536', '-1', '1.5', '1e3', ' 3001', 'secret-value'])('отклоняет порт без отражения значения: %s', port => {
@@ -29,4 +29,9 @@ it('production требует отдельные реквизиты runtime и H
   }
   expect(readDataConfig({})).toBeNull()
   expect(readDataConfig({ ...environment, NODE_ENV: 'development', APP_ORIGIN: 'http://localhost:5173' })?.origin).toBe('http://localhost:5173')
+})
+
+it('включает доверие только явным boolean-параметром без произвольных сетей', () => {
+  expect(readServerConfig({ API_TRUST_PROXY: 'true' }).trustLocalProxy).toBe(true)
+  for (const value of ['', '1', 'yes', '127.0.0.0/8', '*']) expect(() => readServerConfig({ API_TRUST_PROXY: value })).toThrow('Некорректные настройки API')
 })
