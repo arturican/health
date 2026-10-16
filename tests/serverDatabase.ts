@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { createPool } from '../src/server/database'
 
 /** Dedicated synthetic test DB only; never falls back to application credentials. */
-export async function testDatabase() {
+export async function testDatabase(namespace: 'health_test' | 'health_restore' = 'health_test') {
   const value = process.env.TEST_DATABASE_URL
   if (!value) throw new Error('Для SQL-тестов требуется TEST_DATABASE_URL отдельной БД health_test')
   const url = new URL(value)
@@ -11,7 +11,7 @@ export async function testDatabase() {
     throw new Error('SQL-тесты разрешены только в локальной health_test')
   }
   const admin = createPool(value)
-  const name = `health_test_${randomUUID().replaceAll('-', '')}`
+  const name = `${namespace}_${randomUUID().replaceAll('-', '')}`
   const login = `${name}_user`
   const password = randomUUID()
   try {

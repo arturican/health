@@ -55,18 +55,32 @@ recovery-public.asc и recovery-fingerprint можно использовать 
 
 Восстанавливайте сначала в НОВУЮ изолированную БД, созданную администратором,
 с существующими ролями из [database-roles.sql](../deploy/database-roles.sql).
+Имя новой БД: health_restore_ и 32 lowercase hex из UUID без дефисов.
 Создайте её с владельцем health_migrator, запретите CONNECT PUBLIC, не направляйте
 на неё API. Передавайте расшифрованный поток напрямую в Docker pg_restore:
 
     set -o pipefail
     gpg --homedir ~/.config/health-diary/recovery-gnupg --batch --decrypt COPY.dump.gpg |
       ssh -o StrictHostKeyChecking=yes root@2.26.54.81 \
-      'docker exec -i remnawave-db pg_restore -U postgres --exit-on-error --single-transaction --dbname=health_restore_UNIQUE'
+      'docker exec -i remnawave-db pg_restore -U postgres --exit-on-error --single-transaction --dbname=health_restore_REPLACE_WITH_32_HEX'
 
 Не используйте --clean против рабочей БД. Проверьте число записей, хеши файлов,
 связи, миграции и RLS; только затем планируйте отдельное переключение API.
-Сессии и хеши паролей тоже входят в копию: после аварийного восстановления
-отзовите восстановленные сессии. Старый архив может возвращать удалённые записи.
+До подключения API примените актуальные миграции, затем выполните
+[revoke-restored-access.sql](../deploy/revoke-restored-access.sql) отдельным
+административным соединением именно к изолированной restore-БД
+(psql --set=ON_ERROR_STOP=1 --file=deploy/revoke-restored-access.sql с закрытой
+строкой соединения). Скрипт принимает только health_restore_<32 hex>,
+атомарно удаляет и сессии, и verify/reset-ссылки; runtime-роль его не выполняет.
+При ошибке оставьте API выключенным, проверьте причину и повторите скрипт.
+Проверьте нулевые количества health.sessions и health.account_tokens,
+не выводя строки, хеши и адреса. Повторное выполнение безопасно.
+
+Старый архив может вернуть удалённые записи и прежние хеши паролей.
+Очистка токенов НЕ заменяет смену паролей, если снимок предшествует смене
+скомпрометированного пароля: до открытия API оператор должен решить этот вопрос
+для затронутых аккаунтов, включая legacy без почты. Переключение и ротация —
+отдельно разрешённые операции; скрипт не меняет пароли и записи дневника.
 
 Исходный health-cluster содержит pg_dumpall существовавшего кластера, сжатый gzip,
 и предназначен только для административного аварийного восстановления.
