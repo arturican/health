@@ -5,8 +5,7 @@ import { z } from 'zod'
 import { emailAddress, emailCompletion, emailRegistration, emailRequest } from '../domain/emailAccount'
 import { hashPassword } from './accounts.js'
 import { tokenHash } from './sessions.js'
-import { createLoginLimit } from './loginLimit.js'
-import { createRegistrationLimit } from './registration.js'
+import { createAuthRateLimit } from './authRateLimit.js'
 import { sessionCookie } from './httpSecurity.js'
 
 export type PasswordWork = { active: number }
@@ -14,7 +13,7 @@ const accepted = { accepted: true }
 export async function registerEmailAuth(app: FastifyInstance, pool: Pool, origin: string, work: PasswordWork, clock: () => Date) {
   const mail = app.hasDecorator('accountMail') ? app.accountMail : null
   const pendingHash = mail ? await hashPassword(randomBytes(32).toString('hex')) : ''
-  const allowIssue = createLoginLimit(), allowComplete = createRegistrationLimit()
+  const allowIssue = createAuthRateLimit(pool, 'email_issue'), allowComplete = createAuthRateLimit(pool, 'email_complete')
   const deliveries = new Set<Promise<void>>()
   app.addHook('onClose', async () => { await Promise.allSettled(deliveries) })
 
@@ -35,7 +34,7 @@ export async function registerEmailAuth(app: FastifyInstance, pool: Pool, origin
     if (!mail) return reply.code(503).send({ error: { code: 'mail_unavailable', message: 'Почта временно недоступна' } })
     const parsed = emailRegistration.safeParse(request.body)
     if (!parsed.success) return reply.code(400).send({ error: { code: 'invalid_data', message: 'Проверьте почту и часовой пояс' } })
-    if (!allowIssue(request.ip, parsed.data.email.toLowerCase(), clock().getTime())) return reply.code(202).send(accepted)
+    if (!await allowIssue(request.ip, parsed.data.email.toLowerCase(), clock())) return reply.code(202).send(accepted)
     const token = randomBytes(32).toString('hex')
     const result = await pool.query<Record<string, unknown>>('SELECT * FROM health.begin_email_registration($1,$2,$3,$4,$5)',
       [parsed.data.email, parsed.data.timezone, pendingHash, tokenHash(token), clock()])
@@ -46,7 +45,7 @@ export async function registerEmailAuth(app: FastifyInstance, pool: Pool, origin
     if (!mail) return reply.code(503).send({ error: { code: 'mail_unavailable', message: 'Почта временно недоступна' } })
     const parsed = emailRequest.safeParse(request.body)
     if (!parsed.success) return reply.code(400).send({ error: { code: 'invalid_data', message: 'Проверьте почту' } })
-    if (!allowIssue(request.ip, parsed.data.email.toLowerCase(), clock().getTime())) return reply.code(202).send(accepted)
+    if (!await allowIssue(request.ip, parsed.data.email.toLowerCase(), clock())) return reply.code(202).send(accepted)
     const token = randomBytes(32).toString('hex')
     const result = await pool.query<Record<string, unknown>>('SELECT * FROM health.issue_account_token($1,$2,$3,$4)',
       [parsed.data.email, parsed.data.purpose, tokenHash(token), clock()])
@@ -55,7 +54,7 @@ export async function registerEmailAuth(app: FastifyInstance, pool: Pool, origin
   })
   app.post('/api/v1/auth/email/complete', async (request, reply) => {
     if (!mail) return reply.code(503).send({ error: { code: 'mail_unavailable', message: 'Почта временно недоступна' } })
-    if (work.active >= 4 || !allowComplete(request.ip, clock().getTime())) return reply.code(429).send({ error: { code: 'rate_limited', message: 'Повторите позже' } })
+    if (work.active >= 4 || !await allowComplete(request.ip, null, clock()) || work.active >= 4) return reply.code(429).send({ error: { code: 'rate_limited', message: 'Повторите позже' } })
     const parsed = emailCompletion.safeParse(request.body)
     const invalid = () => reply.code(400).send({ error: { code: 'invalid_link', message: 'Ссылка недействительна или истекла. Запросите новую.' } })
     if (!parsed.success) return invalid()

@@ -81,6 +81,16 @@ Origin/CSRF и cookie не зависят от forwarded hostname/proto.
 Основания: [Fastify trustProxy](https://fastify.dev/docs/latest/Reference/Server/#trustproxy),
 [Nginx proxy_set_header](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header).
 
+## Подготовленные постоянные лимиты (T201)
+
+До запуска нового API в целевой БД нужна миграция 015_auth_rate_limits.sql.
+Используются существующие runtime/migrator-роли и PostgreSQL, дополнительных
+сервисов нет. Runtime получает только EXECUTE ограниченной функции; таблица
+не входит в пользовательские JSON-копии. В pg_dump она попадает вместе с БД.
+Откат API не требует удаления таблицы; не откатывайте миграции вручную и не
+очищайте счётчики ради обхода лимитов. Восстановленная старая БД до включения API
+должна получить все актуальные миграции. Production пока не обновлён (T205).
+
 ## Обновление и проверки
 
 Исходящая почта приложения подготовлена отдельно: [DNS и SMTP](MAIL_DNS.md).

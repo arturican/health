@@ -32,6 +32,7 @@ timestamptz. NULL означает отсутствие сведений, а н�
 |---|---|
 | users | UUID, нормализованный уникальный логин, Argon2id hash, IANA timezone; пароль/хеш не экспортируются |
 | sessions | Хеш случайного токена, владелец, сроки, CSRF; отзыв на logout, каскад при удалении аккаунта |
+| auth_rate_limits | Подготовлено в T201: отдельные бюджеты входа/почты, SHA-256 ключей, число попыток и срок; максимум 10000 ключей/операцию, runtime только EXECUTE функции |
 | profiles | Один на аккаунт; name ≤80, height_cm >0 и ≤300, birth_date nullable, formula_sex none/male/female |
 | weights | UUID; kg >0 и ≤600; один день на аккаунт; не раньше рождения и не в будущем; профиль обязателен |
 | products | UUID, name 1–120, source ≤160, kcal 0–10000; БЖУ nullable 0–100 на 100 г; archived |

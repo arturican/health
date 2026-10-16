@@ -6,13 +6,13 @@ import { z } from 'zod'
 import { emailSchema, emailAddress } from '../domain/emailAccount'
 import { passwordSchema } from './accounts.js'
 import { tokenHash } from './sessions.js'
-import { createLoginLimit } from './loginLimit.js'
+import { createAuthRateLimit } from './authRateLimit.js'
 import type { registerAuthentication } from './auth.js'
 import type { PasswordWork } from './emailAuth.js'
 
 export function registerEmailBinding(app: FastifyInstance, pool: Pool,
   authorize: Awaited<ReturnType<typeof registerAuthentication>>, origin: string, work: PasswordWork, clock: () => Date) {
-  const allowed = createLoginLimit(), deliveries = new Set<Promise<void>>()
+  const allowed = createAuthRateLimit(pool, 'email_bind'), deliveries = new Set<Promise<void>>()
   app.addHook('onClose', async () => { await Promise.allSettled(deliveries) })
   app.get('/api/v1/auth/email', async (request, reply) => {
     const account = await authorize(request, reply)
@@ -25,7 +25,7 @@ export function registerEmailBinding(app: FastifyInstance, pool: Pool,
     if (!account) return
     const mail = app.hasDecorator('accountMail') ? app.accountMail : null
     if (!mail) return reply.code(503).send({ error: { code: 'mail_unavailable', message: 'Почта временно недоступна' } })
-    if (work.active >= 4 || !allowed(request.ip, account.id, clock().getTime())) return reply.code(429).send({ error: { code: 'rate_limited', message: 'Повторите позже' } })
+    if (work.active >= 4 || !await allowed(request.ip, account.id, clock()) || work.active >= 4) return reply.code(429).send({ error: { code: 'rate_limited', message: 'Повторите позже' } })
     const values = z.strictObject({ email: emailSchema, password: passwordSchema }).safeParse(request.body)
     const invalid = () => reply.code(400).send({ error: { code: 'invalid_data', message: 'Проверьте почту и текущий пароль' } })
     if (!values.success) return invalid()

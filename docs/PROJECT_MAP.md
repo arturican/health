@@ -11,7 +11,7 @@ CRUD, графики, фото/документы, ручные показате
 | Запуск и навигация | [main.tsx](../src/main.tsx) → AuthBoundary → [App.tsx](../src/App.tsx); hash-маршруты — [Navigation.tsx](../src/ui/Navigation.tsx), выбранный день — DayContext |
 | Экраны и оформление | [src/pages](../src/pages), общие компоненты [src/ui](../src/ui); CSS в src, общие styles.css/shell.css; локальные эталоны — [design/desktop](../design/desktop/README.md), ресурсы — public/assets |
 | Данные UI | [dataAccess.ts](../src/dataAccess.ts) экспортирует API-репозитории из [src/client](../src/client); формы/локальное состояние — React, загрузка — useDiaryQuery, инвалидация — queries, сессия в памяти — session, повторы команд — commands, транспорт — http |
-| Авторизация | client/AuthBoundary, auth, emailRecovery и формы; server/auth, sessions, registration, emailAuth, emailBinding, accountMail; граница — Zod-схемы в domain |
+| Авторизация | client/AuthBoundary, auth, emailRecovery и формы; server/auth, sessions, registration, emailAuth, emailBinding, accountMail, authRateLimit; граница — Zod-схемы в domain |
 | Вычисления и валидация | [src/domain](../src/domain): чистые функции и Zod-схемы; [src/media](../src/media): подготовка файлов/копий до отправки |
 | HTTP API | [server/main.ts](../src/server/main.ts) → runtime (конфигурация, pool, регистрация маршрутов); app — Fastify factory/liveness/ошибки; тематические *Routes/*Records; базовый путь /api/v1 |
 | PostgreSQL | [migrations](../migrations), server/migrations и migrate; database — pool, userTransaction — транзакция владельца/RLS, writeCommand — защита повторов, revision/generation — согласованность; файлы также в БД |

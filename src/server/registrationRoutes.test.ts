@@ -1,5 +1,6 @@
 // @vitest-environment node
-import { afterEach, beforeEach, expect, it } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import * as accounts from './accounts'
 import { createApi } from './app'
 import { registerAuthentication } from './auth'
 import { createRegistrationLimit } from './registration'
@@ -23,13 +24,29 @@ it.each([null, {}, { login: 'new-user', password: 'synthetic-password', timezone
 })
 
 it('ограничивает четыре общих слота погашения и входа', async () => {
-  const results = await Promise.all(Array.from({ length: 8 }, (_, index) => app.inject({
-    method: 'POST', url: index < 4 ? '/api/v1/auth/email/complete' : '/api/v1/auth/login', headers: { origin },
-    payload: index < 4 ? { token: 'a'.repeat(64), purpose: 'reset_password', password: 'synthetic-password' }
-      : { login: 'missing-user', password: 'synthetic-password' },
+  let release: () => void = () => { throw new Error('Нет gate') }
+  let ready: () => void = () => { throw new Error('Нет ready') }
+  const hold = new Promise<void>(resolve => { release = resolve })
+  const entered = new Promise<void>(resolve => { ready = resolve })
+  let active = 0
+  vi.spyOn(accounts, 'hashPassword').mockImplementation(async () => {
+    if (++active === 4) ready()
+    await hold
+    return '$argon2id$synthetic-test-only'
+  })
+  const running = Promise.all(Array.from({ length: 4 }, () => app.inject({
+    method: 'POST', url: '/api/v1/auth/email/complete', headers: { origin },
+    payload: { token: 'a'.repeat(64), purpose: 'reset_password', password: 'synthetic-password' },
   })))
-  expect(results.slice(0, 4).every(value => value.statusCode === 400)).toBe(true)
-  expect(results.slice(4).every(value => value.statusCode === 429)).toBe(true)
+  await entered
+  try {
+    const blocked = await Promise.all(Array.from({ length: 4 }, () => app.inject({
+      method: 'POST', url: '/api/v1/auth/login', headers: { origin },
+      payload: { login: 'missing-user', password: 'synthetic-password' },
+    })))
+    expect(blocked.map(value => value.statusCode)).toEqual([429, 429, 429, 429])
+  } finally { release() }
+  expect((await running).map(value => value.statusCode)).toEqual([400, 400, 400, 400])
   expect((await database.pool.query('SELECT * FROM health.sessions')).rowCount).toBe(0)
 })
 

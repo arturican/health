@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { loginIdentity } from '../domain/emailAccount'
 import { createSessions, csrfToken, SESSION_LIFETIME_MS } from './sessions.js'
 import { deny, installRequestProtection, readCookie, sessionCookie } from './httpSecurity.js'
-import { createLoginLimit } from './loginLimit.js'
+import { createAuthRateLimit } from './authRateLimit.js'
 import { registerEmailAuth } from './emailAuth.js'
 import { registerEmailBinding } from './emailBinding.js'
 
@@ -18,7 +18,7 @@ export async function assertRuntimeRole(pool: Pool) {
 export async function registerAuthentication(app: FastifyInstance, pool: Pool, origin: string, clock = () => new Date()) {
   await assertRuntimeRole(pool)
   const sessions = await createSessions(pool)
-  const allowLogin = createLoginLimit()
+  const allowLogin = createAuthRateLimit(pool, 'login')
   const work = { active: 0 }
   installRequestProtection(app, origin)
   await registerEmailAuth(app, pool, origin, work, clock)
@@ -32,7 +32,7 @@ export async function registerAuthentication(app: FastifyInstance, pool: Pool, o
   registerEmailBinding(app, pool, authorize, origin, work, clock)
   app.post('/api/v1/auth/login', async (request, reply) => {
     const body = z.object({ login: loginIdentity }).safeParse(request.body)
-    if (work.active >= 4 || !allowLogin(request.ip, body.success ? body.data.login.toLowerCase() : 'invalid', clock().getTime())) return deny(reply, 429)
+    if (work.active >= 4 || !await allowLogin(request.ip, body.success ? body.data.login.toLowerCase() : 'invalid', clock()) || work.active >= 4) return deny(reply, 429)
     work.active++
     try {
       const session = await sessions.login(request.body, readCookie(request.headers.cookie), clock())
