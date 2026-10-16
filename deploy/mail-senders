@@ -1,0 +1,2 @@
+/^no-reply@auth\.arturican\.com$/ OK
+/.*/ REJECT Only the application sender is allowed
