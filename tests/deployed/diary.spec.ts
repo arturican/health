@@ -21,7 +21,7 @@ test('HTTPS дневник: вход, восемь экранов, вложен�
   page.on('request', request => { if (new URL(request.url()).origin !== baseURL) external.push(request.url()) })
   await page.goto('/#profile')
   await expect(page.getByRole('heading', { name: 'Вход в дневник' })).toBeVisible()
-  await page.getByLabel('Логин', { exact: true }).fill(credentials.login)
+  await page.getByLabel('Почта', { exact: true }).fill(credentials.login)
   await page.getByLabel('Пароль', { exact: true }).fill(credentials.password)
   await page.getByRole('button', { name: 'Войти', exact: true }).click()
   await expect(page.getByText('Илья Ветров — демо', { exact: true })).toBeVisible()

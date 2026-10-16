@@ -18,10 +18,21 @@ import { registerBackups } from '../../src/server/backupRoutes'
 import { registerClear } from '../../src/server/clearRoutes'
 import { testDatabase } from '../serverDatabase'
 import { migrate, readMigrations } from '../../src/server/migrations'
+import { createAccountMailer } from '../../src/server/accountMail'
+import { accountMailSmtp } from '../accountMailSmtp'
 
 export default async function setup() {
   const database = await testDatabase()
   const app = createApi()
+  const smtp = await accountMailSmtp()
+  const mail = createAccountMailer({ MAIL_ENABLED: 'true', MAIL_SMTP_PORT: String(smtp.port) })
+  app.decorate('accountMail', mail)
+  app.addHook('onClose', async () => { await mail?.close(); await smtp.close() })
+  // Synthetic mailbox exists only in this local test server.
+  app.get('/api/v1/test-mail', () => smtp.messages.map(raw => ({
+    to: raw.match(/^To:\s*<?([^>\r\n]+)>?/mi)?.[1] ?? '',
+    text: Buffer.from(raw.split('\r\n\r\n')[1] ?? '', 'base64').toString(),
+  })))
   try {
     await migrate(database.pool, await readMigrations())
     const pool = database.runtime

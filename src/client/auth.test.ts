@@ -8,21 +8,19 @@ const network = vi.fn<typeof fetch>()
 beforeEach(() => { setClientSession(null); network.mockReset(); vi.stubGlobal('fetch', network); vi.stubGlobal('BroadcastChannel', undefined) })
 afterEach(() => { setClientSession(null); vi.unstubAllGlobals() })
 
-it('валидирует регистрацию до сети, нормализует логин и не создаёт клиентскую сессию', async () => {
-  await expect(register({ login: 'demo', password: 'short', timezone: 'UTC' })).rejects.toThrow('Проверьте данные')
+it('валидирует email до сети и не создаёт сессию', async () => {
+  await expect(register({ email: 'example.test', timezone: 'UTC' })).rejects.toThrow('Проверьте данные')
   expect(network).not.toHaveBeenCalled()
-  network.mockResolvedValueOnce(jsonResponse({ account: clientSession.account }))
-  expect(await register({ login: ' Alice ', password: ' synthetic-password ', timezone: 'Europe/Moscow' })).toEqual(clientSession.account)
-  expect(network.mock.calls[0]?.[1]?.body).toBe(JSON.stringify({ login: 'alice', password: ' synthetic-password ', timezone: 'Europe/Moscow' }))
-  expect(network.mock.calls[0]?.[0]).toBe('/api/v1/auth/register')
+  network.mockResolvedValueOnce(jsonResponse({ accepted: true }))
+  await expect(register({ email: ' Alice@EXAMPLE.TEST ', timezone: 'Europe/Moscow' })).resolves.toBeUndefined()
+  expect(network.mock.calls[0]?.[1]?.body).toBe(JSON.stringify({ email: 'Alice@example.test', timezone: 'Europe/Moscow' }))
+  expect(network.mock.calls[0]?.[0]).toBe('/api/v1/auth/email/register')
   expect(getClientSession().session).toBeNull()
 })
 
-it('объясняет занятый логин, лимит и сетевой отказ регистрации', async () => {
-  const values = { login: 'alice', password: 'synthetic-password', timezone: 'UTC' }
-  network.mockResolvedValueOnce(new Response('', { status: 409 })).mockResolvedValueOnce(new Response('', { status: 429 }))
-    .mockRejectedValueOnce(new Error('synthetic-private-network-error'))
-  await expect(register(values)).rejects.toThrow('логин уже занят')
+it('сообщает о лимите и сетевом отказе без ложного создания аккаунта', async () => {
+  const values = { email: 'alice@example.test', timezone: 'UTC' }
+  network.mockResolvedValueOnce(new Response('', { status: 429 })).mockRejectedValueOnce(new Error('synthetic-private-network-error'))
   await expect(register(values)).rejects.toThrow('Слишком много запросов')
   await expect(register(values)).rejects.toThrow('Проверьте соединение')
   expect(getClientSession().session).toBeNull()
@@ -40,7 +38,7 @@ it('использует день аккаунта после входа и во
 })
 
 it('не публикует частичную сессию при неверном состоянии дневника и валидирует ввод', async () => {
-  await expect(login({ login: 'bad login', password: '' })).rejects.toThrow('Введите логин и пароль')
+  await expect(login({ login: 'bad login', password: '' })).rejects.toThrow('Введите почту и пароль')
   expect(network).not.toHaveBeenCalled()
   network.mockResolvedValueOnce(jsonResponse(clientSession)).mockResolvedValueOnce(jsonResponse({ ...clientDiary, generation: 'invalid' }))
   await expect(restoreSession()).rejects.toThrow('Не удалось получить данные')

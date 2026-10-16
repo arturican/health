@@ -4,7 +4,7 @@ import { createAccount } from '../../src/server/accounts'
 import { createPool } from '../../src/server/database'
 
 async function login(page: Page, login: string, password: string) {
-  await page.getByLabel('Логин', { exact: true }).fill(login)
+  await page.getByLabel('Почта', { exact: true }).fill(login)
   await page.getByLabel('Пароль', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Войти', exact: true }).click()
   await expect(page.getByRole('navigation', { name: 'Разделы дневника', exact: true })).toBeVisible()
@@ -14,7 +14,7 @@ test('карточка входа компактна, поля разделен�
   await context.clearCookies()
   await page.goto('/')
   const card = page.getByRole('region', { name: 'Вход в дневник', exact: true })
-  const username = page.getByLabel('Логин', { exact: true })
+  const username = page.getByLabel('Почта', { exact: true })
   const password = page.getByLabel('Пароль', { exact: true })
   const submit = page.getByRole('button', { name: 'Войти', exact: true })
   for (const width of [320, 375, 768, 1440]) {

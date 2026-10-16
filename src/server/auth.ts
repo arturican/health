@@ -5,7 +5,6 @@ import { loginIdentity } from '../domain/emailAccount'
 import { createSessions, csrfToken, SESSION_LIFETIME_MS } from './sessions.js'
 import { deny, installRequestProtection, readCookie, sessionCookie } from './httpSecurity.js'
 import { createLoginLimit } from './loginLimit.js'
-import { createRegistrationLimit, registerAccount, registrationSchema } from './registration.js'
 import { registerEmailAuth } from './emailAuth.js'
 import { registerEmailBinding } from './emailBinding.js'
 
@@ -20,25 +19,9 @@ export async function registerAuthentication(app: FastifyInstance, pool: Pool, o
   await assertRuntimeRole(pool)
   const sessions = await createSessions(pool)
   const allowLogin = createLoginLimit()
-  const allowRegistration = createRegistrationLimit()
   const work = { active: 0 }
   installRequestProtection(app, origin)
   await registerEmailAuth(app, pool, origin, work, clock)
-
-  app.post('/api/v1/auth/register', async (request, reply) => {
-    if (work.active >= 4 || !allowRegistration(request.ip, clock().getTime())) {
-      reply.header('Retry-After', '900')
-      return deny(reply, 429)
-    }
-    const values = registrationSchema.safeParse(request.body)
-    if (!values.success) return reply.code(400).send({ error: { code: 'invalid_data', message: 'Проверьте логин, пароль и часовой пояс' } })
-    work.active++
-    try {
-      const account = await registerAccount(pool, values.data)
-      if (!account) return await reply.code(409).send({ error: { code: 'login_unavailable', message: 'Этот логин уже занят. Выберите другой или войдите.' } })
-      return await reply.code(201).send({ account })
-    } finally { work.active-- }
-  })
 
   async function authorize(request: FastifyRequest, reply: FastifyReply) {
     const account = await sessions.read(readCookie(request.headers.cookie), clock())

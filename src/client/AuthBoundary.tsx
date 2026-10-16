@@ -34,25 +34,22 @@ export function AuthBoundary({ children }: PropsWithChildren) {
 
 function EntryForms() {
   const [registering, setRegistering] = useState(false)
-  const [registeredLogin, setRegisteredLogin] = useState('')
-  return registering ? <RegistrationForm onCancel={() => { setRegistering(false) }} onCreated={login => {
-    setRegisteredLogin(login); setRegistering(false)
-  }} /> : <LoginForm registeredLogin={registeredLogin} onRegister={() => { setRegisteredLogin(''); setRegistering(true) }} />
+  return registering ? <RegistrationForm onCancel={() => { setRegistering(false) }} />
+    : <LoginForm onRegister={() => { setRegistering(true) }} />
 }
 
-function LoginForm({ registeredLogin, onRegister }: { registeredLogin: string; onRegister: () => void }) {
+function LoginForm({ onRegister }: { onRegister: () => void }) {
   const action = useAction(), form = useRef<HTMLFormElement>(null)
-  useEffect(() => { form.current?.querySelector<HTMLInputElement>(registeredLogin ? '[name="password"]' : '[name="login"]')?.focus() }, [registeredLogin])
+  useEffect(() => { form.current?.querySelector<HTMLInputElement>('[name="login"]')?.focus() }, [])
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
     action.run(() => login({ login: data.get('login'), password: data.get('password') }))
   }
   return <main className="page auth-page"><section className="card auth-card" aria-labelledby="login-title">
-    <h1 id="login-title">Вход в дневник</h1><p>Введите логин и пароль своего аккаунта.</p>
-    {registeredLogin && <p role="status">Аккаунт создан. Введите пароль, чтобы войти.</p>}
+    <h1 id="login-title">Вход в дневник</h1><p>Введите почту и пароль. Для прежнего аккаунта подходит старый логин.</p>
     <form className="auth-form" ref={form} onSubmit={submit} aria-label="Вход в дневник">
-      <Field label="Логин" name="login" autoComplete="username" defaultValue={registeredLogin} required maxLength={64} disabled={action.pending} />
+      <Field label="Почта" name="login" autoComplete="username" inputMode="email" autoCapitalize="none" spellCheck={false} required maxLength={254} disabled={action.pending} />
       <Field label="Пароль" name="password" type="password" autoComplete="current-password" required maxLength={1024} disabled={action.pending} />
       <button type="submit" disabled={action.pending}>{action.pending ? 'Входим…' : 'Войти'}</button>
     </form><Feedback error={action.error} message={null} />
@@ -64,7 +61,7 @@ export function SessionControls() {
   const { session } = useSyncExternalStore(subscribeSession, getClientSession)
   const action = useAction()
   if (!session) return null
-  return <div className="actions" aria-label="Аккаунт"><span>{session.account.login}</span>
+  return <div className="actions" aria-label="Аккаунт"><span>{session.account.login.startsWith('email-') ? 'Аккаунт' : session.account.login}</span>
     <button type="button" disabled={action.pending} onClick={() => { action.run(logout) }}>{action.pending ? 'Выходим…' : 'Выйти'}</button>
     <Feedback error={action.error} message={null} />
   </div>

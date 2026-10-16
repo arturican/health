@@ -1,18 +1,28 @@
 import { randomUUID } from 'node:crypto'
 import axe from 'axe-core'
+import { z } from 'zod'
 import { expect, test, type Page } from './fixtures'
 
 test.use({ timezoneId: 'Europe/Moscow' })
 const password = ' synthetic-registration-password '
-async function fillRegistration(page: Page, login: string, secret = password) {
+async function fillRegistration(page: Page, email: string) {
   await page.getByRole('button', { name: 'Зарегистрироваться', exact: true }).click()
-  await page.getByLabel('Логин', { exact: true }).fill(login)
-  await page.getByLabel('Пароль', { exact: true }).fill(secret)
-  await page.getByLabel('Повторите пароль', { exact: true }).fill(secret)
+  await page.getByLabel('Почта', { exact: true }).fill(email)
   await expect(page.getByLabel('Часовой пояс дневника')).toHaveValue('Europe/Moscow')
 }
+async function activateEmail(page: Page, email: string) {
+  const read = async () => z.array(z.object({ to: z.string(), text: z.string() })).parse(await (await page.request.get('/api/v1/test-mail')).json())
+  await expect.poll(async () => (await read()).filter(value => value.to === email).length).toBe(1)
+  const letter = (await read()).find(value => value.to === email)
+  const token = letter?.text.match(/token=([a-f0-9]{64})/)?.[1]
+  if (!token) throw new Error('Нет синтетической ссылки')
+  const completed = await page.request.post('/api/v1/auth/email/complete', {
+    headers: { origin: new URL(page.url()).origin }, data: { token, purpose: 'verify_email', password },
+  })
+  expect(completed.status()).toBe(200)
+}
 async function signIn(page: Page, login: string, secret = password) {
-  await page.getByLabel('Логин', { exact: true }).fill(login)
+  await page.getByLabel('Почта', { exact: true }).fill(login)
   await page.getByLabel('Пароль', { exact: true }).fill(secret)
   await page.getByRole('button', { name: 'Войти', exact: true }).click()
   await expect(page.getByRole('navigation', { name: 'Разделы дневника', exact: true })).toBeVisible()
@@ -25,11 +35,12 @@ test('регистрация, профиль, reload, выход и повтор
   await context.clearCookies()
   await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'))
   await page.goto('/#profile')
-  const first = 'signup-' + randomUUID().slice(0, 8)
+  const first = 'signup-' + randomUUID().slice(0, 8) + '@example.test'
   await fillRegistration(page, first)
-  await page.getByRole('button', { name: 'Создать аккаунт', exact: true }).click()
-  await expect(page.getByRole('status')).toHaveText('Аккаунт создан. Введите пароль, чтобы войти.')
-  await expect(page.getByLabel('Логин', { exact: true })).toHaveValue(first)
+  await page.getByRole('button', { name: 'Отправить ссылку', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('Если регистрация доступна')
+  await activateEmail(page, first)
+  await page.getByRole('button', { name: 'Уже есть аккаунт? Войти', exact: true }).click()
   await expect(page.getByLabel('Пароль', { exact: true })).toHaveValue('')
   expect(await context.cookies()).toEqual([])
   await signIn(page, first)
@@ -46,10 +57,12 @@ test('регистрация, профиль, reload, выход и повтор
   await page.getByRole('button', { name: 'Выйти', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Вход в дневник' })).toBeVisible()
   expect(await page.evaluate(async () => (await fetch('/api/v1/profile')).status)).toBe(401)
-  const second = 'signup-' + randomUUID().slice(0, 8)
+  const second = 'signup-' + randomUUID().slice(0, 8) + '@example.test'
   await fillRegistration(page, second)
-  await page.getByRole('button', { name: 'Создать аккаунт', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('Аккаунт создан')
+  await page.getByRole('button', { name: 'Отправить ссылку', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('Если регистрация доступна')
+  await activateEmail(page, second)
+  await page.getByRole('button', { name: 'Уже есть аккаунт? Войти', exact: true }).click()
   await signIn(page, second)
   await expect(page.getByRole('form', { name: 'Создание профиля' })).toBeVisible()
   expect(await page.evaluate(async () => {
@@ -64,27 +77,32 @@ test('регистрация, профиль, reload, выход и повтор
   expect(errors).toEqual([]); expect(external).toEqual([])
 })
 
-test('занятый логин не заменяет пароль и позволяет вернуться к обычному входу', async ({ page, context, account }) => {
+test('повтор регистрации подтверждённой почты не заменяет пароль', async ({ page, context }) => {
   await context.clearCookies(); await page.goto('/')
-  await fillRegistration(page, account.login)
-  const response = page.waitForResponse(value => value.url().endsWith('/api/v1/auth/register'))
-  await page.getByRole('button', { name: 'Создать аккаунт', exact: true }).click()
-  expect((await response).status()).toBe(409)
-  await expect(page.getByRole('alert')).toContainText('Этот логин уже занят')
-  await expect(page.getByLabel('Логин', { exact: true })).toHaveValue(account.login)
+  const email = 'repeat-' + randomUUID().slice(0, 8) + '@example.test'
+  await fillRegistration(page, email)
+  await page.getByRole('button', { name: 'Отправить ссылку', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('Если регистрация доступна')
+  await activateEmail(page, email)
+  await page.getByRole('button', { name: 'Уже есть аккаунт? Войти', exact: true }).click()
+  await signIn(page, email)
+  await page.getByRole('button', { name: 'Выйти', exact: true }).click()
+  await fillRegistration(page, email)
+  await page.getByRole('button', { name: 'Отправить ссылку', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('Если регистрация доступна')
   expect(await context.cookies()).toEqual([])
   await page.getByRole('button', { name: 'Уже есть аккаунт? Войти', exact: true }).click()
   await expect(page.getByLabel('Пароль', { exact: true })).toHaveValue('')
-  await signIn(page, account.login, account.password)
+  await signIn(page, email)
 })
 
 test('регистрация доступна с клавиатуры, без нарушений axe и переполнения', async ({ page, context }, testInfo) => {
   await context.clearCookies(); await page.goto('/')
   await page.getByRole('button', { name: 'Зарегистрироваться', exact: true }).click()
-  const login = page.getByLabel('Логин', { exact: true })
+  const login = page.getByLabel('Почта', { exact: true })
   await expect(login).toBeFocused()
   await page.keyboard.press('Tab')
-  await expect(page.getByLabel('Пароль', { exact: true })).toBeFocused()
+  await expect(page.getByLabel('Часовой пояс дневника')).toBeFocused()
   for (const width of [320, 375, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
@@ -99,7 +117,7 @@ test('регистрация доступна с клавиатуры, без н
   await page.evaluate(() => { window.scrollTo(0, 0) })
   await page.screenshot({ path: testInfo.outputPath('registration-desktop.png'), fullPage: true })
   await page.setViewportSize({ width: 320, height: 400 })
-  await page.getByRole('button', { name: 'Создать аккаунт', exact: true }).click()
+  await page.getByRole('button', { name: 'Отправить ссылку', exact: true }).click()
   await expect(login).toHaveAttribute('aria-invalid', 'true')
   await expect(login).toBeFocused()
   for (const control of await page.locator('input, button').all()) {

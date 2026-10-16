@@ -33,7 +33,7 @@ it('сообщает об ошибке подключения и допуска�
   expect(screen.queryByText('Содержимое дневника')).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Повторить подключение' }))
   expect(await screen.findByRole('form', { name: 'Вход в дневник' })).toBeVisible()
-  await waitFor(() => { expect(screen.getByLabelText('Логин')).toHaveFocus() })
+  await waitFor(() => { expect(screen.getByLabelText('Почта')).toHaveFocus() })
 })
 
 it('сохраняет ввод после неверного пароля и успешно входит с повтором', async () => {
@@ -41,11 +41,11 @@ it('сохраняет ввод после неверного пароля и у
     .mockResolvedValueOnce(jsonResponse(clientSession)).mockResolvedValueOnce(jsonResponse(clientDiary))
   view()
   await screen.findByRole('form', { name: 'Вход в дневник' })
-  fireEvent.change(screen.getByLabelText('Логин'), { target: { value: 'Alice' } })
+  fireEvent.change(screen.getByLabelText('Почта'), { target: { value: 'Alice' } })
   fireEvent.change(screen.getByLabelText('Пароль'), { target: { value: 'wrong' } })
   fireEvent.submit(screen.getByRole('form'))
-  expect(await screen.findByRole('alert')).toHaveTextContent('Неверный логин или пароль')
-  expect(screen.getByLabelText('Логин')).toHaveValue('Alice')
+  expect(await screen.findByRole('alert')).toHaveTextContent('Неверная почта или пароль')
+  expect(screen.getByLabelText('Почта')).toHaveValue('Alice')
   fireEvent.change(screen.getByLabelText('Пароль'), { target: { value: ' synthetic-password ' } })
   fireEvent.submit(screen.getByRole('form'))
   expect(await screen.findByText('Содержимое дневника')).toBeVisible()
