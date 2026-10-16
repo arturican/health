@@ -1,4 +1,4 @@
-# Health Diary: outbound application mail only. Initially held pending DNS.
+# Health Diary: outbound application mail only. DNS verified in T187.
 compatibility_level = 3.6
 myhostname = mail.arturican.com
 myorigin = auth.arturican.com
@@ -30,4 +30,4 @@ maximal_backoff_time = 300s
 queue_run_delay = 60s
 maximal_queue_lifetime = 10m
 bounce_queue_lifetime = 10m
-defer_transports = smtp
+defer_transports =

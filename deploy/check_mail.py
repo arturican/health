@@ -117,7 +117,7 @@ def check_dns():
             data = json.load(response)
         answers = [entry['data'] for entry in data.get('Answer', [])]
         if kind == 'TXT':
-            answers = [''.join(re.findall(r'"([^\"]*)"', answer)) for answer in answers]
+            answers = [''.join(re.findall(r'"([^\"]*)"', answer)) if answer.startswith('"') else answer for answer in answers]
         if value not in [answer.rstrip('.') for answer in answers]:
             missing.append(name + ' ' + kind)
     if missing:
