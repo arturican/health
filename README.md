@@ -297,6 +297,7 @@ Linux-зависимости браузера, отдельные команды
 
 - [MVP.md](docs/MVP.md) — реализованный объём и принятые решения.
 - [AGENTS.md](AGENTS.md) и [WORKFLOW.md](docs/WORKFLOW.md) — порядок задач и Git.
+- [PROJECT_MAP.md](docs/PROJECT_MAP.md) — точки входа, маршруты поиска и проверки по типу изменения.
 - [CODING_STANDARDS.md](docs/CODING_STANDARDS.md) — структура и правила кода.
 - [TESTING.md](docs/TESTING.md) и [TEST_CASES.md](docs/TEST_CASES.md) — проверки.
 - [DEPLOYMENT.md](docs/DEPLOYMENT.md), [BACKUPS.md](docs/BACKUPS.md) — VPS и восстановление.
