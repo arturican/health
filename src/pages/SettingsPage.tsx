@@ -14,12 +14,14 @@ import { PrivacySettings } from './PrivacySettings'
 import { BrowserDiaryExport } from './BrowserDiaryExport'
 import { DeleteDiary } from './DeleteDiary'
 import '../settings.css'
+import { EmailBinding } from '../client/EmailBinding'
 
 export function SettingsPage() {
   const [resetVersion, setResetVersion] = useState(0)
   return <section className="page settings-page" aria-labelledby="settings-title">
     <h1 id="settings-title">Настройки</h1>
     <p>План дневника, видимость разделов и управление вашими данными.</p>
+    <EmailBinding />
     <SettingsContent key={resetVersion} />
     <DeleteDiary onCleared={() => { setResetVersion(version => version + 1) }} />
   </section>
