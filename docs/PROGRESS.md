@@ -1,5 +1,31 @@
 # Прогресс
 
+## T202 — CSP и проверка браузером
+
+Nginx отправляет строгую Content-Security-Policy с always. Скрипты/шрифты
+только self; inline-JavaScript/eval, объекты, фреймы/workers запрещены;
+ограничены base-uri/form-action/frame-ancestors. Разрешены нужные приложению
+inline-стили и локальные blob-изображения/чтение байтов, без внешних отчётов.
+Preview читает точную политику из Nginx, поэтому весь production E2E работает
+с ней. Dev и инструментированный Vitest Browser отдельно, CSP не ослаблялась.
+
+Новый отрицательный E2E подтверждает блокировку inline-script и внешнего fetch
+событиями securitypolicyviolation; внешний адрес перехватывается тестом,
+фактического выхода в сеть нет. Фото/blob и оригинальный PDF прошли 6 целевых
+Desktop/mobile проверок. Локальный настоящий nginx -t/HTTP подтвердил заголовок.
+
+Первый полный прогон: unit/Browser PASS, 62 E2E PASS и 18 FAIL на внедрении
+axe.source через inline DOM-script. Заменено только тестовое внедрение Axe на
+page.evaluate через драйвер; bypassCSP не включён. 4 целевых accessibility/CSP
+PASS; затем полный npm run check PASS (1615 unit/API, 91 Browser, 80 E2E).
+20 Python deploy и verify_build (6 файлов/лицензия) PASS; docs/diff check PASS.
+VPS/Nginx production не изменены, применение — отдельная T205.
+
+UI: весь Desktop/mobile набор проверил формы/графики/фото/документы/копии.
+CSP следует проверять вместе с реальными потоками, а не только синтаксисом.
+Инструмент тестирования не должен заставлять разрешать inline script продукту.
+Следующий разрешённый этап — T203: отзыв доступа после восстановления копии.
+
 ## T201 — Сохранение лимитов в PostgreSQL
 
 Миграция 015 добавляет закрытую таблицу auth_rate_limits и ограниченную

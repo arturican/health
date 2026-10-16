@@ -91,6 +91,25 @@ Origin/CSRF и cookie не зависят от forwarded hostname/proto.
 очищайте счётчики ради обхода лимитов. Восстановленная старая БД до включения API
 должна получить все актуальные миграции. Production пока не обновлён (T205).
 
+## Подготовленная CSP (T202)
+
+Nginx-конфигурация содержит Content-Security-Policy с always: скрипты/шрифты
+только своего origin, inline-JavaScript/eval, объекты, фреймы и workers запрещены;
+base-uri none, form-action self, frame-ancestors none. Локальные blob разрешены
+для изображений и чтения их байтов. style-src unsafe-inline нужен существующим
+динамическим стилям графиков/размеров; это не разрешение inline-JavaScript.
+Внешних отчётов/телеметрии CSP нет. Политика усиливает защиту, но не обезвреживает PDF.
+
+Vite preview читает точную строку из deploy/nginx.conf: весь production E2E
+проверяет её, включая фото, документы, копии, графики и вход. Dev/HMR и
+Vitest Browser — отдельные инструментированные серверы без этой политики.
+Nginx -t и реальный локальный HTTP проверяются отдельно; конфигурация VPS
+не обновлена (T205). При изменении политики повторите отрицательный CSP E2E
+и полный check, не добавляйте unsafe-eval/unsafe-inline в script-src ради тестов.
+
+Основания: [W3C CSP](https://www.w3.org/TR/CSP3/),
+[Nginx add_header](https://nginx.org/en/docs/http/ngx_http_headers_module.html#add_header).
+
 ## Обновление и проверки
 
 Исходящая почта приложения подготовлена отдельно: [DNS и SMTP](MAIL_DNS.md).

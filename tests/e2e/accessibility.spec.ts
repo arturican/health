@@ -24,7 +24,7 @@ test('восемь production-экранов доступны с клавиат�
   await page.getByLabel('Дата первого измерения', { exact: true }).fill('2026-10-13')
   await page.getByRole('button', { name: 'Создать профиль', exact: true }).click()
   await expect(page.getByText('Синтетический аудит доступности', { exact: true })).toBeVisible()
-  await page.addScriptTag({ content: axe.source })
+  await page.evaluate(axe.source)
 
   const routes = [
     ['today', 'Сегодня'], ['profile', 'Профиль'], ['weight', 'Вес'], ['nutrition', 'Питание'],

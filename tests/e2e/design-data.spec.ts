@@ -23,7 +23,7 @@ test.beforeEach(async ({ page, baseURL }) => {
 })
 
 test.afterEach(async ({ page }) => {
-  await page.addScriptTag({ content: axe.source })
+  await page.evaluate(axe.source)
   expect(await page.evaluate(async () => (await window.axe.run(document)).violations)).toEqual([])
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   expect(failures.get(page)).toEqual([])

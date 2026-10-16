@@ -140,7 +140,7 @@ test('формы восстановления/пароля доступны с �
         expect(box.height).toBeGreaterThanOrEqual(44)
       }
     }
-    await page.addScriptTag({ content: axe.source })
+    await page.evaluate(axe.source)
     expect(await page.evaluate(async () => (await window.axe.run(document)).violations.map(value => value.id))).toEqual([])
   }
   await page.setViewportSize({ width: 375, height: 812 })

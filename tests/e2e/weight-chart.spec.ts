@@ -92,7 +92,7 @@ test('график выбирает измерения кликом, касан�
   await expect(readout).not.toContainText('69,75')
   await expect(select.getByRole('option', { name: '09.10.2026 — 69,75 кг', exact: true })).toHaveCount(0)
 
-  await page.addScriptTag({ content: axe.source })
+  await page.evaluate(axe.source)
   for (const width of [320, 1440]) {
     await page.setViewportSize({ width, height: 812 })
     await interaction.scrollIntoViewIfNeeded()

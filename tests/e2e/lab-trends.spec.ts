@@ -62,7 +62,7 @@ test('график анализов обновляется из ручных з�
   await edit.getByLabel('Результат числом', { exact: true }).fill('8.5')
   await edit.getByRole('button', { name: 'Сохранить показатель', exact: true }).click()
   await expect(history).toContainText('8,5 усл. ед.')
-  await page.addScriptTag({ content: axe.source })
+  await page.evaluate(axe.source)
   expect(await page.evaluate(async () => (await window.axe.run(document)).violations)).toEqual([])
   for (const width of [320, 1440]) {
     await page.setViewportSize({ width, height: 900 })

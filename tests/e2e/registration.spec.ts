@@ -114,7 +114,7 @@ test('регистрация доступна с клавиатуры, без н
     await control.scrollIntoViewIfNeeded(); await expect(control).toBeInViewport()
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
-  await page.addScriptTag({ content: axe.source })
+  await page.evaluate(axe.source)
   expect(await page.evaluate(async () => (await window.axe.run(document)).violations.map(value => value.id))).toEqual([])
   await page.evaluate(() => { window.scrollTo(0, 0) })
   await page.screenshot({ path: testInfo.outputPath('registration-mobile.png'), fullPage: true })

@@ -28,6 +28,14 @@ unit/browser-компонентов; рабочая сборка использ�
 `test:e2e` требует актуальную сборку: сначала `npm run build`. Полный `check`
 делает это сам. Установка зависимостей и браузера выполняется отдельно.
 
+Production E2E получают Content-Security-Policy из deploy/nginx.conf через
+Vite preview. security-policy.spec.ts проверяет реальную блокировку inline-script
+и внешнего fetch; весь набор проверяет совместимость интерфейса/файлов.
+Axe внедряется через page.evaluate (браузерный драйвер), а не inline script
+в DOM страницы. bypassCSP не включается; отрицательный тест подтверждает,
+что inline script и внешний fetch самой страницы по-прежнему блокируются.
+Vitest Browser использует отдельный dev-harness без production CSP.
+
 ## Окружение
 
 В репозитории зафиксированы Node 24.22.0 в [.nvmrc](../.nvmrc) и npm 11.19.1

@@ -35,7 +35,7 @@ for (const failure of ['missing', 'denied'] as const) {
       await expect(page.getByRole('main')).toHaveCount(1)
       if (route === 'weight') await expect(page.getByRole('list', { name: 'История веса' }).getByText('70 кг', { exact: true })).toBeVisible()
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-      await page.addScriptTag({ content: axe.source })
+      await page.evaluate(axe.source)
       expect(await page.evaluate(async () => (await window.axe.run(document)).violations)).toEqual([])
     }
 
