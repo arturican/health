@@ -5,6 +5,7 @@ import { loginSchema } from './accounts.js'
 import { createSessions, csrfToken, SESSION_LIFETIME_MS } from './sessions.js'
 import { deny, installRequestProtection, readCookie, sessionCookie } from './httpSecurity.js'
 import { createLoginLimit } from './loginLimit.js'
+import { createRegistrationLimit, registerAccount, registrationSchema } from './registration.js'
 
 export async function assertRuntimeRole(pool: Pool) {
   const rights = await pool.query<Record<string, unknown>>(`SELECT rolsuper OR rolbypassrls OR rolcreatedb OR rolcreaterole
@@ -17,8 +18,24 @@ export async function registerAuthentication(app: FastifyInstance, pool: Pool, o
   await assertRuntimeRole(pool)
   const sessions = await createSessions(pool)
   const allowLogin = createLoginLimit()
+  const allowRegistration = createRegistrationLimit()
   let inFlight = 0
   installRequestProtection(app, origin)
+
+  app.post('/api/v1/auth/register', async (request, reply) => {
+    if (inFlight >= 4 || !allowRegistration(request.ip, clock().getTime())) {
+      reply.header('Retry-After', '900')
+      return deny(reply, 429)
+    }
+    const values = registrationSchema.safeParse(request.body)
+    if (!values.success) return reply.code(400).send({ error: { code: 'invalid_data', message: 'Проверьте логин, пароль и часовой пояс' } })
+    inFlight++
+    try {
+      const account = await registerAccount(pool, values.data)
+      if (!account) return await reply.code(409).send({ error: { code: 'login_unavailable', message: 'Этот логин уже занят. Выберите другой или войдите.' } })
+      return await reply.code(201).send({ account })
+    } finally { inFlight-- }
+  })
 
   async function authorize(request: FastifyRequest, reply: FastifyReply) {
     const account = await sessions.read(readCookie(request.headers.cookie), clock())

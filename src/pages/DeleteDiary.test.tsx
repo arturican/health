@@ -16,7 +16,7 @@ it('объясняет удаление и скачанные копии, тре
   const dialog = await screen.findByRole('alertdialog')
   expect(dialog).toHaveAccessibleName(/включая фото, документы, показатели и настройки/)
   const cancel = within(dialog).getByRole('button', { name: 'Отмена' })
-  expect(cancel).toHaveFocus()
+  await waitFor(() => { expect(cancel).toHaveFocus() })
   expect(clearDiary).not.toHaveBeenCalled()
   fireEvent.click(cancel)
   expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()

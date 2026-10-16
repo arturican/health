@@ -3,9 +3,10 @@ import { argon2id, hash } from 'argon2'
 import type { Pool } from 'pg'
 import { z } from 'zod'
 import { accountSchema, loginSchema, timezoneSchema, type Account } from '../domain/session'
+import { passwordSchema } from '../domain/registration'
 export { accountSchema, loginSchema, timezoneSchema, type Account } from '../domain/session'
+export { passwordSchema } from '../domain/registration'
 
-export const passwordSchema = z.string().min(15).max(1024)
 const inputSchema = z.strictObject({ login: loginSchema, password: passwordSchema, timezone: timezoneSchema })
 
 export async function hashPassword(password: string): Promise<string> {
