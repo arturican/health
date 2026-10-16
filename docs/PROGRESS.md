@@ -1,5 +1,20 @@
 # Прогресс
 
+## T180 — Бюджет времени большого граничного теста
+
+После разрешённого push T179 GitHub run 38835137142 остановился на единственном
+recordLimitBoundary: timeout 30000 ms, 1433 остальных unit PASS. Deploy был
+пропущен, прежний рабочий релиз остался на сайте. Это correctness-тест большого
+каталога, а не норматив производительности. Его собственный timeout увеличен
+до 90000 ms с комментарием; общий timeout, количество записей, данные, все
+assertions, байтовые границы, coverage thresholds и приложение не изменены.
+
+Целевой тест с coverage: assertions 1 PASS за 10.1 s; команда exit 1 из-за
+глобальных порогов покрытия всего приложения при выборе одного файла. Пороги
+сохранены. Затем полный npm run check PASS: 1434 unit, 91 browser, 62 API E2E,
+lint/types/coverage/build/docs. diff --check PASS. Повторный push/CI/deploy
+и HTTPS smoke подтверждаются фактически после этого коммита.
+
 ## T179 — Повторные проверки перед push и deploy
 
 Полный npm run check PASS: 1434 unit, 91 browser, 62 API/PostgreSQL E2E,

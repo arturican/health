@@ -17,6 +17,8 @@ afterEach(async () => {
   vi.useRealTimers()
 })
 
+// This 100k-record correctness/byte-boundary test is not a performance SLA.
+// Coverage on shared CI runners needs a bounded budget beyond the local ~19 s.
 it('реальные 100000 продуктов после импорта остаются экспортируемыми, а продукт 100001 не сохраняется', async () => {
   expect(BACKUP_MAX_RECORDS).toBe(100000)
   const products = Array.from({ length: BACKUP_MAX_RECORDS }, (_, index) => ({
@@ -62,4 +64,4 @@ it('реальные 100000 продуктов после импорта ост�
   boundaryFirst.source += 'A'
   expect(encoder.encode(JSON.stringify(boundary)).byteLength).toBe(TEXT_BACKUP_MAX_BYTES + 1)
   expect(() => serializeTextBackup(boundary)).toThrow('Текстовая копия превышает 20 MiB')
-}, 30000)
+}, 90000)
