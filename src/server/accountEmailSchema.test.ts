@@ -111,7 +111,7 @@ it('не расширяет runtime-права на пользователей �
 it('обновляет прежнюю схему без потери аккаунта и активной сессии', async () => {
   const old = await testDatabase()
   try {
-    const migrations = await readMigrations()
+    const migrations = (await readMigrations()).filter(item => item.name <= '012_account_email.sql')
     await migrate(old.pool, migrations.filter(item => item.name < '012_account_email.sql'))
     await old.pool.query(`INSERT INTO health.users(id,login,password_hash,timezone,created_at)
       VALUES ($1,'legacy-user','$argon2id$synthetic-migration-only','UTC',$2)`, [owner, created])
