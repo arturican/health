@@ -1,7 +1,7 @@
 # Дневник здоровья
 
 Развёрнутое приложение: <https://dev.arturican.com>.
-Размещение и перенос локального дневника: [DEPLOYMENT.md](docs/DEPLOYMENT.md).
+Развёртывание и перенос прежнего дневника: [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 Приложение для личных записей на React и TypeScript. Готовый MVP
 содержит восемь разделов: «Сегодня», профиль, вес с графиком и справочным ИМТ,
@@ -11,9 +11,20 @@
 
 Текущий код хранит данные и файлы в PostgreSQL через авторизованный Fastify API.
 Все восемь экранов используют сервер; браузер не хранит копию дневника.
-Развёртывание этой версии на VPS выполняется отдельно после локальных проверок.
+Эта версия развёрнута на VPS: API/БД 2.26.54.81, frontend 159.194.208.200.
+Итоги, состав демонстрации и проверки — [SERVER_COMPLETION.md](docs/SERVER_COMPLETION.md).
 Совместного доступа и AI нет. Приложение не даёт медицинских рекомендаций. Полный выполненный
 план — [TASKS.md](TASKS.md), результаты проверок — [PROGRESS.md](docs/PROGRESS.md).
+
+Демонстрационный логин: health-demo. Пароль находится в закрытом локальном
+/home/artur/.config/health-diary/demo-credentials.json (WSL, права 600), не в Git.
+После входа доступны 90 дней вымышленных записей, графики и учебные вложения.
+
+Сервер ежедневно создаёт зашифрованную копию на втором VPS.
+[BACKUPS.md](docs/BACKUPS.md) описывает расписание, ручной запуск и восстановление;
+реальное восстановление в отдельную БД проверено. Recovery key находится в
+/home/artur/.config/health-diary/recovery-secret.asc: сохраните защищённую
+офлайн-копию, не передавайте ключ на VPS или в чат.
 
 ## Запуск в WSL / Linux
 
@@ -237,7 +248,10 @@ Production E2E тоже создают случайную БД: API на loopbac
 
 Перед первыми миграциями администратор выполняет `deploy/database-roles.sql`
 через psql с `ON_ERROR_STOP=1`, создаёт отдельную БД `health` с владельцем
-`health_migrator` и задаёт пароли через закрытый канал (например, `\password`
+`health_migrator` и запрещает общий доступ: REVOKE ALL ON DATABASE health FROM PUBLIC;
+GRANT CONNECT ON DATABASE health TO health_app, health_migrator.
+Локальная БД должна быть отдельной от health_test; нельзя использовать рабочие
+данные для тестов. Затем администратор задаёт пароли через закрытый канал (например, `\password`
 в административном psql). Роли не имеют SUPERUSER/CREATEDB/CREATEROLE/BYPASSRLS.
 `health_app` наследует только права `health_runtime`, схемой не владеет.
 
@@ -249,7 +263,9 @@ Production E2E тоже создают случайную БД: API на loopbac
 products, food_entries, nutrition_days, commands, steps, workouts, energy_plans,
 files, photos, documents, lab_results, settings и legacy_metadata.
 Личные таблицы защищены FORCE ROW LEVEL SECURITY; без транзакционного владельца строки недоступны.
-Перед миграциями рабочей БД нужна резервная копия.
+Перед миграциями рабочей БД нужна резервная копия. На VPS миграции запускаются
+с отдельным admin.env, runtime API использует только api.env. Настройка
+журналирования ролей описана в [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 После `npm ci` установи Chromium для тестов:
 
@@ -283,6 +299,8 @@ Linux-зависимости браузера, отдельные команды
 - [AGENTS.md](AGENTS.md) и [WORKFLOW.md](docs/WORKFLOW.md) — порядок задач и Git.
 - [CODING_STANDARDS.md](docs/CODING_STANDARDS.md) — структура и правила кода.
 - [TESTING.md](docs/TESTING.md) и [TEST_CASES.md](docs/TEST_CASES.md) — проверки.
+- [DEPLOYMENT.md](docs/DEPLOYMENT.md), [BACKUPS.md](docs/BACKUPS.md) — VPS и восстановление.
+- [SERVER_COMPLETION.md](docs/SERVER_COMPLETION.md) — фактический результат перехода.
 - [PRIVACY_SECURITY.md](docs/PRIVACY_SECURITY.md) — данные и ограничения.
 - [CALCULATIONS.md](docs/CALCULATIONS.md) — формулы, источники и границы.
 - [DEPENDENCIES.md](docs/DEPENDENCIES.md) — закреплённые версии инструментов.

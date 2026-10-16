@@ -1,5 +1,24 @@
 # Прогресс
 
+## T178b — Восстановление подтверждено
+
+Внешний encrypted health dump скачан со второго VPS, SHA/GPG проверены.
+pg_restore в новую случайную БД PASS; хеши строк 18 таблиц/файлов совпали,
+схема и эффективные ACL эквивалентны (проверены нормализация AND и owner default).
+RLS чтение на 15 таблицах для владельца/чужого/пустого контекста и запрет чужой
+записи PASS. Только проверочная БД удалена; health/postgres сохранены.
+
+На HTTPS временный второй аккаунт подтвердил запрет чужих read/write/delete/files
+и неизменность владельца; после проверки удалён, рабочий пользователь один.
+Role-level PostgreSQL logging настроен только для health_app/health_migrator:
+новое runtime-соединение подтвердило параметры, после рестарта login/profile/weights
+по HTTPS PASS. Остальные сервисы и глобальное журналирование не менялись.
+
+README/.env.example, privacy/storage/deployment/backup и SERVER_COMPLETION.md
+обновлены по фактам. Код приложения не менялся; предыдущий полный T178a check
+PASS (1434/91/62, lint/types/coverage/build), live 4/4, deploy Python16.
+Финальные check:docs и diff --check PASS, секретов в staged diff нет.
+
 ## T178a — Опубликованный серверный дневник
 
 Frontend 5551c0f180176938731ade285abcb7ea687983fa опубликован штатным installer,

@@ -135,3 +135,33 @@ Trace/video/автоматические screenshots отключены, сни�
 За один прогон выполняются два входа. Ограничение 5 входов на логин за 15 минут
 учитывает и успешные входы; выдерживайте интервал между повторными сериями.
 Автоматического обхода/сброса лимита в тестах нет.
+
+## Журналирование ролей PostgreSQL
+
+Для health_app и health_migrator администратор задаёт параметры ниже.
+Они применены на VPS и проверены через новое настоящее runtime-соединение.
+Глобальные настройки других приложений сохранены. Выполняйте после создания
+ролей, также при восстановлении на новом кластере; затем перезапустите только API,
+чтобы его pool переподключился.
+
+    DO $$
+    DECLARE account text;
+    BEGIN
+      FOREACH account IN ARRAY ARRAY['health_app','health_migrator'] LOOP
+        EXECUTE format('ALTER ROLE %I SET log_statement = none', account);
+        EXECUTE format('ALTER ROLE %I SET log_min_messages = fatal', account);
+        EXECUTE format('ALTER ROLE %I SET log_min_error_statement = panic', account);
+        EXECUTE format('ALTER ROLE %I SET log_error_verbosity = terse', account);
+        EXECUTE format('ALTER ROLE %I SET log_parameter_max_length = 0', account);
+        EXECUTE format('ALTER ROLE %I SET log_parameter_max_length_on_error = 0', account);
+        EXECUTE format('ALTER ROLE %I SET log_min_duration_statement = -1', account);
+        EXECUTE format('ALTER ROLE %I SET log_min_duration_sample = -1', account);
+      END LOOP;
+    END $$;
+
+Это исключает обычные SQL-ошибки и их подробности из server log, уменьшая
+диагностическую информацию. Подробное исследование выполняйте на изолированных
+синтетических данных; не включайте body/query/parameter logging в production.
+Системные fatal/panic сообщения не считаются конфиденциальным хранилищем.
+Основания: [PostgreSQL logging](https://www.postgresql.org/docs/18/runtime-config-logging.html),
+[ALTER ROLE](https://www.postgresql.org/docs/18/sql-alterrole.html).
