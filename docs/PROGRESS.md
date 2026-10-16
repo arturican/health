@@ -1,5 +1,19 @@
 # Прогресс
 
+## T176b — Зашифрованные копии на двух VPS
+
+Sender проверяет все процессы pg_dump/GPG, передаёт ciphertext по закреплённому
+SSH key, сохраняет локальную копию при отказе. 7/14 копий, baseline не удаляется.
+Установлены отдельный forced-command получатель и sender; таймер пока выключен.
+Исходный cluster archive создан ДО изменений БД, SHA независимо совпал на обоих
+VPS, повтор и запрет shell PASS; systemd sandbox preflight PASS. Recovery private
+key только в закрытом локальном каталоге; на VPS 0 secret keys. См. BACKUPS.md.
+
+Python deploy: 16 PASS, включая настоящий GPG roundtrip synthetic. Первый полный
+check выявил гонку теста autofocus; ожидание React-эффекта исправлено без ослабления
+требования. Повторный npm run check PASS: 1434 unit, 91 browser, 62 API E2E;
+lint/types/coverage/build, документы, diff --check PASS. Восстановление БД — T178.
+
 ## T176a — Приём зашифрованных копий
 
 Forced SSH приёмник проверяет имя, SHA256, размер и свободное место; публикует

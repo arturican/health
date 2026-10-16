@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Health Diary backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 UTC
+RandomizedDelaySec=20m
+Persistent=true
+Unit=health-backup.service
+
+[Install]
+WantedBy=timers.target

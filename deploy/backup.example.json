@@ -1,0 +1,10 @@
+{
+  "directory": "/var/backups/health-diary",
+  "container": "remnawave-db",
+  "database": "health",
+  "gpg_home": "/var/lib/health-backup/gnupg",
+  "recipient": "REPLACE_WITH_PUBLIC_KEY_FINGERPRINT",
+  "known_hosts": "/etc/health-diary/backup_known_hosts",
+  "ssh_key": "/etc/health-diary/backup_ed25519",
+  "destination": "health-backup@159.194.208.200"
+}

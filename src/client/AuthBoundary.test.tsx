@@ -33,7 +33,7 @@ it('сообщает об ошибке подключения и допуска�
   expect(screen.queryByText('Содержимое дневника')).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Повторить подключение' }))
   expect(await screen.findByRole('form', { name: 'Вход в дневник' })).toBeVisible()
-  expect(screen.getByLabelText('Логин')).toHaveFocus()
+  await waitFor(() => { expect(screen.getByLabelText('Логин')).toHaveFocus() })
 })
 
 it('сохраняет ввод после неверного пароля и успешно входит с повтором', async () => {
