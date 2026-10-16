@@ -11,6 +11,7 @@ import { StorageBoundary } from '../ui/StorageBoundary'
 import { FullBackupExport } from './FullBackupExport'
 import { FullBackupImport } from './FullBackupImport'
 import { PrivacySettings } from './PrivacySettings'
+import { BrowserDiaryExport } from './BrowserDiaryExport'
 import { DeleteDiary } from './DeleteDiary'
 import '../settings.css'
 
@@ -70,6 +71,7 @@ function SettingsContent() {
       <div className="settings-backups">
       <FullBackupExport />
       <FullBackupImport />
+      <BrowserDiaryExport />
       </div>
       <section className="card text-backup" aria-label="Текстовые резервные копии">
       <h2>Резервная копия</h2>
