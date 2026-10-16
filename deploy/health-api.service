@@ -1,0 +1,29 @@
+[Unit]
+Description=Health Diary API
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=health-api
+Group=health-api
+WorkingDirectory=/opt/health-api/current
+EnvironmentFile=/etc/health-diary/api.env
+ExecStart=/opt/health-node/node-v24.22.0-linux-x64/bin/node build-api/main.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=135
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LimitCORE=0
+MemoryMax=1536M
+
+[Install]
+WantedBy=multi-user.target

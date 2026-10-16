@@ -1,0 +1,21 @@
+[Unit]
+Description=Private SSH connection to Health Diary API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=health-tunnel
+Group=health-tunnel
+ExecStart=/usr/bin/ssh -NT -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/var/lib/health-tunnel/.ssh/known_hosts -i /var/lib/health-tunnel/.ssh/id_ed25519 -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -L 127.0.0.1:53101:127.0.0.1:3101 health-tunnel@2.26.54.81
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+LimitCORE=0
+
+[Install]
+WantedBy=multi-user.target

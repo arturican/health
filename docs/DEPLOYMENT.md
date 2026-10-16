@@ -1,109 +1,116 @@
 # Размещение на VPS
 
-Этот документ описывает действующий статический сайт. Переход к аккаунтам
-и серверным данным на отдельном VPS 2.26.54.81 проектируется в
-[SERVER_STORAGE.md](SERVER_STORAGE.md); текущая доставка dist ещё не устанавливает API.
+Адрес приложения: <https://dev.arturican.com>. Frontend/Nginx находятся на
+159.194.208.200; PostgreSQL 18.3 и API — на 2.26.54.81, Ubuntu 24.04.
+В T177 backend уже установлен; переключение опубликованного frontend — T178.
 
-Адрес приложения: <https://dev.arturican.com>. Сервер: `159.194.208.200`,
-Ubuntu 24.04, существующий Nginx. На VPS передаются только файлы production-сборки.
-Node, исходники и база дневника для работы сайта серверу не нужны.
+## Сервер данных
 
-## Данные
+Используется существующий Docker remnawave-db, без замены контейнера/volumes.
+Новая БД health принадлежит health_migrator; health_app наследует ограниченную
+health_runtime. API не имеет superuser/BYPASSRLS/CREATE и не создаёт аккаунты.
+CONNECT PUBLIC отозван только у новой БД. Прежние базы и сервисы не изменяются.
 
-Каждый браузер хранит собственный дневник. Данные с localhost автоматически
-не переносятся: экспортируйте полную копию в прежнем адресе и восстановите её
-через настройки нового сайта. Не присылайте копию в чат и не кладите её на VPS.
-Домен и HTTPS входят в адрес хранилища; смена адреса открывает другую базу.
-Резервная копия VPS сохраняет код сайта, но не дневники пользователей.
+- PostgreSQL: 127.0.0.1:6767; постоянный volume remnawave-db-data,
+  /var/lib/docker/volumes/remnawave-db-data/_data → /var/lib/postgresql.
+- API: 127.0.0.1:3101, systemd health-api, отдельный OS user health-api.
+- /opt/health-api/releases/<artifact-id> — закрытый от записи приложения релиз;
+  /opt/health-api/current — ссылка на текущий. Первый: T177-8936dd25b053.
+- /opt/health-node/node-v24.22.0-linux-x64 — официальный Node с проверенным SHA256.
+  npm 11.19.1: /opt/health-node/npm-tools/node_modules/npm/bin/npm-cli.js.
+- /etc/health-diary/api.env (root 0600) — только runtime URL, origin и порт.
+  /etc/health-diary/admin.env (root 0600) — отдельные migration/seed реквизиты,
+  не передаются процессу API. Пароли не включаются в исходники/dist/артефакты.
+- [health-api.service](../deploy/health-api.service): restart on failure,
+  readonly filesystem, private tmp, без core dumps, максимум памяти 1536 MiB.
+  Штатная остановка даёт активным запросам до 125 секунд; systemd ждёт 135.
 
-## Сервер
+Frontend VPS запускает [health-api-tunnel](../deploy/health-api-tunnel.service)
+под health-tunnel. Он соединяет 127.0.0.1:53101 с API через SSH. Ключ привязан
+к адресу frontend и единственному PermitOpen, без shell/PTY/remote forwarding.
+Host key закреплён в /var/lib/health-tunnel/.ssh/known_hosts; не отключайте
+StrictHostKeyChecking при проблемах. [Match-блок](../deploy/health-tunnel.sshd.conf)
+добавлен в КОНЕЦ data VPS sshd_config; исходник сохранён в
+/etc/health-diary/sshd_config.before-T177. Перед reload всегда sshd -t.
 
-- `/etc/nginx/sites-available/health-diary.conf` — копия [nginx.conf](../deploy/nginx.conf),
-  подключённая отдельной ссылкой в `sites-enabled`.
-- `/var/www/health/releases/<git-sha>` — неизменяемые версии сборки.
-- `/var/www/health/current` и `previous` — текущая и предыдущая версии.
-- `/var/www/health/assets` — файлы с хешами в именах, доступные и старым вкладкам.
-- `/usr/local/libexec/health-deploy` — root-owned копия
-  [install_release.py](../deploy/install_release.py), запускаемая как `health-deploy`.
-- Сертификат Let's Encrypt: `/etc/letsencrypt/live/dev.arturican.com/`.
-  Продление: существующий `certbot.timer`; deploy hook проверяет и перезагружает
-  Nginx после обновления сертификата. HTTP используется для ACME и редиректа HTTPS.
+## Nginx и frontend
 
-Приложение использует hash-маршруты (`/#weight`), поэтому неизвестные серверные
-пути возвращают 404. HTML проверяется на актуальность, assets кешируются на год.
-Nginx запрещает встраивание страницы и индексацию поисковиками.
-Последнее не является защитой доступа: сам сайт доступен публично.
+[nginx.conf](../deploy/nginx.conf) установлен в
+/etc/nginx/sites-available/health-diary.conf, подключён sites-enabled.
+API идёт через /api/ того же HTTPS origin к loopback-туннелю; публичные порты
+БД/API не открываются, отдельный API-домен не нужен. Cookie Secure/HttpOnly,
+проверка Origin/CSRF действует на backend. Буферизация request/response
+выключена, предел тела 200 MiB, API access/body logging отключён.
+Предыдущая конфигурация: /etc/health-diary/nginx.before-T177.conf на frontend VPS.
+Перед reload выполняется nginx -t; существующие другие virtual hosts не меняются.
 
-## Доставка и откат
+- /var/www/health/releases/<git-sha> — неизменяемые frontend-сборки.
+- current/previous — текущая и предыдущая версии; assets — общие хешированные файлы.
+- /usr/local/libexec/health-deploy — root-owned [установщик](../deploy/install_release.py),
+  запускаемый как health-deploy.
+- Let's Encrypt: /etc/letsencrypt/live/dev.arturican.com/, прежний certbot.timer
+  и hook проверки/reload Nginx. HTTP — только ACME и редирект на HTTPS.
 
-Перед упаковкой выполните `npm run check` и тесты установщика:
+Hash-маршруты (/#weight); неизвестные серверные пути дают 404.
+HTML перепроверяется, assets кешируются на год. Оболочка сайта публична,
+личные данные выдаются только после входа. noindex не заменяет авторизацию.
 
-```bash
-python3 -B -m unittest discover -s deploy -p 'test_*.py' -v
-python3 -B deploy/verify_build.py dist
-tar -czf /tmp/health-dist.tar.gz -C dist .
-```
+## Обновление и проверки
 
-Установщик принимает в stdin gzip tar до 20 MiB, максимум 1000 записей и 50 MiB
-файлов. Разрешены только `index.html`, `favicon.svg` и файлы `assets/`; ссылки,
-переходы за каталог и замена существующего релиза иным содержимым отклоняются.
-Новый `current` устанавливается атомарно после проверки и записи всего релиза.
-Предыдущие релизы и assets автоматически не удаляются: следите за местом на диске.
+До обновления: полный npm run check, npm run build:api, Python deploy tests,
+успешная свежая внешняя копия по [BACKUPS.md](BACKUPS.md).
 
-Лицензия шрифта поставляется как `assets/Roboto-LICENSE.txt`: корневые посторонние
-файлы установщик отклоняет. [verify_build.py](../deploy/verify_build.py) упаковывает
-настоящий dist тем же tar, проверяет архив через read_build и сверяет байты лицензии
-с исходником. CI выполняет эту проверку перед сохранением artifact, чтобы ошибка
-состава сборки обнаруживалась до доставки на VPS. Ограничения установщика сохранены.
+API artifact содержит build-api, migrations, package.json/package-lock.json,
+.npmrc. Env и node_modules в архив не включаются. Проверить SHA256 после
+передачи; распаковать в НОВЫЙ каталог releases, установить npm ci --omit=dev
+зафиксированным Node/npm. Приложение не должно иметь права записи в релиз.
+Из каталога нового релиза администратор запускает:
 
-Для административного отката на VPS:
+    /opt/health-node/node-v24.22.0-linux-x64/bin/node --env-file=/etc/health-diary/admin.env build-api/migrate.js
 
-```bash
-cd /var/www/health
-target=$(readlink previous)
-test -f "$target/index.html" && test ! -e rollback.next &&
-  ln -s "$target" rollback.next && mv -Tf rollback.next current
-curl --fail https://dev.arturican.com/release.txt
-```
+При первом заполнении: тот же Node с admin.env и build-api/seedDemo.js.
+Seed повторяемый, не заменяет существующие данные/пароль.
+Затем атомарно переключить current и systemctl restart health-api.
+Совместимость новых миграций со старым кодом нужно оценить до обновления.
 
-Откат кода не откатывает IndexedDB. Перед версиями с изменением схемы учитывайте
-совместимость базы; старый frontend может не поддерживать новую схему.
+Frontend: npm run build; python3 -B deploy/verify_build.py dist; tar из dist.
+Установщик принимает deploy <полный Git SHA> и gzip tar через stdin (до 20 MiB,
+1000 файлов/50 MiB распакованных данных). Только index.html, favicon.svg,
+assets; нет symlink/path traversal/перезаписи релиза иным содержимым.
+Roboto-LICENSE.txt находится внутри assets. current переключается атомарно;
+предыдущие релизы и assets не удаляются автоматически, следите за диском.
 
-Проверки после публикации: действительный HTTPS, редирект HTTP, `/release.txt`
-с нужным SHA, загрузка JS/CSS, профиль и вес с синтетическими данными после reload.
-Браузерные проверки запускаются в отдельном контексте без личной базы.
+Диагностика (на соответствующем VPS):
+
+    systemctl status health-api health-backup.timer
+    systemctl status health-api-tunnel nginx
+    journalctl -u health-api --since today
+    curl --fail https://dev.arturican.com/api/v1/health
+    curl -o /dev/null -w '%{http_code}' https://dev.arturican.com/api/v1/profile
+
+Последняя команда без cookie должна вернуть 401. Не добавляйте секреты в curl
+командную строку, журнал или сообщения. Входные данные demo находятся в закрытом
+локальном /home/artur/.config/health-diary/demo-credentials.json, серверная копия
+/etc/health-diary/demo-credentials.json. Не делайте аккаунт общедоступным.
+
+Для отката frontend смените current на проверенный previous атомарной ссылкой;
+релизы не удаляйте. Откат frontend НЕ откатывает PostgreSQL; версии до T175f
+использовали отдельную IndexedDB. Для backend откатывается current к совместимому
+релизу и перезапускается health-api. Не откатывайте схему уничтожающими командами.
+Восстановление копии сначала выполняется в новой БД по BACKUPS.md.
 
 ## GitHub Actions
 
-Workflow [check.yml](../.github/workflows/check.yml) после успешного check
-передаёт тот же dist через artifact отдельному deploy job. Публикация выполняется
-для push в `dev` и ручного запуска workflow на `dev`; PR и master не публикуются.
-Запущенный workflow dev не отменяется следующим push во время доставки.
-Установщик проверяется Python unittest в CI. Actions закреплены по SHA;
-download-artifact v8.0.2 проверен по официальному release и README.
+[check.yml](../.github/workflows/check.yml) проверяет проект и доставляет только dist
+в dev по ограниченному health-deploy ключу. Backend, SSH, Nginx и systemd
+обновляются отдельно администратором. Этот переход выполнен прямой доставкой
+проверенного артефакта, без push/PR/merge.
 
-Окружение GitHub `health-dev` ограничено веткой `dev` и содержит:
+Окружение health-dev: HEALTH_DEPLOY_KEY и HEALTH_KNOWN_HOSTS — secrets,
+HEALTH_DEPLOY_HOST — variable; доступ ограничен dev. Ключ разрешает только
+deploy <SHA>, без shell/forwarding/sudo. CI сверяет HTTPS/release.txt после
+публикации; автоматического отката при ошибке проверки нет. Не запускайте
+устаревший workflow поверх актуальной серверной версии без намерения отката.
 
-- `HEALTH_DEPLOY_KEY` — отдельный SSH-ключ, environment secret;
-- `HEALTH_KNOWN_HOSTS` — закреплённый ключ VPS, environment secret;
-- `HEALTH_DEPLOY_HOST` — адрес VPS, environment variable.
-
-Ключ разрешает только `deploy <полный Git SHA>` с архивом в stdin. SSH shell,
-PTY, forwarding и sudo ему недоступны. Private key не хранится в репозитории;
-root-доступ в Actions не используется. Ключ хоста получен через уже доверенное
-SSH-соединение, автоматическое принятие нового host key выключено.
-
-После доставки проверяются HTTPS, главная страница и точный SHA в `/release.txt`.
-При сбое доставки до переключения продолжает работать прежний релиз. Если
-проверка HTTPS падает уже после переключения, workflow сообщает ошибку, но не
-откатывает сайт автоматически: используйте административный откат выше.
-Повторный запуск того же workflow допускается для того же неизменённого артефакта.
-Не запускайте старый workflow для доставки поверх новой версии без намерения отката.
-
-Изменения установщика и Nginx не применяются автоматическим frontend-деплоем:
-их нужно отдельно проверить и установить администратором. При смене VPS обновите
-DNS, сертификат, разрешённый ключ пользователя и secrets/variable окружения.
-Не отключайте проверку SSH host key при ошибке подключения.
-
-Источники: [Nginx try_files](https://nginx.org/en/docs/http/ngx_http_core_module.html#try_files),
-[GitHub Actions secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
+Источники: [Nginx buffering](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_request_buffering),
+[OpenSSH Match/PermitOpen](https://man.openbsd.org/sshd_config).

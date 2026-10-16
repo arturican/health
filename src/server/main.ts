@@ -6,7 +6,8 @@ try {
   const close = () => {
     if (closing) return
     closing = true
-    const deadline = setTimeout(() => { process.exit(1) }, 10000)
+    // Allow the 120-second request deadline to finish before forced shutdown.
+    const deadline = setTimeout(() => { process.exit(1) }, 125000)
     deadline.unref()
     void app.close().then(() => {
       clearTimeout(deadline)

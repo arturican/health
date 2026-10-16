@@ -1,5 +1,23 @@
 # Прогресс
 
+## T177 — PostgreSQL/API на VPS
+
+На 2.26.54.81 создана отдельная health в прежнем PG18.3, роли без elevated
+прав; API health-api под отдельным OS user, env root 0600, Node24.22/npm11.19.1.
+На 159.194.208.200 отдельный SSH tunnel и /api Nginx; все новые порты loopback.
+Исходные SSH/Nginx конфиги сохранены, чужие сервисы/volumes не остановлены.
+
+10 миграций fresh, 0 repeat; один seed и повторы без изменений. 31 вес, 15 продуктов,
+1084 food, 85 полных дней, 85 steps, 30 workouts, 3 plans, 3 photos/3 PDF/9 labs.
+Counts и хеши файлов совпали после рестарта API и нового seed. HTTPS health 200,
+profile без cookie 401. RLS runtime без CREATE/users INSERT; systemd/sshd/nginx
+validation PASS (предупреждения прежних xray/xhttp конфигов оставлены без изменений).
+Backup timer включён, запуск success, SHA копии health совпал на двух VPS.
+
+Полный npm run check PASS: 1434 unit, 91 browser, 62 API E2E; build:api,
+16 Python deploy, lint/types/coverage/build/docs/diff --check PASS.
+Frontend ещё прежний; публикация и restore drill — T178. Shared DB не перезапускалась.
+
 ## T176b — Зашифрованные копии на двух VPS
 
 Sender проверяет все процессы pg_dump/GPG, передаёт ciphertext по закреплённому
