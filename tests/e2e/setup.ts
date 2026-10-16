@@ -36,7 +36,9 @@ export default async function setup() {
   try {
     await migrate(database.pool, await readMigrations())
     const pool = database.runtime
-    const clock = () => new Date('2026-10-14T12:00:00Z')
+    let windowOffset = 0
+    const clock = () => new Date(Date.parse('2026-10-14T12:00:00Z') + windowOffset)
+    app.get('/api/v1/test-auth-window', () => { windowOffset += 16 * 60 * 1000; return { advanced: true } })
     const authorize = await registerAuthentication(app, pool, 'http://127.0.0.1:4173', clock)
     const uploads = createUploadTransport(app, authorize)
     registerProfile(app, pool, authorize, clock)

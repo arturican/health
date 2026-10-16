@@ -3,13 +3,17 @@ import { verify } from 'argon2'
 import type { Pool } from 'pg'
 import { z } from 'zod'
 import { accountSchema, hashPassword, passwordSchema, type Account } from './accounts.js'
-import { loginIdentity } from '../domain/emailAccount'
+import { emailAddress, loginIdentity } from '../domain/emailAccount'
 
 export const SESSION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000
 export const SESSION_IDLE_MS = 24 * 60 * 60 * 1000
 export const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/)
 const credentialsSchema = z.strictObject({ login: loginIdentity, password: passwordSchema })
-const storedAccountSchema = accountSchema.extend({ password_hash: z.string() })
+const storedAccountSchema = accountSchema.extend({ password_hash: z.string(), email: emailAddress.nullable() })
+function publicAccount(input: unknown): Account {
+  const { email, ...account } = accountSchema.extend({ email: emailAddress.nullable() }).parse(input)
+  return { ...account, ...(email ? { email } : {}) }
+}
 export const tokenHash = (token: string) => createHash('sha256').update(token).digest('hex')
 export const csrfToken = (token: string) => createHash('sha256').update(`csrf:${token}`).digest('hex')
 
@@ -20,12 +24,12 @@ export async function createSessions(pool: Pool, verifyPassword: (encoded: strin
     async login(input: unknown, previousToken: unknown, now: Date): Promise<{ token: string; account: Account } | null> {
       const credentials = credentialsSchema.safeParse(input)
       if (!credentials.success) return null
-      const result = await pool.query<Record<string, unknown>>(`SELECT id, login, timezone, password_hash FROM health.users
+      const result = await pool.query<Record<string, unknown>>(`SELECT id, login, timezone, password_hash, email FROM health.users
         WHERE (login=$1 AND NOT email_required) OR (lower(email)=lower($1) AND email_verified_at IS NOT NULL)`, [credentials.data.login])
       const stored = result.rows[0] ? storedAccountSchema.parse(result.rows[0]) : null
       const valid = await verifyPassword(stored?.password_hash ?? dummyHash, credentials.data.password)
       if (!stored || !valid) return null
-      const account = accountSchema.parse({ id: stored.id, login: stored.login, timezone: stored.timezone })
+      const account = publicAccount({ id: stored.id, login: stored.login, timezone: stored.timezone, email: stored.email })
       const token = randomBytes(32).toString('hex')
       const previous = tokenSchema.safeParse(previousToken)
       const client = await pool.connect()
@@ -55,9 +59,9 @@ export async function createSessions(pool: Pool, verifyPassword: (encoded: strin
         FROM health.users u WHERE s.token_hash = $1 AND s.user_id = u.id
           AND s.revoked_at IS NULL AND s.expires_at > $2 AND s.created_at <= $2
           AND (NOT u.email_required OR u.email_verified_at IS NOT NULL)
-          AND s.last_seen_at > $3 RETURNING u.id, u.login, u.timezone`,
+          AND s.last_seen_at > $3 RETURNING u.id, u.login, u.timezone, u.email`,
       [tokenHash(token.data), now, new Date(now.getTime() - SESSION_IDLE_MS)])
-      return result.rows[0] ? accountSchema.parse(result.rows[0]) : null
+      return result.rows[0] ? publicAccount(result.rows[0]) : null
     },
 
     async logout(input: unknown, now: Date): Promise<void> {

@@ -6,7 +6,7 @@ export const timezoneSchema = z.string().max(80).refine(value => {
   try { new Intl.DateTimeFormat('en', { timeZone: value }).format(0); return true }
   catch { return false }
 })
-export const accountSchema = z.strictObject({ id: z.uuid(), login: loginSchema, timezone: timezoneSchema })
+export const accountSchema = z.strictObject({ id: z.uuid(), login: loginSchema, timezone: timezoneSchema, email: z.string().max(254).optional() })
 export const sessionSchema = z.strictObject({ account: accountSchema, csrf: z.string().regex(/^[a-f0-9]{64}$/) })
 export type Account = z.infer<typeof accountSchema>
 export type Session = z.infer<typeof sessionSchema>

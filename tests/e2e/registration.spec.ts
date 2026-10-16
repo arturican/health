@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import axe from 'axe-core'
-import { z } from 'zod'
+import { emailLink, setPassword } from './emailHelpers'
 import { expect, test, type Page } from './fixtures'
 
 test.use({ timezoneId: 'Europe/Moscow' })
@@ -11,21 +11,14 @@ async function fillRegistration(page: Page, email: string) {
   await expect(page.getByLabel('Часовой пояс дневника')).toHaveValue('Europe/Moscow')
 }
 async function activateEmail(page: Page, email: string) {
-  const read = async () => z.array(z.object({ to: z.string(), text: z.string() })).parse(await (await page.request.get('/api/v1/test-mail')).json())
-  await expect.poll(async () => (await read()).filter(value => value.to === email).length).toBe(1)
-  const letter = (await read()).find(value => value.to === email)
-  const token = letter?.text.match(/token=([a-f0-9]{64})/)?.[1]
-  if (!token) throw new Error('Нет синтетической ссылки')
-  const completed = await page.request.post('/api/v1/auth/email/complete', {
-    headers: { origin: new URL(page.url()).origin }, data: { token, purpose: 'verify_email', password },
-  })
-  expect(completed.status()).toBe(200)
+  await setPassword(page, await emailLink(page, email), password)
 }
 async function signIn(page: Page, login: string, secret = password) {
   await page.getByLabel('Почта', { exact: true }).fill(login)
   await page.getByLabel('Пароль', { exact: true }).fill(secret)
   await page.getByRole('button', { name: 'Войти', exact: true }).click()
   await expect(page.getByRole('navigation', { name: 'Разделы дневника', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Профиль', exact: true }).click()
 }
 
 test('регистрация, профиль, reload, выход и повторный вход изолируют два аккаунта', async ({ page, context, baseURL }) => {
@@ -40,7 +33,6 @@ test('регистрация, профиль, reload, выход и повтор
   await page.getByRole('button', { name: 'Отправить ссылку', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Если регистрация доступна')
   await activateEmail(page, first)
-  await page.getByRole('button', { name: 'Уже есть аккаунт? Войти', exact: true }).click()
   await expect(page.getByLabel('Пароль', { exact: true })).toHaveValue('')
   expect(await context.cookies()).toEqual([])
   await signIn(page, first)
@@ -62,7 +54,6 @@ test('регистрация, профиль, reload, выход и повтор
   await page.getByRole('button', { name: 'Отправить ссылку', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Если регистрация доступна')
   await activateEmail(page, second)
-  await page.getByRole('button', { name: 'Уже есть аккаунт? Войти', exact: true }).click()
   await signIn(page, second)
   await expect(page.getByRole('form', { name: 'Создание профиля' })).toBeVisible()
   expect(await page.evaluate(async () => {
@@ -84,7 +75,6 @@ test('повтор регистрации подтверждённой почт�
   await page.getByRole('button', { name: 'Отправить ссылку', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Если регистрация доступна')
   await activateEmail(page, email)
-  await page.getByRole('button', { name: 'Уже есть аккаунт? Войти', exact: true }).click()
   await signIn(page, email)
   await page.getByRole('button', { name: 'Выйти', exact: true }).click()
   await fillRegistration(page, email)

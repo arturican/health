@@ -7,6 +7,7 @@ import { hashPassword } from './accounts.js'
 import { tokenHash } from './sessions.js'
 import { createLoginLimit } from './loginLimit.js'
 import { createRegistrationLimit } from './registration.js'
+import { sessionCookie } from './httpSecurity.js'
 
 export type PasswordWork = { active: number }
 const accepted = { accepted: true }
@@ -64,7 +65,7 @@ export async function registerEmailAuth(app: FastifyInstance, pool: Pool, origin
       const result = await pool.query<Record<string, unknown>>('SELECT health.complete_account_token($1,$2,$3,$4) AS ok',
         [tokenHash(parsed.data.token), parsed.data.purpose, encoded, clock()])
       if (!z.object({ ok: z.boolean() }).parse(result.rows[0]).ok) return await invalid()
-      return await reply.send(accepted)
+      return await reply.header('Set-Cookie', sessionCookie('', 0)).send(accepted)
     } finally { work.active-- }
   })
 }

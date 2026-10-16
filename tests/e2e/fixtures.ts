@@ -20,6 +20,7 @@ export const test = base.extend<{ account: Account & { password: string } }>({
     try {
       const password = 'synthetic-password-only'
       const account = await createAccount(admin, { login: 'e2e-' + randomUUID().slice(0, 8), password, timezone: 'Europe/Moscow' })
+      await admin.query('UPDATE health.users SET created_at=$1 WHERE id=$2', ['2026-10-14T10:00:00Z', account.id])
       const sessions = await createSessions(runtime)
       const session = await sessions.login({ login: account.login, password }, null, new Date('2026-10-14T12:00:00Z'))
       if (!session) throw new Error('Не создана тестовая сессия')

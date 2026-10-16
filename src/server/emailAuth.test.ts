@@ -43,7 +43,7 @@ it('выдаёт секрет только письмом, хранит SHA-256,
   expect(messages[0]?.text).toContain(origin + '/#auth=verify_email&token=' + token)
   expect((await db.pool.query('SELECT token_hash FROM health.account_tokens')).rows).toEqual([{ token_hash: tokenHash(token) }])
   const completed = await finish(token)
-  expect(completed.statusCode).toBe(200); expect(completed.headers['set-cookie']).toBeUndefined()
+  expect(completed.statusCode).toBe(200); expect(completed.headers['set-cookie']).toContain('Max-Age=0')
   expect((await finish(token)).statusCode).toBe(400)
   expect((await db.pool.query('SELECT email_verified_at FROM health.users')).rows).toEqual([{ email_verified_at: now }])
 })

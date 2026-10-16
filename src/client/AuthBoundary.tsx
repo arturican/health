@@ -80,7 +80,7 @@ export function SessionControls() {
   const { session } = useSyncExternalStore(subscribeSession, getClientSession)
   const action = useAction()
   if (!session) return null
-  return <div className="actions" aria-label="Аккаунт"><span>{session.account.login.startsWith('email-') ? 'Аккаунт' : session.account.login}</span>
+  return <div className="actions" aria-label="Аккаунт"><span>{session.account.email ?? (session.account.login.startsWith('email-') ? 'Аккаунт' : session.account.login)}</span>
     <button type="button" disabled={action.pending} onClick={() => { action.run(logout) }}>{action.pending ? 'Выходим…' : 'Выйти'}</button>
     <Feedback error={action.error} message={null} />
   </div>
