@@ -18,12 +18,16 @@ import { registerLabs } from './labRoutes.js'
 import { registerSettings } from './settingsRoutes.js'
 import { registerBackups } from './backupRoutes.js'
 import { registerClear } from './clearRoutes.js'
+import { createAccountMailer } from './accountMail.js'
 
 export async function startApi(environment: Record<string, string | undefined>) {
   const config = readServerConfig(environment)
   const dataConfig = readDataConfig(environment)
   const app = createApi()
   try {
+    const mail = createAccountMailer(environment)
+    app.decorate('accountMail', mail)
+    if (mail) app.addHook('onClose', async () => { await mail.close() })
     if (dataConfig) {
       const pool = createPool(dataConfig.connectionString)
       app.addHook('onClose', async () => { await pool.end() })
