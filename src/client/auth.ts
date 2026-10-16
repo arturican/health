@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { loginSchema, sessionSchema, type Session } from '../domain/session'
+import { accountSchema, loginSchema, sessionSchema, type Session } from '../domain/session'
+import { registrationSchema } from '../domain/registration'
 import { ApiError, requestApi, requestJSON } from './http'
 import { diaryStateSchema, getClientSession, setClientSession } from './session'
 import { notifyAccountChange } from './accountChanges'
@@ -43,6 +44,20 @@ export async function login(input: unknown) {
   }
   await publish(session, epoch)
   notifyAccountChange()
+}
+
+export async function register(input: unknown) {
+  const values = registrationSchema.safeParse(input)
+  if (!values.success) throw new Error('Проверьте данные регистрации.')
+  try {
+    const result = await requestJSON('/api/v1/auth/register', z.strictObject({ account: accountSchema }), {
+      method: 'POST', value: values.data, anonymous: true,
+    })
+    return result.account
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 409) throw new Error('Этот логин уже занят. Выберите другой или войдите.')
+    throw error
+  }
 }
 
 export async function logout() {

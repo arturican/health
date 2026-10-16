@@ -16,3 +16,5 @@
 .auth-card > p { color: var(--muted); }
 .auth-form { display: grid; gap: 20px; margin-top: 24px; }
 .auth-form button { width: 100%; }
+.auth-form > p { margin: -12px 0 0; color: var(--muted); font-size: 0.875rem; }
+.auth-switch { margin-top: 20px; width: 100%; }

@@ -1,12 +1,32 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { clientDiary, clientSession, jsonResponse } from '../../tests/clientSession'
 import { localDate } from '../domain/input'
-import { login, logout, restoreSession } from './auth'
+import { login, logout, register, restoreSession } from './auth'
 import { getClientSession, setClientSession } from './session'
 
 const network = vi.fn<typeof fetch>()
 beforeEach(() => { setClientSession(null); network.mockReset(); vi.stubGlobal('fetch', network); vi.stubGlobal('BroadcastChannel', undefined) })
 afterEach(() => { setClientSession(null); vi.unstubAllGlobals() })
+
+it('валидирует регистрацию до сети, нормализует логин и не создаёт клиентскую сессию', async () => {
+  await expect(register({ login: 'demo', password: 'short', timezone: 'UTC' })).rejects.toThrow('Проверьте данные')
+  expect(network).not.toHaveBeenCalled()
+  network.mockResolvedValueOnce(jsonResponse({ account: clientSession.account }))
+  expect(await register({ login: ' Alice ', password: ' synthetic-password ', timezone: 'Europe/Moscow' })).toEqual(clientSession.account)
+  expect(network.mock.calls[0]?.[1]?.body).toBe(JSON.stringify({ login: 'alice', password: ' synthetic-password ', timezone: 'Europe/Moscow' }))
+  expect(network.mock.calls[0]?.[0]).toBe('/api/v1/auth/register')
+  expect(getClientSession().session).toBeNull()
+})
+
+it('объясняет занятый логин, лимит и сетевой отказ регистрации', async () => {
+  const values = { login: 'alice', password: 'synthetic-password', timezone: 'UTC' }
+  network.mockResolvedValueOnce(new Response('', { status: 409 })).mockResolvedValueOnce(new Response('', { status: 429 }))
+    .mockRejectedValueOnce(new Error('synthetic-private-network-error'))
+  await expect(register(values)).rejects.toThrow('логин уже занят')
+  await expect(register(values)).rejects.toThrow('Слишком много запросов')
+  await expect(register(values)).rejects.toThrow('Проверьте соединение')
+  expect(getClientSession().session).toBeNull()
+})
 
 it('использует день аккаунта после входа и возвращает календарь браузера после выхода', async () => {
   const moment = new Date('2026-10-14T22:30:00Z'), browserDate = localDate(moment)
