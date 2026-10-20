@@ -2,9 +2,10 @@
 
 Адрес приложения: <https://dev.arturican.com>. Frontend/Nginx находятся на
 159.194.208.200; PostgreSQL 18.3 и API — на 2.26.54.81, Ubuntu 24.04.
-Email-регистрация и восстановление опубликованы в T196. Проверенный код/артефакт:
-T215 — 2b719b59914136dca1fb8ec95e2317fa0814fca0. Последующий docs-коммит публикует
-тот же код через CI; окончательный SHA проверяется по release.txt и отчёту CI.
+Email-регистрация и восстановление опубликованы в T196. Frontend T222 проверен
+на 279a3e2ca1747b1d0d8eb0121131024f67bc3cb2; API T222-1be2d33a2817.
+Итоговый docs-коммит публикует тот же код через CI; точный frontend SHA
+проверяется по release.txt и успешному CI выбранного коммита.
 
 ## Сервер данных
 
@@ -121,6 +122,39 @@ Nginx -t и реальный локальный HTTP проверяются от
 
 ## Обновление и проверки
 
+T222 (20.10.2026): финальный локальный check PASS (1633 unit/API, 91 Browser,
+86 E2E, lint/types/coverage/build), build:api, 38 Python deploy, verify_build
+и systemd verify PASS. Итоговый review без блокеров. Dev до 1be2d33 отправлен;
+CI 39415808015: check/deploy success, HTTPS release.txt точно совпал с SHA.
+Новый API /opt/health-api/releases/T222-1be2d33a2817; SHA256 архива
+5ddd41392b707591276cca563bccc6d5638e2484cbd56c573cb5c91bf52d69be.
+27 файлов сверены до/после npm ci --omit=dev, pinned Node/npm, native imports,
+root-owned/readonly права проверены. Все 15 миграций совпадают с прежним релизом;
+SQL/роли/секреты/SMTP/retention не менялись. Штатная свежая GPG-копия успешна,
+внешний SHA256 сверён независимым SSH; monitor dry-run healthy без письма.
+После атомарного переключения health/readiness200, приватные данные401;
+no-store/nosniff, отсутствие тестового mailbox, активные сервисы и monitor timer
+проверены локально/HTTPS. В журнале API предупреждений за время выпуска нет.
+nginx -t PASS; два прежних obsolete http2 warning принадлежат другому virtual host.
+Согласованный откат: атомарно вернуть current на
+/opt/health-api/releases/T215-2b719b599141 и перезапустить только health-api,
+проверить health/readiness/auth. Схему и данные не откатывать.
+Первая HTTPS-приёмка нашла старую клиентскую гонку ревизии (4 PASS/2 FAIL).
+T223–T226a исправлены и отправлены в dev до 279a3e2; CI 39421683638
+check/deploy success, release.txt совпал с полным SHA. Повторная HTTPS-приёмка:
+6 PASS desktop/mobile, CRUD/pending/refetch, новый tab, восемь экранов,
+приватные байты вложений, auth/400, консоль и внешняя сеть без ошибок.
+Все исходные demo записи сохранены; синтетические скриншоты просмотрены.
+Сервер/domain/миграции/dependencies после 1be2d33 не менялись: все 27 файлов
+новой API-сборки и установленного API повторно совпали с manifest по SHA256,
+проверены root-owned/readonly права. API повторно не переключался.
+Свежая копия перед повторным выпуском:
+health-diary-20261020T121708Z-71a0fb76.dump.gpg, SHA256
+5691f85b80330d4193d6a17b8e7dc1c47200fc570e6db8bdb8b0b912a605e173;
+независимое чтение на offsite совпало, monitor dry-run healthy без письма.
+Итоговый docs-коммит публикует тот же код; его CI/SHA проверяются после push.
+Фактический итог и границы проверки — запись T222 в PROGRESS.
+
 T215 (20.10.2026): API выпущен из 2b719b59914136dca1fb8ec95e2317fa0814fca0
 в /opt/health-api/releases/T215-2b719b599141. SHA256 архива:
 44951b4c36d4264c73e25665c1dad33b5bf31d547e1dd80c72057afa8786805d.
@@ -227,11 +261,12 @@ deploy <SHA>, без shell/forwarding/sudo. CI сверяет HTTPS/release.txt 
 
 В отдельном контексте Desktop/Pixel 7, с вымышленным health-demo:
 
-    export EXPECTED_RELEASE=544e60c2b42f8e49f959db301f4babdf019f520e
+    export EXPECTED_RELEASE=$(git rev-parse HEAD)
     export HEALTH_DEMO_CREDENTIALS=/home/artur/.config/health-diary/demo-credentials.json
     npx playwright test --config tests/deployed/playwright.config.ts
 
-Ожидаемый SHA берите из выбранного артефакта доставки, а не из ответа сайта.
+Запускайте из checkout выбранного опубликованного коммита. Ожидаемый SHA берите
+из выбранного артефакта доставки/локального Git, а не из ответа сайта.
 Тест читает закрытый JSON с login/password; не передавайте пароль аргументом.
 Формы регистрации/reset проверяются без отправки настоящих писем; тестовые
 mailbox/clock маршруты должны возвращать 404. Полный email-путь через SMTP

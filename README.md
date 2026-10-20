@@ -12,9 +12,10 @@
 Текущий код хранит данные и файлы в PostgreSQL через авторизованный Fastify API.
 Все восемь экранов используют сервер; браузер не хранит копию дневника.
 Эта версия развёрнута на VPS: API/БД 2.26.54.81, frontend 159.194.208.200.
-Итоги, состав демонстрации и проверки — [SERVER_COMPLETION.md](docs/SERVER_COMPLETION.md).
-Совместного доступа и AI нет. Приложение не даёт медицинских рекомендаций. Полный выполненный
-план — [TASKS.md](TASKS.md), результаты проверок — [PROGRESS.md](docs/PROGRESS.md).
+Критерии рабочей версии — [REFACTORING_PLAN.md](REFACTORING_PLAN.md),
+статусы — [TASKS.md](TASKS.md), результаты проверок — [PROGRESS.md](docs/PROGRESS.md).
+История серверного перехода и состав демонстрации — [SERVER_COMPLETION.md](docs/SERVER_COMPLETION.md).
+Совместного доступа и AI нет. Приложение не даёт медицинских рекомендаций.
 
 Демонстрационный логин: health-demo. Пароль находится в закрытом локальном
 /home/artur/.config/health-diary/demo-credentials.json (WSL, права 600), не в Git.
