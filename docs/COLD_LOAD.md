@@ -110,3 +110,18 @@ T259 остаётся решением по необходимости lazy rout
 [Network](https://chromedevtools.github.io/devtools-protocol/tot/Network/),
 [Performance](https://chromedevtools.github.io/devtools-protocol/tot/Performance/).
 Сами числа получены из текущего приложения и synthetic run, не из документации.
+
+## Решение T259
+
+Lazy loading сейчас не добавляется. Подтверждённый эффект — public static gzip
+(T258a); код приложения/граф загрузки не изменены. После сжатия runtime JS
+составляет около149kB, ScriptDuration/переходы не дали отдельной причины для
+refactor. У приложения не найден обязательный SLA cold load. Это решение
+о достаточности имеющегося обоснования, а не доказательство, что lazy не поможет:
+сравнения с lazy-вариантом не было.
+
+IMP-028 остаётся условным предложением. Вернуться при измеренной проблеме
+конкретного маршрута/профиля после live-проверки сжатия. Тогда сначала сравнить
+варианты тем же benchmark, затем покрыть все8routes, keyboard/fallback/retry,
+chunk failure и старую вкладку после release. Warning threshold не менялся.
+T259 done означает документированное решение, не внедрение lazy loading.

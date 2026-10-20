@@ -166,8 +166,9 @@ push и frontend-релиз в него не входят.
 | T257 | done | [IMP-026: cleanup частичного SQL setup](docs/tasks/T257.md) | T256a |
 | T258 | done | [IMP-027: замер cold load](docs/tasks/T258.md) | T257 |
 | T258a | done | [Сжатие публичной статики Nginx](docs/tasks/T258a.md) | T258 |
-| T259 | todo | IMP-028: решение о lazy routes по замеру | T258a |
-| T260 | todo | Итоговая приёмка, push/CI и backend/frontend/ops delivery | T259 |
+| T259 | done | [IMP-028: решение о lazy routes](docs/tasks/T259.md) | T258a |
+| T260a | todo | [Свести документы перед выпуском](docs/tasks/T260a.md) | T259 |
+| T260 | todo | Итоговая приёмка, push/CI и backend/frontend/ops delivery | T260a |
 
 ## Подготовка
 

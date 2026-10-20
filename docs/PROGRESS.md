@@ -3955,3 +3955,13 @@ listeners/includes; итоговыхблокеровнет. Conditiondeadline10s
 не обещается hard10swallclock. Standalonehelper — manualdeploymentgate,неCI.
 72Pythondeploytests/check:docs/diff прошли. Liveconfig всёещёpreviouscommit,
 сервисactive; установкавT260. Всеявносозданные remote/tmpфайлыудалены.
+
+## T259 — Решение без lazy loading
+
+По T258 выбрано сначала проверенное publicgzip, а не обязательный refactor
+по warning. Нет найденного SLA, runtimeJSgzip≈149kB, отдельной CPU/route
+проблемы не измерено. Lazy-вариант не сравнивался: его бесполезность не заявлена.
+IMP-028 остаётся условным предложением; T259done означает принятое решение,
+без новыхchunks/errorpaths и без повышенияwarninglimit.
+COLD_LOAD/IMPROVEMENTS отражают условия возврата; check:docs/diff прошли.
+Перед общими release gates выделена T260a для сведения документации.
