@@ -136,7 +136,7 @@ push и frontend-релиз в него не входят.
 | [T240a](docs/tasks/T240a.md) | done | IMP-009: объяснение ротации и смены generation в интерфейсе | T240 |
 | [T241](docs/tasks/T241.md) | done | IMP-010: безопасные диагностические события | T240a |
 | [T241a](docs/tasks/T241a.md) | done | IMP-010: ограниченное хранение безопасных API events в journald | T241 |
-| [T242](docs/tasks/T242.md) | in_progress | IMP-011: поверхность собранного runtime | T241a |
+| [T242](docs/tasks/T242.md) | done | IMP-011: поверхность собранного runtime | T241a |
 | T243 | done | [IMP-012: проверенная ёмкость JSON-копий](docs/tasks/T243.md) | T242 |
 | T244 | done | [IMP-013: понятный отказ и альтернатива копии](docs/tasks/T244.md) | T243 |
 | T245 | done | [IMP-014: переиспользование Blob документа](docs/tasks/T245.md) | T244 |
@@ -167,7 +167,7 @@ push и frontend-релиз в него не входят.
 | T258 | done | [IMP-027: замер cold load](docs/tasks/T258.md) | T257 |
 | T258a | done | [Сжатие публичной статики Nginx](docs/tasks/T258a.md) | T258 |
 | T259 | done | [IMP-028: решение о lazy routes](docs/tasks/T259.md) | T258a |
-| T260a | todo | [Свести документы перед выпуском](docs/tasks/T260a.md) | T259 |
+| T260a | done | [Свести документы перед выпуском](docs/tasks/T260a.md) | T259 |
 | T260 | todo | Итоговая приёмка, push/CI и backend/frontend/ops delivery | T260a |
 
 ## Подготовка

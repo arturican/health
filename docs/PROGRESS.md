@@ -3965,3 +3965,17 @@ IMP-028 остаётся условным предложением; T259done о�
 без новыхchunks/errorpaths и без повышенияwarninglimit.
 COLD_LOAD/IMPROVEMENTS отражают условия возврата; check:docs/diff прошли.
 Перед общими release gates выделена T260a для сведения документации.
+
+## T260a — Актуальная документация перед выпуском
+
+ARCHITECTURE сведена в связное описание текущего кода: Today/ReadScope,
+generation/rotation, migration016, файлы/кеш/удаление, диагностика и ops.
+Схемы показывают отдельную maintenance transaction и границы domain/media.
+Исходные доказательства T231 сохранены; AUDIT содержит текущую матрицу
+16 находок, IMPROVEMENTS — статусы задач и пять оставшихся действий.
+Local ready отделено от live T260, AUD-011/014 и conditional lazy не закрыты.
+T242 исправлена на done по существующему коммиту c322f45.
+Read-only review API/UI/ops завершён; замечания по фактам/оформлению исправлены.
+check:docs: 350 Markdown, 1564 links, 11 Mermaid, 11 node tests PASS.
+Все 11 схем отрисованы локально без внешних запросов/page errors;
+изменённые component/food/backup просмотрены. diff --check PASS, только docs.

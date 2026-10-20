@@ -22,17 +22,50 @@ Decision/measurement steps имеют самостоятельный прове�
 
 ## Пять наиболее полезных следующих действий
 
-1. **IMP-001:** исключить рабочие DB/mail env из runtime smoke и замечать crash.
-2. **IMP-002:** сохранить черновики фото/документов при failed visibility refresh.
-3. **IMP-003:** вернуть Cancel при устаревшем чтении, сохранив pending-защиту.
-4. **IMP-004:** дать явное восстановление настроек/плана после конфликта409.
-5. **IMP-005:** подтверждать выбранный timezone безопасно при повторной регистрации.
+На этапе приёмки после T259 приоритеты следующие; статусы — [TASKS](../TASKS.md).
 
-Каждый пункт имеет воспроизведение в аудите и может стать отдельной задачей.
-IMP-006 (deploy metadata cap) также разумно выполнить до следующей доставки;
-его эксплуатационный риск ниже публичного upload, поскольку нужен deploy key.
+1. **T260:** общий check/build:api/deploy gates → точный push/CI → свежая
+   внешняя копия, migration016/API/journal/receiver/Nginx → live proof/rollback.
+2. **T252a:** выбрать доступный независимый путь доставки. На frontend нет SMTP;
+   relay через исчезнувший data VPS не решает его отказ. Нужен ответ оператора.
+3. **T253a:** активировать подготовленный availability watchdog после выбора
+   канала и доказать получение alert/recovery; не ограничиваться SMTP acceptance.
+4. **T254c:** связать offsite integrity/freshness с независимой доставкой.
+   Trusted backfill только same-name/source-hash; старые unattested не выдавать за verified.
+5. **AUD-014:** при требовании копии большего объёма согласовать поддерживаемую
+   ёмкость/совместимый формат отдельной очередью exporter/importer/UI/restore.
+   Сейчас пределы и честный413 сохранены, универсальный JSON export не внедрён.
 
-## Ближайшие исправления
+Первые пять рекомендаций исходного T231 уже реализованы, повторно их не планировать.
+Условный IMP-028 не требует добавлять lazy routes без измеренного обоснования.
+
+## Выполнение исходного backlog
+
+| IMP | Задачи / результат | Состояние |
+|---|---|---|
+|001 | T232 и стабилизация T232a | done: runtime env/early exit, regression |
+|002–005 | T233/T234/T235/T236 | done в коде; live/migration при T260 |
+|006 | T237 | expanded cap готов, установка при T260 |
+|007–009 | T238/T239/T240/T240a | capacity/протокол/ротация/UI готовы, компромисс сброса черновиков принят |
+|010 | T241/T241a | event code+bounded journal policy готовы, активация при T260 |
+|011 | T242 | built-runtime surface gate готов, 62 operations/mutants |
+|012–013 | T243/T244 | measurement+объяснимые413 готовы; общий capacity limit остаётся |
+|014–016 | T245/T246/T247 | один Blob, явное открытие,шесть gallery cards готовы |
+|017–019 | T248/T249/a/T250/a | измерение, ReadScope/общий Today; request budget подтверждён |
+|020 | T251/a/b | mounted positive cache+подтверждённое DELETE; без глобального cache |
+|021 | T252/T252a | inventory готов, channel choice blocked |
+|022 | T253/T253b/T253a | probe/state/units готовы, activation+receipt blocked |
+|023 | T254/T254a/T254b/T254c | SHA/probe/synthetic restore готовы, alerts blocked |
+|024–026 | T255/T256/a/T257 | anchors/parser/render/fixture cleanup проверены |
+|027 | T258 |пять controlled points на режим, результаты в COLD_LOAD |
+|028 | T259 | решение done; lazy implementation условно отложена |
+|029 | T258a | public gzip native proof готов, live установка при T260 |
+
+Исходные критерии ниже сохранены как спецификация и ссылки для проверки
+результата, не как перечень ещё не начатых задач. После release установленные
+SHA и фактические gates фиксируются отдельно в DEPLOYMENT/PROGRESS.
+
+## Исходный первый этап
 
 | Порядок / ID / приоритет | Находки и цель | Модули, зависимости | Размер / риск | Проверяемая приёмка |
 |---|---|---|---|---|

@@ -1,10 +1,11 @@
 # Как устроен Health Diary
 
-Исходный срез 20.10.2026: `dev` @ `9718e60423c28bbc708db95bf045db6403575769`.
-Исправления T232–T240a учтены ниже; статусы и проверки — в TASKS/PROGRESS.
-Это описание существующего кода. Проверки и ограничения — [AUDIT](AUDIT.md),
-будущие изменения — [IMPROVEMENTS](IMPROVEMENTS.md), быстрый поиск файлов —
-[PROJECT_MAP](PROJECT_MAP.md).
+Код и конфигурация сверены 20.10.2026 после T259, dev @ eebeebd.
+Исходный аудит относится к 9718e60; исправления учтены здесь. Это описание
+репозитория. Установленные component SHA и результаты доставки фиксируются
+отдельно в [DEPLOYMENT](DEPLOYMENT.md) и [PROGRESS](PROGRESS.md): наличие
+артефакта не означает его активацию на VPS. Проверки/риски — [AUDIT](AUDIT.md),
+очередь — [IMPROVEMENTS](IMPROVEMENTS.md), поиск — [PROJECT_MAP](PROJECT_MAP.md).
 
 ## Приложение за пять минут
 
@@ -29,9 +30,11 @@ Email-регистрация требует письма: адрес → под�
 переносит файлы; текстовая — записи без вложений и показателей документов.
 Эти скачанные копии не зашифрованы. Серверные GPG-копии — отдельный механизм.
 
-Главные сценарии подтверждены локальными тестами; актуальность установленного
-VPS, Safari/Firefox, screen reader и реальная доставка писем в этом аудите
-не проверялись. Найденные сбои восстановления форм описаны в AUDIT.
+Сценарии проверяются локально с настоящими API/PostgreSQL и Chromium.
+Read-only live release/health проверены при T231; выпуск T260 имеет свои gates.
+Safari/Firefox, screen reader и реальный телефон не покрыты. Независимый канал
+оповещений ещё не выбран; подготовленные scripts не равны включённому monitor.
+Пределы JSON-копий — [BACKUP_CAPACITY](BACKUP_CAPACITY.md).
 
 ## Общая схема
 
@@ -49,7 +52,8 @@ flowchart TB
 
 Nginx отдаёт статику и проксирует API через закрытый туннель. API/БД слушают
 loopback. SMTP передаёт только служебные письма. Схема получена из конфигурации
-и инструкций, текущее состояние серверов здесь не инспектировалось. Подробности
+и инструкций; read-only инвентаризация T252 подтвердила основные процессы и связи.
+Изменения этой очереди ещё требуют доставки T260. Подробности
 и границы доверия — [PRIVACY_SECURITY](PRIVACY_SECURITY.md).
 
 ## Компоненты и зависимости
@@ -61,7 +65,8 @@ flowchart TB
     App -->|hash route| UI[pages и ui]
     UI -->|публичные репозитории| DA[dataAccess.ts]
     DA -->|экспортирует| C[client HTTP session queries commands]
-    UI -->|чистые расчёты и файлы| D[domain и media]
+    UI -->|чистые расчёты| D[domain]
+    UI -->|подготовка файлов| Media[media]
     C -->|HTTP| Routes[server runtime и Routes]
     Routes -->|валидация| D
     Routes -->|операция владельца| Records[Records и withCommand]
@@ -95,6 +100,7 @@ domain общие для обеих сторон. Legacy подключаетс�
 | `src/server/createAccount.ts`, `seedDemo.ts`, `demo*.ts`, `seed*.ts` | административный env → синтетический аккаунт/дневник | отдельный CLI, не публичные endpoints |
 | `src/data`, `src/legacy` | прежняя IndexedDB → JSON/тестовый адаптер | Dexie; явное подключение |
 | `tests`, `*.test.*`, `*.browser.test.tsx` | синтетические сценарии → assertions | Vitest, Playwright, testDatabase |
+| `src/server/diagnostics.ts`, `deploy/watchdog_*.py`, `offsite_check.py` | безопасный сигнал/проверки доступности и ciphertext; не автоматическая активация | journal, локальный HTTP/SMTP, SHA sidecar |
 | `deploy`, `.github/workflows/check.yml` | сборки/копии → доставка и диагностика | Python, systemd, Nginx, SSH, GPG |
 
 Полный файловый охват, включая CSS, конфигурацию, SQL и тесты —
@@ -124,7 +130,7 @@ domain общие для обеих сторон. Legacy подключаетс�
 
 | Hash / экран | Возможности и обработчики | Репозиторий → серверные данные |
 |---|---|---|
-| `#today` / TodayPage | выбранный день, сводки, графики | summaries → profile, weights, food, nutrition-days, steps, workouts, energy-plans |
+| `#today` / TodayPage | выбранный день, сводки, графики | TodaySummaryProvider → getTodaySummary → profile, weights, food, nutrition-days, steps, workouts, energy-plans |
 | `#nutrition` / NutritionPage | FoodForm/FoodJournal: порция, правка, удаление; CopyMealForm; ProductCatalog/ProductForm; полнота дня | food/product/nutritionRepository → foodRoutes/productRoutes/nutritionRoutes |
 | `#activity` / ActivityPage | StepsForm; WorkoutForm/WorkoutJournal; недельная сводка | steps/workoutRepository → stepsRoutes/workoutRoutes |
 | `#weight` / WeightPage | дата/кг, график, выбор точки, правка/удаление | weightRepository, getWeightOverview → weightRoutes, weights |
@@ -139,7 +145,15 @@ domain общие для обеих сторон. Legacy подключаетс�
 domain-функциями. `StorageBoundary` различает первоначальную ошибку/повтор;
 `QueryFeedback` сообщает о сбое обновления уже показанных данных. `current=false`
 блокирует запись по устаревшим данным, но snapshot редактора остаётся прежним.
-Ограничения Cancel/повторного сохранения — AUD-002/AUD-003 в аудите.
+Cancel в Product/Food/Workout/Lab доступен при устаревшем чтении без собственной
+записи/конфликтующего удаления; отмена возвращает фокус на main. После 409
+PrivacySettings/EnergyPlanForm удерживают draft и исходный snapshot. Только
+явный отказ от ввода загружает текущую revision: refetch сам не перебазирует
+черновик. EnergyPlan создаёт новую версию, не изменяет старую.
+
+useVisibility хранит последнее принятое значение того же epoch: сбой refresh
+не прячет открытый редактор/File. Первоначальная неизвестность считается
+скрытой; реальное сокрытие/выход размонтируют экран. Права остаются на сервере.
 
 ## API и ошибки
 
@@ -181,6 +195,11 @@ generation, используют ревизию записи; клиент та�
 статус в русский текст в `http.ts`, не показывает SQL/stack trace. Ошибка
 фактической SMTP-доставки не меняет публичный accepted, чтобы не раскрывать адрес.
 
+409 различается по причине. Revision conflict сохраняет draft до явного
+перечитывания. command_capacity объясняет hard limit журнала. command_rotation:
+команда не сохранена, служебный журнал очищен и generation сменился. Клиент
+объясняет сброс старых форм и не исполняет команду автоматически.
+
 ## Состояние и согласованность
 
 | Где | Что хранится / сколько живёт |
@@ -191,16 +210,71 @@ generation, используют ревизию записи; клиент та�
 | client/queries | глобальная ревизия инвалидации и подписчики; полноценного общего кеша запросов нет |
 | cookie | `__Host-health_session`, Secure/HttpOnly/SameSite=Lax; хеш сессии в PostgreSQL |
 | accountChanges | BroadcastChannel-сигнал о смене аккаунта; без дневника и токенов; при запрете канала остаётся проверка владельца ответа |
-| Blob/object URL | временные изображения и скачивания; URL освобождаются при cleanup |
+| useFileReader / BlobImage | проверенный положительный Blob на время mounted viewer; object URL отзывается при cleanup |
 | IndexedDB | прежний дневник и отдельные тестовые базы; явный экспорт, не fallback |
 | PostgreSQL | текущие записи, байты, ревизии, журнал команд, сессии, email-токены и auth budgets |
 
-`requestApi` проверяет путь/статус/аккаунт и ограничивает ожидание 130 секундами.
+requestApi проверяет путь/статус/владельца и ограничивает ожидание130 секунд.
 Смена сессии отменяет запросы и делает старый epoch недействительным.
-`readPages` собирает все страницы по 100 элементов. `consistentRead` сверяет
-changeRevision до/после составного чтения, повторяет до трёх раз, затем даёт
-конфликт. Сетевой сбой не превращается в пустой дневник. Сейчас инвалидация
-глобальная; стоимость больших историй и файлов — AUD-007.
+readPages собирает metadata по 100 элементов; без scope сохраняет собственную
+пару diary-state. Глобальная инвалидация и полное чтение больших списков
+пока остаются, общего постоянного query cache нет.
+
+### Согласованное чтение и экран «Сегодня»
+
+consistentRead сравнивает changeRevision/generation до/после чтения,
+повторяет максимум три попытки, затем даёт конфликт. Явный маркер ReadScope
+действует только внутри callback одной попытки: вложенные paged readers
+не добавляют собственные fences, но проверяют owner/generation/epoch и
+активность scope после await. Независимые параллельные чтения не делят scope.
+Это оптимистическая согласованность HTTP-ответов, а не общая SQL-транзакция.
+
+TodaySummaryProvider вызывает getTodaySummary на query cycle; retries и
+инвалидации вызывают новые чтения. Profile/weights, food/nutrition-day/plan,
+steps/workouts читаются по одному разу на попытку под общей внешней парой
+diary-state. Все карточки Today используют этот snapshot; на других экранах
+summary сохраняют standalone hooks. Failed refresh удерживает весь прежний
+snapshot/current=false, полнота disabled до успешного повтора. Day/owner/epoch
+не смешивают поздние ответы. Измеренные GET экрана: при открытии 31→12,
+diary-state 21→5; focus/запись 30→11 и 20→4, без auth/session. Это request counts
+на loopback, не production latency; [READ_PERFORMANCE](READ_PERFORMANCE.md).
+
+### Служебный журнал команд
+
+withCommand сначала проверяет replay/generation/revision. При pre-work
+внешний порог 90000 новая допустимая команда откатывается; отдельная
+owner transaction повторно проверяет generation/count под lock, удаляет
+только commands и меняет generation. Записи/файлы/revisions сохраняются.
+409 command_rotation объясняет отсутствие записи команды и сброс старых форм;
+автоматического повтора работы нет. Direct/nested runCommand сохраняет
+жёсткий предел 100000/command_capacity. [COMMAND_REPLAY](COMMAND_REPLAY.md) описывает
+replay window, конкурентность и этот компромисс.
+
+### Файлы: открытие, память, удаление
+
+Любое вложение документа читается по «Открыть вложение». DocumentFileState
+удерживает только in-flight promise: Close→Open/Retry не запускают параллельный
+GET. Inner viewer использует один проверенный Blob для preview и download.
+Close/retry/unmount очищают settled cache; BlobImage владеет URL и отзывает
+его при cleanup. Физическая отмена GET по Close не добавлена.
+
+PhotoGallery монтирует до шести карточек страницы; смена страницы снимает прежние
+viewer/URL. PhotoComparison отдельно может загрузить два выбранных фото.
+Metadata всех фото по-прежнему читается целиком. Количество viewer ограничено,
+но точный heap/GPU limit не измерен.
+
+useFileReader хранит только положительный Blob в mounted viewer по
+owner/generation/session epoch/fileId. Focus/metadata edit обновляют списки
+и доступ, сохраняя неизменные bytes. Null/ошибка не кешируются; Close/unmount/
+смена идентичности очищают ссылки. Нет общего cache между разными viewer.
+
+После успешного DELETE и assertContext репозиторий сообщает fileId+epoch:
+соответствующий Blob/download/URL убирается даже при failed metadata refresh,
+соседний viewer сохраняется. getFile подписан до завершения запроса и проверки
+Blob, поэтому отложенный результат после удаления становится null, включая
+повторное открытие через старый pending promise. Истории deletion нет.
+В другой вкладке удаление заметно при успешном metadata refresh; уже полученные
+клиентом bytes нельзя отозвать. Global/persistent cache не добавлен.
 
 ## Модель данных
 
@@ -213,7 +287,7 @@ changeRevision до/после составного чтения, повторя
 |---|---|---|
 | users | id, unique login, Argon2id password_hash, timezone, email/email_required/email_verified_at; unique lower(email) | аккаунт; очистка дневника его сохраняет |
 | sessions | token_hash PK, user_id FK, created/expires/last_seen/revoked | срок/выход/смена пароля; секрет cookie не хранится открыто |
-| account_tokens | hash PK, user_id, purpose, email, nullable registration_timezone для verify, срок/consumed; unique user+purpose | одноразовая ссылка, 1 час verify / 15 минут reset |
+| account_tokens | token_hash PK, user_id, purpose, email, nullable registration_timezone для verify, срок/consumed; unique user+purpose | одноразовая ссылка, 1 час verify / 15 минут reset |
 | auth_rate_limits | bucket/dimension/digest PK, attempts/expires_at | общий SQL-бюджет auth; истёкшее очищается при обращении |
 | profiles | user_id PK, name, height_cm, birth_date?, formula_sex, revision | максимум один; первый вес создаётся атомарно |
 | weights | user_id+id PK, date, kg, revision; unique user+date | FK на profiles; один вес в день |
@@ -229,7 +303,7 @@ changeRevision до/после составного чтения, повторя
 | lab_results | user_id+id, document_id, date/name, number+operator ИЛИ text, unit/reference/note | FK user+document; каскадное удаление; правка повышает revision документа |
 | settings | user_id PK, generation, visibility_defined/show_*, catalog_seeded, revision/change_revision | лениво создаётся; generation меняется при import/clear/ротации commands |
 | legacy_metadata | user_id+id, value | совместимые поля копии; служебные ключи исключены |
-| commands | user_id+id, request_hash, response JSONB, created_at | replay до ротации; outer threshold90000, nested hard100000; owner cleanup меняет generation |
+| commands | user_id+id, request_hash, response JSONB, created_at | replay до ротации; внешний порог 90000, nested жёсткий предел 100000; owner cleanup меняет generation |
 | schema_migrations | name PK, checksum, applied_at | системный журнал migrator; не данные пользователя |
 
 Личные таблицы защищены FORCE RLS: PostgreSQL сам ограничивает строки по
@@ -329,7 +403,7 @@ emailAuth → SQL-функции миграций 013/014/016 → accountMail/Po
 Cooldown не меняет прежнюю ссылку, resend переносит её пояс. Старые NULL-токены
 и legacy/reset сохраняют users.timezone. Ошибка доставки
 не раскрывает существование адреса; искать причину следует в mail-контуре,
-учитывая ограниченную диагностику AUD-009.
+используя безопасные диагностические события ниже.
 
 ### Запись порции и конкурентная правка
 
@@ -339,20 +413,27 @@ sequenceDiagram
     participant C as foodRepository и commands
     participant API as foodRoutes и withCommand
     participant DB as PostgreSQL
-    UI->>C: Создание с productId или правка FoodEntry с исходной revision
-    C->>API: POST или PUT food с cookie CSRF generation key
-    API->>API: authorize и проверка командных заголовков
-    API->>DB: BEGIN set owner и advisory lock
-    API->>DB: Проверить key generation и revision
-    alt Команда новая и данные актуальны
+    UI->>C: Создание порции или правка с revision
+    C->>API: POST/PUT food с командными заголовками
+    API->>API: authorize, CSRF и формат командных заголовков
+    API->>DB: BEGIN, owner и advisory lock
+    API->>DB: replay, generation и revision
+    alt Новая команда ниже порога
         API->>API: Runtime-валидация DTO в Records
-        API->>DB: Сохранить запись snapshot changeRevision и response
+        API->>DB: Запись, snapshot, revisions и replay result
         DB-->>API: COMMIT
         API-->>C: R
         C-->>UI: Инвалидация и свежие чтения
-    else Повтор или конфликт
+    else Повтор ключа или конфликт revision
         API-->>C: Сохранённый результат либо 409
-        C-->>UI: Результат либо ошибка с сохранением черновика
+        C-->>UI: Результат либо сохранённый draft
+    else Порог после валидного work
+        API->>DB: ROLLBACK новой команды
+        API->>DB: Новая owner transaction, lock, повтор generation/count
+        API->>DB: Очистить commands и сменить generation
+        DB-->>API: COMMIT служебного изменения
+        API-->>C: 409 command_rotation
+        C-->>UI: Команда не сохранена, новая эпоха
     end
 ```
 
@@ -383,8 +464,9 @@ DELETE требует исходную ревизию и точное подтв
 
 FullBackupImport/SettingsPage → checkBackupFile/схема → подтверждение замены (UI всегда replace; API также допускает empty) → `backupRepository` → `backupRoutes`. Проверяются Origin/CSRF, ключ,
 generation/changeRevision, UTF-8/MIME/размер, связи/квоты и файлы. Только затем
-restoreFull/restoreText выполняет транзакцию владельца. Ошибка сохраняет прежний
-дневник целиком; успех меняет generation, и клиент загружает новый diary-state.
+restoreFull/restoreText выполняет транзакцию владельца. Ошибка валидации/импорта сохраняет пользовательские записи/файлы;
+command_rotation отдельно меняет служебный журнал/generation и требует
+нового явного действия. Успех меняет generation, и клиент загружает новый diary-state.
 Текстовый импорт сохраняет вложения; полный перенос включает их. Это не merge.
 
 ```mermaid
@@ -398,22 +480,38 @@ sequenceDiagram
     DB-->>S: SQL archive
     S->>S: GPG публичным ключом и checksum
     S->>R: SSH только ciphertext
-    R->>R: Проверка имени размера hash и retention
+    R->>R: Проверка bytes/SHA, sidecar, retention
     R-->>S: Подтверждение
     S->>S: Локальная retention и status
 ```
 
-Это единственная показанная здесь фоновая обработка; отдельной прикладной очереди
-нет. Monitor проверяет свежесть/результат локально и отправляет сообщение при
-смене состояния. Ключ расшифрования не должен находиться на VPS. Восстановление
-в отдельную БД и отзыв восстановленных сессий — [BACKUPS](BACKUPS.md).
+Диаграмма отражает receiver в репозитории: live установка sidecar и доверенный
+backfill входят в T260. Отдельной прикладной очереди нет. Прежний локальный
+monitor на data VPS проверяет свежесть/результат и шлёт сообщение при смене
+состояния; он не переживает исчезновение этого VPS.
+
+watchdog_probe проверяет health/readiness через фиксированный туннель второго
+VPS; watchdog_monitor готовит state/dedup/SMTP policy и units. offsite_check
+сверяет найденные ciphertext с receiver-attested SHA без расшифровки.
+Отсутствующий manifest — unattested, не healthy. Старым архивам backfill
+допустим лишь по тому же имени и совпавшему SHA ещё сохранённого source.
+Исчезновение всей прежней пары без исторического ledger не обнаруживается.
+T252a/T253a/T254c blocked: на frontend нет SMTP, data SMTP не покрывает
+полный отказ data-host. Артефакты не доказывают независимую доставку.
+
+Private key остаётся вне VPS. Synthetic dump→GPG→restore текущих 20 таблиц,
+файлов/ACL/RLS/отзыва auth проверен; это не расшифровка каждого рабочего архива.
+[BACKUP_CONTROL](BACKUP_CONTROL.md) описывает границы,
+[BACKUPS](BACKUPS.md) — восстановление,
+[BACKUP_CAPACITY](BACKUP_CAPACITY.md) — пределы JSON.
 
 ## Запуск и работа разработчика
 
 Требуются Node **24.22.0**, npm **11.19.1**, Python 3.12+, выделенный PostgreSQL
 **18.3**, Docker и уже доступный образ postgres:18.3 (restore использует
 --pull=never), GnuPG (gpg/gpgconf) и Chromium с системными библиотеками.
-Зафиксированные зависимости уже установлены; аудит не выполнял переустановку.
+Lock воспроизведён npm ci при добавлении dev-only mermaid 12.2.0; версии
+ранее зафиксированных пакетов не изменились.
 На новой машине: `. ~/.nvm/nvm.sh`, `nvm install`, `nvm use`, `npm ci`.
 Настройка ролей/контейнера/миграций и аккаунта — [README](../README.md).
 
@@ -425,18 +523,21 @@ sequenceDiagram
 | `npm run account:create`, `npm run db:seed` | административные записи/синтетический дневник; не обычная проверка |
 | `npm run lint`, `npm run typecheck` | ESLint и строгие типы; отдельного formatter/gate форматирования нет |
 | `npm run test:coverage` | Vitest unit/API + случайные тестовые БД; runtime-тест собирает и запускает API |
-| `npm run test:browser:run` | 37 файлов компонентов/файлов в настоящем Chromium |
+| `npm run test:browser:run` | компоненты/файлы в настоящем Chromium |
 | `npm run build`, `npm run build:api` | перезаписывают игнорируемые dist / build-api |
 | `npm run preview` | просмотр dist; APP_ORIGIN API должен соответствовать адресу/порту |
 | `npm run test:e2e` | актуальный dist, preview 4173, synthetic API 4181, уникальные БД/аккаунты |
 | `npm run check` | docs → lint → types → coverage → Browser → build → E2E |
-| `npm run check:docs`, `git diff --check` | существование локальных ссылок / пробелы diff; не рендер Mermaid |
+| `npm run check:docs`, `git diff --check` | node tests, собственный Markdown/anchors и Mermaid syntax; пробелы diff; без автоматического rendering |
 | `python3 -B -m unittest discover -s deploy -p 'test_*.py' -v` | синтетические тесты доставки/копий/монитора |
 | `python3 -B deploy/verify_build.py dist` | проверяет настоящий tar сборки тем же read_build |
 
 Не подставлять рабочую DATABASE_URL в тесты. `testDatabase` допускает только
 loopback `/health_test`, но SQL-роли общие для кластера: нужен выделенный тестовый
-контейнер. До smoke-suite удалять прикладные env из shell (AUD-005). При наличии
+контейнер. Дочерний runtime smoke автоматически
+очищает app env через runtimeEnvironment; очистка shell — дополнительная защита.
+Cleanup учитывает только acquired UUID ресурсы, пытается очистить каждый
+независимо и сохраняет ошибки; старые неизвестные остатки не удаляет. При наличии
 готового кеша WSL-библиотек аудиту помог
 `LD_LIBRARY_PATH=/home/artur/.cache/health-browser-deps/root/usr/lib/x86_64-linux-gnu`;
 это особенность данной машины, не установка зависимостей и не проектный default.
@@ -488,12 +589,35 @@ build:api, поэтому серверная сборка уже участву�
 автоматически этим frontend job: для них нужны артефакт/SHA256, свежая внешняя
 копия, атомарный current и проверенный rollback по инструкции.
 
-Liveness: GET health; SQL-ready: GET readiness; защита доступа: GET profile без
-cookie должен дать 401. Readiness не проверяет миграции/SMTP/резервную копию.
-Frontend SHA проверяется release.txt. Логи API после установки T241a — journalctl --namespace=health-diary -u health-api; до неё — default namespace. Копий —
-health-backup/health-backup-monitor и status-файлы; пути и команды — профильные
-runbooks. API не логирует тела/SQL/реквизиты; диагностика 500 сейчас ограничена.
-Не проверяйте эксплуатацию созданием реальных медицинских записей.
+Liveness: GET health; SQL-ready: GET readiness; без cookie GET profile даёт 401.
+Readiness не проверяет миграции/SMTP/копию. Frontend SHA — release.txt.
+Для API обязательны точный артефакт/SHA256, проверенная свежая внешняя копия
+перед migration016, npm ci --omit=dev и atomic current/rollback.
+
+diagnostics пишет три события: api_internal_error, email_delivery_failed,
+email_binding_failed. Поля — event, UTC time, случайный ID, suppressed count;
+до 30 событий каждого типа в минуту. Нет account/адреса/IP/URL/token/body/SQL/raw error.
+Отказ sink не завершает API. Это сигнал отказа, не полная причина инцидента.
+
+API unit policy подготовлена для journal namespace health-diary:
+16 MiB persistent / 8 MiB runtime, семь дней. Disk pressure/active file не гарантируют
+точную длительность хранения. После активации: journalctl
+--namespace=health-diary -u health-api; до неё default namespace.
+Точный unit verify, activation и synthetic event proof — release gates T260.
+Backup/monitor логи/status-файлы описаны профильными runbooks.
+
+Frontend config готовит gzip только публичного /assets/, API gzip off;
+binary MIME локального TTF также включён. Bytes/URLs/CSP/cache прежние.
+Native isolated helper проверяет encoding/decoded bytes/API exclusion без
+reload рабочего Nginx; это manual deployment gate, не unittest discovery.
+Модель дала assets 1045464→440551 bytes и median FCP 3476→1500 ms,
+не production p95. App сохраняет static imports: T259 отложила lazy loading,
+warning threshold не повышен. [COLD_LOAD](COLD_LOAD.md) содержит все точки.
+
+Watchdog/offsite timers не активируются без независимого транспорта.
+Не проверять эксплуатацию созданием реальных медицинских записей.
+Приёмочные команды/установленные версии — [DEPLOYMENT](DEPLOYMENT.md),
+контроль копий — [BACKUP_CONTROL](BACKUP_CONTROL.md).
 
 ## Где менять код, если нужно…
 
@@ -512,7 +636,9 @@ runbooks. API не логирует тела/SQL/реквизиты; диагн�
 
 **DTO** — проверяемая структура данных на границе API. **Revision** — версия
 записи, **changeRevision** — общий счётчик изменений, **generation** — новая
-эпоха дневника после замены/очистки. **Idempotency** — повтор запроса возвращает
+эпоха дневника после замены/очистки/ротации commands. **Epoch** — локальный
+счётчик клиента: поздний ответ прежнего контекста отбрасывается. **Blob** —
+файл в памяти браузера; **object URL** — временная ссылка для его отображения. **Idempotency** — повтор запроса возвращает
 прежний результат без второй записи. **RLS** — ограничения строк самой БД.
 **Snapshot** — неизменяемый снимок исходных значений. **CSP** — политика браузера,
 ограничивающая исполняемый код/сетевые обращения. **Readiness** — готовность
@@ -521,44 +647,7 @@ runbooks. API не логирует тела/SQL/реквизиты; диагн�
 Один владелец, нет общего доступа/AI/offline; публичного удаления аккаунта нет,
 «Удалить дневник» сохраняет аккаунт. Расход/ИМТ — справочные оценки, null не ноль.
 БД не шифруется приложением at rest; администраторы VPS входят в доверенную зону.
-Масштаб больших историй не профилировался. Схемы отражают исходный код, а не
+Проверены отдельные synthetic read/transfer/export/cold-load границы;
+production load/heap/p95 не измерены. Metadata читается полностью, JSON
+не покрывает любое сочетание допустимых данных, independent alerts требуют канала. Схемы отражают исходный код, а не
 гарантируют текущее состояние production или отсутствие других дефектов.
-
-Ротация служебного журнала описана в [COMMAND_REPLAY](COMMAND_REPLAY.md):
-после pre-work threshold валидная новая команда откатывается, отдельная
-owner transaction очищает commands/меняет generation и возвращает409.
-Сохранённые записи и revisions не меняются; старые формы/контексты нужно
-загрузить заново. Реализация — commands и writeCommand, новый сервис не добавлен.
-
-После T246 вложения не читаются до открытия. Превью и download используют один
-проверенный Blob (BlobImage); закрытие освобождает URL. Pending read одного
-mounted FileState переиспользуется, settled bytes отдельно не кешируются.
-
-После T247 PhotoGallery монтирует6карточек, следующие/предыдущие страницы
-заменяют их и освобождают URL. Metadata всех фото доступна PhotoComparison;
-оно загружает лишь явно выбранные2фото. Серверные списки пока читаются целиком.
-
-После T249/T249a summaries передают branded ReadScope в paged repositories.
-Одна внешняя пара diary-state защищает все вложенные страницы сводки; scoped
-reader проверяет owner/generation и время жизни scope после await. Default
-list без scope сохраняет свою пару fences;3retry/409 и cursor guards прежние.
-
-После T250/T250a TodayPage оборачивает карточки TodaySummaryProvider.
-Он вызывает getTodaySummary одинраз: profile/weights, food/nutrition-day/plan,
-steps/workouts. Единая before/after diary-state пара защищает весь snapshot.
-NutritionSummary/EnergySummary/ActivitySummary берут shared data/current;
-TodayMeals и вес используют те же данные. В других экранах компоненты сохраняют
-свои standalone hooks. При failedrefresh все карточки удерживают прежний
-snapshot и отметка полноты disabled до успешного обновления; day/owner/epoch
-не смешиваются. Формулы и модель хранения не менялись.
-
-После T251a/T251b useFileReader хранит один проверенный Blob только в памяти
-открытого viewer. Ключ включает owner/generation/session epoch/fileId. Metadata
-mutation и focus обновляют списки/права, но не неизменные bytes. Close/unmount/
-смена идентичности очищают ссылки; BlobImage освобождает URL. Подтверждённый
-local DELETE сообщает fileId+epoch, адресно убирает кэш и download даже при
-сбое чтения списка. getFile до завершения следит за тем же событием: отложенный
-GET удалённого файла возвращает null, включая повторное открытие через pending.
-События не сохраняют историю. В другой вкладке удаление обнаруживается успешным
-обновлением metadata; уже полученные клиентом bytes нельзя отозвать удалённо.
-Global/persistent cache и физическая отмена GET по Close не добавлены.

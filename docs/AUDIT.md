@@ -14,6 +14,51 @@
 [AUDIT_SCOPE](AUDIT_SCOPE.md) — полный файловый реестр охвата,
 [API_REFERENCE](API_REFERENCE.md) — существующий контракт.
 
+## Состояние после исправлений T232–T259
+
+Код/конфигурация сверены с локальным dev eebeebd 20.10.2026; T260a меняет
+только документы. Ниже приведён результат очереди, а исходные доказательства
+AUD-001…015 и таблицы проверок дальше сохранены для baseline 9718e60. Их старые
+номера строк/«не проверено» не описывают автоматически нынешний код.
+AUD-016 — отдельное позднее уточнение измерением. Полный повторный аудит
+каждой строки после исправлений не выполнялся: изменённые цепочки проверены
+регрессиями карточек и review, общий release check ещё входит в T260.
+
+| ID | Состояние кода / доказательство | Что остаётся |
+|---|---|---|
+| AUD-001 | Исправлено T233: same-epoch visibility и сохранение media drafts; unit + real E2E | Live установка новой версии — T260 |
+| AUD-002 | Исправлено T234: Cancel четырёх форм независим от stale read, pending защита сохранена | Live — T260 |
+| AUD-003 | Исправлено T235: явный discard/load текущего snapshot, без auto-rebase | Live — T260 |
+| AUD-004 | Исправлено T236: migration016, подтверждаемый timezone в verify token; SQL/HTTP regressions | Миграция на VPS — T260 |
+| AUD-005 | Исправлено T232: очистка app env дочернего процесса и early-exit handling; poisoned-parent regression | Не подставлять рабочую БД в другие тестовые процессы |
+| AUD-006 | T238–T240a: отдельные capacity/rotation ошибки, owner-locked ротация без удаления записей | Смена generation намеренно сбрасывает старые формы; автоматического повтора команды нет |
+| AUD-007 | T245–T251b: один Blob/явное открытие/6 gallery viewers, ReadScope/общий Today, mounted cache/delete invalidation; real request budgets | Полное чтение metadata и глобальная инвалидация остаются; production heap/p95 не измерены |
+| AUD-008 | Исправлено T237: общий 51 MiB expanded cap до tar parser, PAX/GNU regressions | Установка frontend deploy/install_release.py — T260 |
+| AUD-009 | Код T241 и namespace/retention policy T241a готовы; synthetic error/SMTP/sink tests | Активация и live journal proof — T260; не полная диагностика причины |
+| AUD-010 | Исправлено T242/c322f45: 62 операций настоящего built runtime, negative registration mutants | Отдельный test API остаётся, surface gate обнаруживает пропуск/переименование маршрутов |
+| AUD-011 | Частично: T252 inventory, T253/b probe/state, T254/a/b SHA/integrity/synthetic restore готовы | OPEN: T252a/T253a/T254c blocked, независимый транспорт/доставка не подтверждены; старые 14 архивов unattested до backfill |
+| AUD-012 | T255 anchors/design + T256/a official parser; 11 схем parsed и однократно rendered локально | Используемый Markdown subset, не полный CommonMark; GitHub renderer не проверен; changed diagrams требуют нового render |
+| AUD-013 | Исправлено T257: 7 fault tests + 6 real SQL/restore, inventory до/после совпал | Старый остаток 16.10 сохранён; не заявляется пустой общий кластер |
+| AUD-014 | T243 measured capacity, T244 понятные413 и явная альтернатива | OPEN LIMIT: text 20 MiB / full 200 MiB не покрывают любое допустимое сочетание; большие browser imports/production peak не проверены |
+| AUD-015 | T258 measurement и T259 decision; lazy loading отложен | Static imports/warning остаются; бесполезность lazy не доказана, отдельного сравнения не было |
+| AUD-016 | T258a public gzip config + native positive/negative/cleanup proof | Live config/gzip effect — T260; не production latency из model benchmark |
+
+Полные условия отдельных проверок — [PROGRESS](PROGRESS.md) и карточки
+[TASKS](../TASKS.md), измерения — [READ_PERFORMANCE](READ_PERFORMANCE.md),
+[BACKUP_CAPACITY](BACKUP_CAPACITY.md), [COLD_LOAD](COLD_LOAD.md).
+Новые инструменты/скрипты проверены в своих задачах; исходный файловый реестр
+[AUDIT_SCOPE](AUDIT_SCOPE.md) остаётся реестром T231, не фиктивным повторным
+аудитом всех добавленных файлов.
+
+На этом этапе новый код ещё не доставлен. Read-only release.txt повторно
+вернул frontend 792e0b09a65c15616c2b2b15089aeaefd7c39020. API/SQL/unit/receiver/
+Nginx имеют отдельную приёмку T260. Channel choice и alert activation не станут
+зелёными от успешного app deploy. Синтетические тесты не доказывают полную
+безопасность, отсутствие иных ошибок или сохранность каждого рабочего архива.
+
+Следующие разделы до позднего AUD-016 — **исходный аудит T231**, включая
+ограничения и точные неуспешные запуски на тот момент.
+
 ## Общая оценка
 
 Рабочее приложение с последовательными границами UI/client/domain/server,
