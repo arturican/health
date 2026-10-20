@@ -133,6 +133,48 @@ test('запись веса, отмена и подтверждение дост
   expect(external).toEqual([])
 })
 
+test('меню не перекрывает карточку аккаунта при прокрутке страницы', async ({ page, baseURL }) => {
+  const { errors, external } = observeBrowser(page, baseURL)
+  await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'))
+  await page.goto('/#profile')
+  await expect(page.getByRole('form', { name: 'Создание профиля', exact: true })).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  const navigation = page.getByRole('navigation', { name: 'Разделы дневника', exact: true })
+  const storage = page.getByRole('complementary', { name: 'Хранение дневника', exact: true })
+  const sizes = [
+    { width: 1024, height: 400 }, { width: 1024, height: 812 },
+    { width: 1440, height: 650 }, { width: 1440, height: 900 },
+    { width: 1023, height: 812 }, { width: 375, height: 812 },
+  ]
+  for (const size of sizes) {
+    await test.step(`${String(size.width)}×${String(size.height)}`, async () => {
+      await page.setViewportSize(size)
+      for (const fraction of [0, 0.25, 0.5, 0.75, 1]) {
+        await page.evaluate(value => { window.scrollTo(0, (document.documentElement.scrollHeight - innerHeight) * value) }, fraction)
+        await expect.poll(async () => {
+          const menu = await navigation.boundingBox()
+          const card = await storage.boundingBox()
+          if (!menu || !card) throw new Error('Меню и карточка должны отображаться')
+          return card.y - (menu.y + menu.height)
+        }, { message: 'Карточка аккаунта остаётся ниже меню при любой прокрутке' }).toBeGreaterThanOrEqual(-0.5)
+      }
+      const backup = storage.getByRole('link', { name: 'Резервная копия', exact: true })
+      const logout = storage.getByRole('button', { name: 'Выйти', exact: true })
+      await backup.click({ trial: true })
+      await logout.click({ trial: true })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+      await page.screenshot({ path: test.info().outputPath(`sidebar-${String(size.width)}-${String(size.height)}.png`) })
+    })
+  }
+  await storage.getByRole('link', { name: 'Резервная копия', exact: true }).click()
+  await expect(page).toHaveURL(/#settings$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Настройки', exact: true })).toBeVisible()
+  await storage.getByRole('button', { name: 'Выйти', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Вход в дневник', exact: true })).toBeVisible()
+  expect(errors).toEqual([])
+  expect(external).toEqual([])
+})
+
 test('боковое меню прокручивается на коротком экране и открывает настройки с клавиатуры', async ({ page, baseURL }) => {
   test.setTimeout(60000)
   const { errors, external } = observeBrowser(page, baseURL)

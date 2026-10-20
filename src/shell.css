@@ -10,8 +10,8 @@
 }
 .app-shell > .site-header { grid-area: header; width: 100%; padding: 24px; background: #fff; border: 0; align-items: start; }
 .brand-mark svg { width: 28px; height: 28px; }
-.app-shell > .navigation {
-  grid-area: nav;
+.navigation-region { grid-area: nav; min-width: 0; }
+.navigation-region > .navigation {
   position: sticky;
   top: 16px;
   max-height: calc(100dvh - 32px);
@@ -74,8 +74,7 @@
 .energy-panel .card { border-top: 3px solid #8ab4f8; }
 @media (max-width: 1023px) {
   .app-shell { grid-template-columns: minmax(0, 1fr); grid-template-areas: "header" "nav" "main" "storage" "footer"; grid-template-rows: auto auto 1fr auto auto; background: none; }
-  .app-shell > .navigation { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); position: static; padding: 16px 24px; gap: 8px; background: #fff; border-bottom: 1px solid var(--line); }
-  .app-shell > .navigation { max-height: none; overflow: visible; }
+  .navigation-region > .navigation { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); position: static; padding: 16px 24px; gap: 8px; background: #fff; border-bottom: 1px solid var(--line); max-height: none; overflow: visible; }
   .navigation-label { display: none; }
   .navigation a { justify-content: center; padding-inline: 8px; }
   .app-shell > main { padding: 24px 24px 0; }
@@ -85,7 +84,7 @@
   .app-shell > .site-header { padding: 16px; }
   .brand { font-size: 16px; }
   .brand-mark { width: 36px; height: 36px; border-radius: 50%; }
-  .app-shell > .navigation { padding: 10px 12px 14px; gap: 6px; }
+  .navigation-region > .navigation { padding: 10px 12px 14px; gap: 6px; }
   .navigation a { flex-direction: column; gap: 4px; min-width: 0; min-height: 60px; padding: 7px 2px; font-size: 11px; }
   .navigation a svg { width: 22px; height: 22px; flex-basis: 22px; }
   .app-shell > main { padding: 20px 16px 0; }

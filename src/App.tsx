@@ -45,7 +45,9 @@ export function App() {
         <span className="brand"><span className="brand-mark" aria-hidden="true"><Icon name="heart" /></span> Дневник здоровья</span>
         <span className="edition">Личный дневник · На сервере</span>
       </header>
-      <Navigation active={route} showPhotos={Boolean(visibility?.value.showPhotos)} showDocuments={Boolean(visibility?.value.showDocuments)} />
+      <div className="navigation-region">
+        <Navigation active={route} showPhotos={Boolean(visibility?.value.showPhotos)} showDocuments={Boolean(visibility?.value.showDocuments)} />
+      </div>
       <main id="main" tabIndex={-1} ref={main}>
         <QueryFeedback />
         {(route === 'today' || route === 'nutrition' || route === 'activity') && <DayPicker />}
