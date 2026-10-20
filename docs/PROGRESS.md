@@ -1,5 +1,14 @@
 # Прогресс
 
+## T219a — Исправление проверки после T219
+
+T219 ошибочно закоммичен после замечания diff-check о пустой EOF-строке:
+shell-последовательность не остановилась на ненулевом коде.
+Строка удалена отдельным коммитом без переписывания истории.
+Повторные docs/diff/staged checks PASS; 58 успешных целевых тестов
+для неизменённого поведения действительны. Далее shell завершения использует
+set -euo pipefail. Следующий согласованный этап — T220.
+
 ## T219 — Одна действующая реализация лимитов авторизации
 
 Удалены test-only production loginLimit/registration: runtime использует
@@ -9,7 +18,8 @@ Proxy-тест теперь использует настоящий PostgreSQL-�
 удалён, реальные границы времени/ёмкости/перезапуска остаются в authRateLimit.
 Закрытый HTTP register и проверки cookie сохранены.
 Поиск production/test/config/dynamic entrypoints и независимый review PASS.
-58 целевых auth/email/SQL/proxy тестов, lint/types/build:api PASS; docs/diff PASS.
+58 целевых auth/email/SQL/proxy тестов, lint/types/build:api/docs PASS.
+Замечание diff-check по EOF исправлено отдельной T219a.
 
 Проверка: authRateLimit/proxyIp tests; поведение UI не меняется.
 Тест старого helper не доказывает защиту рабочего маршрута.

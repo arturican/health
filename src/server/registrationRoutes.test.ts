@@ -48,4 +48,3 @@ it('ограничивает четыре общих слота погашени
   expect((await running).map(value => value.statusCode)).toEqual([400, 400, 400, 400])
   expect((await database.pool.query('SELECT * FROM health.sessions')).rowCount).toBe(0)
 })
-
