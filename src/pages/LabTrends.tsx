@@ -4,11 +4,10 @@ import { labPlot } from '../domain/labPlot'
 import { formatLabValue } from '../domain/labResult'
 import { SelectField } from '../ui/Field'
 import { Icon } from '../ui/Icon'
-import { downloadBlob } from '../ui/download'
+import { documentExtensions, downloadBlob } from '../ui/download'
 import { Feedback, useAction } from '../ui/actions'
 import '../lab-trends.css'
 
-const extensions = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as const
 const dateLabel = (date: string) => date.split('-').reverse().join('.')
 function scaleLabel(value: number | null) {
   if (value === null) return ''
@@ -72,7 +71,7 @@ export function LabTrends() {
             action.run(async () => {
               const file = await getFile(source.fileId)
               if (!file || file.purpose !== 'document') throw new Error('Не удалось открыть бланк показателя')
-              downloadBlob(file.blob, `health-analysis-${file.id}.${extensions[file.mime]}`)
+              downloadBlob(file.blob, `health-analysis-${file.id}.${documentExtensions[file.mime]}`)
             }, 'Скачивание бланка начато')
           }}>Скачать бланк выбранного показателя</button>}
           <Feedback error={action.error} message={action.message} />

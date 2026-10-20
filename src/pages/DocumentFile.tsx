@@ -1,10 +1,9 @@
 import { useDiaryQuery } from '../dataAccess'
 import { getFile } from '../dataAccess'
 import { FileImage } from '../ui/FileImage'
-import { downloadBlob } from '../ui/download'
+import { documentExtensions, downloadBlob } from '../ui/download'
 import { Feedback, useAction } from '../ui/actions'
 
-const extensions = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as const
 interface DocumentFileProps { fileId: string; title: string }
 
 export function DocumentFile({ fileId, title }: DocumentFileProps) {
@@ -21,7 +20,7 @@ export function DocumentFile({ fileId, title }: DocumentFileProps) {
     <div className="actions">
       <button type="button" disabled={action.pending} aria-label={`Скачать оригинал: ${title}`} onClick={() => {
         action.run(() => {
-          try { downloadBlob(file.blob, `health-document-${file.id}.${extensions[file.mime]}`) }
+          try { downloadBlob(file.blob, `health-document-${file.id}.${documentExtensions[file.mime]}`) }
           catch { throw new Error('Не удалось скачать файл документа') }
         }, 'Скачивание оригинала начато')
       }}>{action.pending ? 'Готовим файл…' : 'Скачать оригинал'}</button>
