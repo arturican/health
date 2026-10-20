@@ -3513,3 +3513,23 @@ HTTP-операции; обе фазы согласованы,89999+nested со�
 валидный запрос обслуживает журнал. Граничные89998/89999 включены в regressions.
 T240 разделена заранее на server4 app-файла и T240a client2 app-файла.
 Это документационный коммит, ротация ещё не включена. Docs/diff/staged review.
+
+## T240 — Серверная ротация журнала
+
+Outer execute фиксирует persistedcount≥90000 после generation/revision guards
+до любых своих записей; валидный work затем вызывает rollback через capacity.
+Catch ждёт полного rollback, отдельная owner write transaction повторно сверяет
+generation/count, DELETEcommands+UPDATEgeneration коммитятся атомарно.
+Только после commit409command_rotation. Нет повторного business execution;
+nested hard100000/replay сохранены. Четыре app-файла,64 строки diff реализации.
+Новая migration/сервис не требуются. Клиентское объяснение отдельно T240a.
+
+Регрессия7FAIL/7PASS до изменения; итог8 SQL/API-файлов33PASS:89998/89999
+nested +nextrotation,100000legacy, concurrent ровно одна ротация, rollback
+DELETE при fault UPDATE, invalid revision/no outer key, old generation reject,
+новая generation success, Bob replay/exports, clear/import rollback.
+Существующий100k restore boundary обновлён под протокол: первая новая попытка
+409/старые данные сохранены, fresh confirmation→200 и replay200; прежний
+response-loss replay при полной квоте тоже200. Нормальные команды/restore/clear
+регрессии сохранены. Build:api/lint/docs/diff/staged review пройдены.
+Read-only review существенных ошибок не нашёл; логи /tmp/health-T240-*.log.

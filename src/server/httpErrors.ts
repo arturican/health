@@ -13,6 +13,13 @@ export class CommandCapacityError extends DataError {
   }
 }
 
+export class CommandRotationError extends DataError {
+  constructor() {
+    super(409)
+    this.message = 'Журнал действий обновлён. Команда не сохранена. Перечитайте дневник и повторите ввод; сохранённые записи не изменены.'
+  }
+}
+
 function assertDatabaseText(value: unknown): void {
   // PostgreSQL text/JSONB cannot store U+0000. Check decoded input before writes.
   if (typeof value === 'string') {

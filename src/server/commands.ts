@@ -5,6 +5,13 @@ import { BACKUP_MAX_RECORDS } from '../domain/backup'
 import { entityId } from '../domain/schema'
 import { CommandCapacityError, DataError, inputValue } from './httpErrors.js'
 
+// Soft threshold belongs to the outer HTTP transaction, before any nested writes.
+export const COMMAND_ROTATE_AT = 90000
+export async function commandJournalNeedsRotation(client: PoolClient): Promise<boolean> {
+  const result = await client.query<Record<string, unknown>>('SELECT count(*) >= $1 AS needed FROM health.commands', [COMMAND_ROTATE_AT])
+  return z.object({ needed: z.boolean() }).parse(result.rows[0]).needed
+}
+
 // Вызывается внутри сериализованной write-транзакции владельца.
 export async function runCommand<T>(client: PoolClient, owner: string, idInput: unknown, request: unknown, schema: z.ZodType<T>, work: () => Promise<T>): Promise<T> {
   const id = inputValue(() => entityId.parse(idInput))

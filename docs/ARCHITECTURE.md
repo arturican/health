@@ -1,7 +1,7 @@
 # Как устроен Health Diary
 
 Исходный срез 20.10.2026: `dev` @ `9718e60423c28bbc708db95bf045db6403575769`.
-Исправления T232–T236 учтены ниже; статусы и проверки — в TASKS/PROGRESS.
+Исправления T232–T240 учтены ниже; статусы и проверки — в TASKS/PROGRESS.
 Это описание существующего кода. Проверки и ограничения — [AUDIT](AUDIT.md),
 будущие изменения — [IMPROVEMENTS](IMPROVEMENTS.md), быстрый поиск файлов —
 [PROJECT_MAP](PROJECT_MAP.md).
@@ -227,9 +227,9 @@ changeRevision до/после составного чтения, повторя
 | photos | user_id+id, file_id/purpose, date/title/note/width/height, revision | FK user+file+purpose; JPEG после подготовки, до 2048 px |
 | documents | user_id+id, file_id/purpose, date/title/kind/note, revision | оригинал; удаление с подтверждением числа результатов |
 | lab_results | user_id+id, document_id, date/name, number+operator ИЛИ text, unit/reference/note | FK user+document; каскадное удаление; правка повышает revision документа |
-| settings | user_id PK, generation, visibility_defined/show_*, catalog_seeded, revision/change_revision | лениво создаётся; generation меняется при import/clear |
+| settings | user_id PK, generation, visibility_defined/show_*, catalog_seeded, revision/change_revision | лениво создаётся; generation меняется при import/clear/ротации commands |
 | legacy_metadata | user_id+id, value | совместимые поля копии; служебные ключи исключены |
-| commands | user_id+id, request_hash, response JSONB, created_at | повтор даёт прежний результат; до 100000, автоматического retention нет |
+| commands | user_id+id, request_hash, response JSONB, created_at | replay до ротации; outer threshold90000, nested hard100000; owner cleanup меняет generation |
 | schema_migrations | name PK, checksum, applied_at | системный журнал migrator; не данные пользователя |
 
 Личные таблицы защищены FORCE RLS: PostgreSQL сам ограничивает строки по
@@ -523,3 +523,9 @@ runbooks. API не логирует тела/SQL/реквизиты; диагн�
 БД не шифруется приложением at rest; администраторы VPS входят в доверенную зону.
 Масштаб больших историй не профилировался. Схемы отражают исходный код, а не
 гарантируют текущее состояние production или отсутствие других дефектов.
+
+Ротация служебного журнала описана в [COMMAND_REPLAY](COMMAND_REPLAY.md):
+после pre-work threshold валидная новая команда откатывается, отдельная
+owner transaction очищает commands/меняет generation и возвращает409.
+Сохранённые записи и revisions не меняются; старые формы/контексты нужно
+загрузить заново. Реализация — commands и writeCommand, новый сервис не добавлен.

@@ -1,5 +1,5 @@
 import Fastify from 'fastify'
-import { CommandCapacityError, DataError } from './httpErrors.js'
+import { CommandCapacityError, CommandRotationError, DataError } from './httpErrors.js'
 
 export function createApi(trustLocalProxy = false) {
   const app = Fastify({
@@ -21,10 +21,10 @@ export function createApi(trustLocalProxy = false) {
   })
   app.setErrorHandler((error: unknown, _request, reply) => {
     if (error instanceof DataError) {
-      const capacity = error instanceof CommandCapacityError
-      if (capacity) reply.header('X-Health-Error-Code', 'command_capacity')
+      const code = error instanceof CommandRotationError ? 'command_rotation' : error instanceof CommandCapacityError ? 'command_capacity' : undefined
+      if (code) reply.header('X-Health-Error-Code', code)
       return reply.code(error.statusCode).send({ error: {
-        code: capacity ? 'command_capacity' : error.statusCode === 400 ? 'invalid_data' : error.statusCode === 404 ? 'not_found' : 'conflict', message: error.message,
+        code: code ?? (error.statusCode === 400 ? 'invalid_data' : error.statusCode === 404 ? 'not_found' : 'conflict'), message: error.message,
       } })
     }
     const supplied = error instanceof Error && 'statusCode' in error ? error.statusCode : undefined

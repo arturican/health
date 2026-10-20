@@ -132,7 +132,7 @@ push и frontend-релиз в него не входят.
 | [T237](docs/tasks/T237.md) | done | IMP-006: общий предел распаковки deploy tar | T236 |
 | [T238](docs/tasks/T238.md) | done | IMP-007: объяснимое исчерпание журнала команд | T237 |
 | [T239](docs/tasks/T239.md) | done | IMP-008: протокол безопасной ротации команд | T238 |
-| T240 | todo | IMP-009: серверная ротация журнала с generation fence | T239 |
+| [T240](docs/tasks/T240.md) | done | IMP-009: серверная ротация журнала с generation fence | T239 |
 | T240a | todo | IMP-009: объяснение ротации и смены generation в интерфейсе | T240 |
 | T241 | todo | IMP-010: безопасные диагностические события | T240a |
 | T242 | todo | IMP-011: поверхность собранного runtime | T241 |
