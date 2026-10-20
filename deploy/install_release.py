@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Restricted SSH receiver for the Health Diary static build (Python 3.12+)."""
 import fcntl
+import gzip
 import io
 import os
 from pathlib import Path
@@ -9,9 +10,12 @@ import shutil
 import sys
 import tarfile
 import tempfile
+import zlib
 
 MAX_ARCHIVE = 20 * 1024 * 1024
 MAX_CONTENT = 50 * 1024 * 1024
+# Includes tar headers, padding, hidden PAX/GNU metadata and trailing bytes.
+MAX_EXPANDED = MAX_CONTENT + 1024 * 1024
 BASE = Path('/var/www/health')
 
 
@@ -19,9 +23,16 @@ def read_build(stream):
     archive = stream.read(MAX_ARCHIVE + 1)
     if not archive or len(archive) > MAX_ARCHIVE:
         raise ValueError('Archive is empty or exceeds 20 MiB')
+    try:
+        with gzip.GzipFile(fileobj=io.BytesIO(archive), mode='rb') as compressed:
+            expanded = compressed.read(MAX_EXPANDED + 1)
+    except (EOFError, OSError, zlib.error) as error:
+        raise ValueError('Invalid compressed archive') from error
+    if len(expanded) > MAX_EXPANDED:
+        raise ValueError('Expanded archive exceeds 51 MiB')
     files = {}
     total = 0
-    with tarfile.open(fileobj=io.BytesIO(archive), mode='r:gz') as bundle:
+    with tarfile.open(fileobj=io.BytesIO(expanded), mode='r:') as bundle:
         for count, member in enumerate(bundle):
             if count >= 1000:
                 raise ValueError('Too many archive entries')

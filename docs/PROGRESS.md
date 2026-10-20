@@ -3461,3 +3461,20 @@ signup/signup и signup/complete, constraints/runtime denial, upgrade/reapply.
 для23:30UTC. Письма только в памяти, БД — локальные UUID fixtures.
 Build:api/его tsc, lint/docs/diff/staged review пройдены.
 Логи /tmp/health-T236-*.log. Общий check — перед push очереди.
+
+## T237 — Предел полной распаковки deploy
+
+Receiver сначала bounded gzip read до51MiB+1 и только затем tar parser.
+Лимит включает PAX/GNU/repeated metadata, padding, хвост/concatenated gzip;
+20MiB compressed,1000entries и50MiB файлового payload сохранены.
+Обрезанный gzip, CRC и invalid DEFLATE нормализуются в ValueError;
+CLI отвечает штатным отказом без traceback. RSS не равен byte cap:
+compressed/expanded/extracted buffers могут существовать одновременно.
+
+Regression FAIL до изменения; все43 Python tests PASS, включая точную границу,
++1, preparse refusal и unchanged current/assets. Исходный synthetic repro
+52227bytes gzip с51MiB PAX теперь rejected до parser под прежним512MiB RLIMIT;
+его прямой вызов read_build закономерно выбрасывает ValueError (CLI отдельно
+проверен без traceback). Build и verify_build принимают актуальный dist6files,
+license сохранена; docs/diff/staged review PASS. Логи /tmp/health-T237-*.log.
+Изменения live receiver будут установлены в T260 после release gates.

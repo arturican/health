@@ -1,9 +1,14 @@
 import io
+import gzip
 import os
+import subprocess
+import sys
 from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
+import install_release as receiver
 from install_release import install, read_build
 from verify_build import verify_build
 
@@ -77,6 +82,83 @@ class Releases(unittest.TestCase):
             read_build(archive([('index.html', b'x', tarfile.REGTYPE)] * 2))
         with self.assertRaises(ValueError):
             install(archive(), '../bad')
+
+    def test_expanded_metadata_is_rejected_before_tar_parser_or_writes(self):
+        limit = 64 * 1024
+        for kind in ('pax', 'gnu', 'repeated'):
+            stream = io.BytesIO()
+            with tarfile.open(fileobj=stream, mode='w:gz',
+                              format=tarfile.GNU_FORMAT if kind == 'gnu' else tarfile.PAX_FORMAT) as bundle:
+                for index in range(80 if kind == 'repeated' else 1):
+                    member = tarfile.TarInfo('assets/app-' + str(index) + '.js')
+                    if kind == 'gnu':
+                        member.name = 'assets/' + 'x' * (limit * 2) + '.js'
+                    else:
+                        member.pax_headers = {'comment': 'x' * (1024 if kind == 'repeated' else limit * 2)}
+                    member.size = 1
+                    bundle.addfile(member, io.BytesIO(b'x'))
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                base = Path(directory)
+                install(archive(), 'a' * 40, base)
+                before = {str(path.relative_to(base)): path.read_bytes()
+                          for path in base.rglob('*') if path.is_file()}
+                stream.seek(0)
+                with patch.object(receiver, 'MAX_EXPANDED', limit, create=True), patch(
+                        'install_release.tarfile.open', side_effect=AssertionError('Parser ran before size check')) as parser:
+                    with self.assertRaisesRegex(ValueError, 'Expanded archive exceeds'):
+                        install(stream, 'b' * 40, base)
+                    parser.assert_not_called()
+                self.assertEqual((base / 'current/release.txt').read_text().strip(), 'a' * 40)
+                self.assertEqual(before, {str(path.relative_to(base)): path.read_bytes()
+                                         for path in base.rglob('*') if path.is_file()})
+
+    def test_small_pax_metadata_is_accepted_and_truncated_gzip_is_rejected(self):
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode='w:gz', format=tarfile.PAX_FORMAT) as bundle:
+            for name in ('index.html', 'assets/app.js'):
+                member = tarfile.TarInfo(name)
+                member.pax_headers = {'comment': 'synthetic metadata'}
+                member.size = 1
+                bundle.addfile(member, io.BytesIO(b'x'))
+        stream.seek(0)
+        self.assertEqual(set(read_build(stream)), {'index.html', 'assets/app.js'})
+        with self.assertRaisesRegex(ValueError, 'Invalid compressed archive'):
+            read_build(io.BytesIO(stream.getvalue()[:-8]))
+
+    def test_exact_expanded_boundary_trailing_byte_concatenated_gzip_and_crc(self):
+        payload = gzip.decompress(archive().getvalue())
+        with patch.object(receiver, 'MAX_EXPANDED', len(payload)):
+            self.assertIn('index.html', read_build(io.BytesIO(gzip.compress(payload))))
+            for oversized in (gzip.compress(payload + b'x'),
+                              gzip.compress(payload) + gzip.compress(b'x')):
+                with self.assertRaisesRegex(ValueError, 'Expanded archive exceeds'):
+                    read_build(io.BytesIO(oversized))
+        corrupt = bytearray(archive().getvalue())
+        corrupt[-8] ^= 1
+        with self.assertRaisesRegex(ValueError, 'Invalid compressed archive'):
+            read_build(io.BytesIO(corrupt))
+
+    def test_bad_deflate_is_normalized_before_parser_and_file_payload_cap_remains(self):
+        invalid_deflate = bytes.fromhex('1f8b0800000000000003') + b'\x07' + b'\x00' * 8
+        with patch('install_release.tarfile.open', side_effect=AssertionError('Invalid gzip reached parser')) as parser:
+            with self.assertRaisesRegex(ValueError, 'Invalid compressed archive'):
+                read_build(io.BytesIO(invalid_deflate))
+            parser.assert_not_called()
+        build = archive()
+        with patch.object(receiver, 'MAX_CONTENT', 1):
+            with self.assertRaisesRegex(ValueError, 'Build exceeds 50 MiB'):
+                read_build(build)
+
+    def test_receiver_cli_reports_corrupt_deflate_without_traceback(self):
+        result = subprocess.run(
+            [sys.executable, '-B', str(Path(__file__).with_name('install_release.py'))],
+            input=bytes.fromhex('1f8b0800000000000003') + b'\x07' + b'\x00' * 8,
+            capture_output=True, check=False,
+            env={'SSH_ORIGINAL_COMMAND': 'deploy ' + 'a' * 40},
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout, b'')
+        self.assertEqual(result.stderr, b'Deployment rejected: Invalid compressed archive\n')
 
     def test_collision_does_not_switch_release(self):
         with tempfile.TemporaryDirectory() as directory:

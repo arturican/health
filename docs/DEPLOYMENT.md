@@ -217,7 +217,11 @@ Seed повторяемый, не заменяет существующие да
 
 Frontend: npm run build; python3 -B deploy/verify_build.py dist; tar из dist.
 Установщик принимает deploy <полный Git SHA> и gzip tar через stdin (до 20 MiB,
-1000 файлов/50 MiB распакованных данных). Только index.html, favicon.svg,
+1000 записей/50 MiB содержимого файлов). Весь распакованный gzip-поток, включая
+PAX/GNU metadata, заголовки, padding и хвост, ограничен51MiB до tar parser
+(50MiB+1MiB служебного объёма). Это предел байтов распаковки, не RSS процесса:
+буферы compressed/expanded/файлов могут находиться в памяти одновременно.
+Metadata-heavy архивы сверх51MiB теперь намеренно отклоняются. Только index.html, favicon.svg,
 assets; нет symlink/path traversal/перезаписи релиза иным содержимым.
 Roboto-LICENSE.txt находится внутри assets. current переключается атомарно;
 предыдущие релизы и assets не удаляются автоматически, следите за диском.
