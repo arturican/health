@@ -63,3 +63,29 @@ T248, тоесть≈61–63% запросов. Gate≤12/5 и ровно1food/s
 отказа между карточками, зато они не смешивают разные snapshot revisions.
 Initial failure какпрежде обрабатывает StorageBoundary. Остальные экраны
 сохраняют standalone summaries/fences. Derived sums остаются domain.
+
+## T251 — Immutable files
+
+После5bf34ec realbuilt Chromium/API/PG:6syntheticJPEG1600×1200 изrandomnoise,
+каждый1582151bytes, безличныхпикселей/EXIF. Content-Length6GET=9492906bytes
+наinitial, ещё9492906наfocus и ещё9492906наmetadataedit однойподписи.
+Это payloadbytes поHTTP header, неTLS/headers. Разные UUID, общийsynthetic
+source валиденпоMIME/размеру и реально декодируется клиентом.
+Воспроизведение tests/e2e/file-requests.spec.ts, только localhost UUID fixture.
+Первый probe ошибочно увиделfocus0: networkidle мог быть уже завершён ДО
+обработки focus. Исправлено явным ожиданием ответа metadata/photos перед idle;
+Today benchmark получил тот же synchronization (diary-state), счётчики12/11
+подтверждены повторно. Нельзя использовать первыйfocus0 как измерение.
+
+Решение T251a: достаточно cache одного проверенного Blob на mountedfile viewer,
+идентичность owner+generation+epoch+fileID. Не globalMap/IndexedDB/serviceworker.
+6gallerycards ограничивают типичныйживойобъём≤12MiB, comparisonещё≤4MiB; явно
+открытые документы удерживают свои bytes доClose. URLs принадлежат BlobImage
+и download, самcache URLsне создаёт. Metadata/focus не обновляют неизменные
+bytes; metadataзапросы/auth и consistencyfences сохраняются.
+Удаление уводит DTOизсписка/выбора иunmount очищаетcache/URL; logout/replace/
+rotation/owner switch меняютepoch и очищаютданные. Pendingпослелюбойсмены
+отвергается/не заполняетновыйcache; ошибки/null не кешируются, retryвозможен.
+Close не отменяетHTTP; readerпослеunmount не кешируетответ. Междуэкранами
+cacheнепереиспользуется — меньшеprivacy/lifecycle сложности, достаточная
+измеренная экономия≈19MB наfocus+редактирование этойгалереи.

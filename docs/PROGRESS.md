@@ -3750,3 +3750,15 @@ failure/current/daylate; getTodaySummary вUItestmocked, real coherence отде
 SQLT250 иE2Ecounts.4realday/nutritionE2Edesktop/mobile и1nativeEnergyBrowser PASS.
 Types/lint/build/docs/diff/staged PASS, readonlyreview без замечаний.
 Логи /tmp/health-T250a-*.log. Скорость поsingleloopbacksample не заявляется.
+
+## T251 — Цена повторных файлов
+
+RealE2E6noiseJPEG по1582151bytes: initial/focus/metadata по6GET/9492906bytes,
+тоесть≈19MB повторно без измененияbytes. Ни реальныефото, ни рабочаяDB не
+использовались. Первыйmeasurementfocus0 невалиден: idle был завершён доdispatch;
+добавленwaitForResponse(metadata) передidle, повторподтвердил6GET. Исправлена
+тестоваяподписьполя «Название»→«Подпись», не приложение. Todaybenchmark синхронизирован
+аналогично,12/11подтверждены.2E2Edesktop/lint/docs/diff/staged PASS.
+РешениеT251a: per-mounted-filecheckedBlob, owner/generation/epoch/fileID,
+clearonunmount, noURLs/globalpersistentcache;смREAD_PERFORMANCE.
+Логи /tmp/health-T251-*.log. Appбезизменений.

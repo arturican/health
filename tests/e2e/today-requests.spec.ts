@@ -25,7 +25,9 @@ test('Сегодня: ограниченный бюджет GET на вход/fo
   await page.goto('/#today')
   await settle('initial', start)
   start = performance.now()
+  const refreshed = page.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/diary-state')
   await page.evaluate(() => { window.dispatchEvent(new Event('focus')) })
+  await refreshed
   await settle('focus', start)
   start = performance.now()
   await complete.click()
