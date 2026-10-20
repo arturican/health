@@ -3715,3 +3715,13 @@ Productioncallers пока не передают scope; UI budget не выда�
 owner/generation change во время запроса.19tests PASS; expiredscope даёт409,
 смена epoch сохраняет прежнюю безопасную ошибку «прежний вход», не выдуманный
 ApiError409. Следующая страница/новыйowner не читаются. Code review одобряет.
+
+## T249a — Scoped summaries
+
+4paged repositories принимаютoptional ReadScope;5summaries передают scope
+всеpaginatedcalls, standalone defaultfence сохранён.5appfiles в бюджете.
+SQL regressionFAIL2→4stateGET до изменения; после21unit/SQL PASS (включая19core),
+2realE2Edesktop/mobile PASS. Today31→23initial,30→22focus/mutation, state21→13,
+20→12. Budget23/13 закреплён повторными2E2E. Dates/null/zero/sort/directions
+не менялись. Read-only review без замечаний. Types/lint/build/docs/diff/staged
+PASS. Логи /tmp/health-T249a-*.log. Дублиfood/status ещё есть, T250следом.

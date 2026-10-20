@@ -1,3 +1,4 @@
+import type { ReadScope } from './readState'
 import { workoutSchema, workoutInputSchema, type Workout } from '../domain/activity'
 import { calendarDate } from '../domain/schema'
 import { localDate } from '../domain/input'
@@ -6,8 +7,8 @@ import { deleteRecord, mutateJSON } from './mutations'
 import { recordRevision, recordSchema } from './records'
 
 const schema = recordSchema(workoutSchema)
-export async function listWorkouts(date: unknown = localDate()) {
-  return (await readPages(`/api/v1/workouts?date=${calendarDate.parse(date)}`, schema)).sort((a, b) => a.kind.localeCompare(b.kind, 'ru') || a.id.localeCompare(b.id))
+export async function listWorkouts(date: unknown = localDate(), scope?: ReadScope) {
+  return (await readPages(`/api/v1/workouts?date=${calendarDate.parse(date)}`, schema, 'after', scope)).sort((a, b) => a.kind.localeCompare(b.kind, 'ru') || a.id.localeCompare(b.id))
 }
 export function addWorkout(input: unknown) {
   const value = workoutInputSchema.parse(input)

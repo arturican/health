@@ -40,3 +40,11 @@ T250: shared food/nutrition-days между TodayMeals/NutritionSummary/EnergySu
 T249a. Независимые экраны сохраняют самостоятельные reads. Day/owner changes,
 incomplete/null значения и запрет stale writes не ослабляются.
 Файловый cache T251 выбирается отдельно после повторного замера bytes.
+
+## После T249a
+
+Desktop initial23GET/13state (336ms), focus22/12 (111ms), mutation22/12 (173ms).
+Mobile23/13 (305ms),22/12 (115ms),22/12 (179ms). По одному sample; count
+устойчив в обоих profiles, ms не статистическое сравнение скорости.
+SQL regression5summaries подтверждает ровно2stateGET каждая; standalone list
+по-прежнему сам fenced. Gate ужесточён≤23/13. DataGET food3/status2 пока прежние.

@@ -537,3 +537,8 @@ mounted FileState переиспользуется, settled bytes отдельн
 После T247 PhotoGallery монтирует6карточек, следующие/предыдущие страницы
 заменяют их и освобождают URL. Metadata всех фото доступна PhotoComparison;
 оно загружает лишь явно выбранные2фото. Серверные списки пока читаются целиком.
+
+После T249/T249a summaries передают branded ReadScope в paged repositories.
+Одна внешняя пара diary-state защищает все вложенные страницы сводки; scoped
+reader проверяет owner/generation и время жизни scope после await. Default
+list без scope сохраняет свою пару fences;3retry/409 и cursor guards прежние.

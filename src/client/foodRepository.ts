@@ -1,3 +1,4 @@
+import type { ReadScope } from './readState'
 import { z } from 'zod'
 import { foodEntrySchema, mealSchema, type FoodEntry } from '../domain/nutrition'
 import { calendarDate, entityId } from '../domain/schema'
@@ -9,8 +10,8 @@ import { recordRevision, recordSchema } from './records'
 const schema = recordSchema(foodEntrySchema)
 const inputSchema = foodEntrySchema.pick({ date: true, meal: true, productId: true, grams: true, note: true }).extend({ productId: entityId })
 const editSchema = foodEntrySchema.pick({ date: true, meal: true, grams: true, note: true })
-export async function listFood(date = localDate()) {
-  return (await readPages(`/api/v1/food?date=${parseDate(date)}`, schema)).sort((a, b) => mealSchema.options.indexOf(a.meal) - mealSchema.options.indexOf(b.meal) || a.snapshot.name.localeCompare(b.snapshot.name, 'ru'))
+export async function listFood(date = localDate(), scope?: ReadScope) {
+  return (await readPages(`/api/v1/food?date=${parseDate(date)}`, schema, 'after', scope)).sort((a, b) => mealSchema.options.indexOf(a.meal) - mealSchema.options.indexOf(b.meal) || a.snapshot.name.localeCompare(b.snapshot.name, 'ru'))
 }
 export function addFood(input: unknown) {
   const value = inputSchema.parse(input)

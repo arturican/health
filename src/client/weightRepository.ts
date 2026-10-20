@@ -1,3 +1,4 @@
+import type { ReadScope } from './readState'
 import { weightSchema, type Weight } from '../domain/profile'
 import { localDate, parseDate } from '../domain/input'
 import { readPages } from './pages'
@@ -5,7 +6,7 @@ import { deleteRecord, mutateJSON } from './mutations'
 import { recordRevision, recordSchema } from './records'
 
 const schema = recordSchema(weightSchema), measurementSchema = weightSchema.omit({ id: true })
-export const listWeights = (asOf = localDate()) => readPages(`/api/v1/weights?asOf=${parseDate(asOf)}`, schema, 'before')
+export const listWeights = (asOf = localDate(), scope?: ReadScope) => readPages(`/api/v1/weights?asOf=${parseDate(asOf)}`, schema, 'before', scope)
 export async function latestWeight(asOf = localDate()) { return (await listWeights(asOf))[0] ?? null }
 export async function saveWeight(input: unknown, original: Weight | null) {
   const measurement = measurementSchema.parse(input)

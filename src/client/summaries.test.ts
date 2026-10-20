@@ -35,3 +35,17 @@ it('сводки читают выбранный день и сохраняют 
     expect(overview.days.slice(0, 6).every(entry => entry.count === null)).toBe(true)
   } finally { await api.close() }
 })
+
+it('каждая сводка использует одну пару state GET даже при вложенном paged read', async () => {
+  const api = await clientApi((...args) => {
+    registerProfile(...args); registerWeights(...args); registerFood(...args); registerNutrition(...args)
+    registerSteps(...args); registerWorkouts(...args); registerPlans(...args)
+  })
+  try {
+    for (const read of [getWeightOverview, getNutritionSummary, getEnergySummary, getActivitySummary, getActivityOverview]) {
+      api.network.mockClear()
+      await read('2026-10-15')
+      expect(api.network.mock.calls.filter(([path]) => path === '/api/v1/diary-state')).toHaveLength(2)
+    }
+  } finally { await api.close() }
+})
