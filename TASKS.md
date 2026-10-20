@@ -139,7 +139,7 @@ push и frontend-релиз в него не входят.
 | [T242](docs/tasks/T242.md) | in_progress | IMP-011: поверхность собранного runtime | T241a |
 | T243 | done | [IMP-012: проверенная ёмкость JSON-копий](docs/tasks/T243.md) | T242 |
 | T244 | done | [IMP-013: понятный отказ и альтернатива копии](docs/tasks/T244.md) | T243 |
-| T245 | todo | IMP-014: переиспользование Blob документа | T244 |
+| T245 | done | [IMP-014: переиспользование Blob документа](docs/tasks/T245.md) | T244 |
 | T246 | todo | IMP-015: вложения по явному открытию | T245 |
 | T247 | todo | IMP-016: ограниченное монтирование галереи | T246 |
 | T248 | todo | IMP-017: waterfall и budget чтений | T247 |

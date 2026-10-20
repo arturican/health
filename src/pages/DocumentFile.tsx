@@ -1,6 +1,6 @@
 import { useDiaryQuery } from '../dataAccess'
 import { getFile } from '../dataAccess'
-import { FileImage } from '../ui/FileImage'
+import { BlobImage } from '../ui/BlobImage'
 import { documentExtensions, downloadBlob } from '../ui/download'
 import { Feedback, useAction } from '../ui/actions'
 
@@ -16,7 +16,7 @@ export function DocumentFile({ fileId, title }: DocumentFileProps) {
   const file = result.file
   if (!file || file.purpose !== 'document') return <p role="alert">Не удалось открыть вложение документа.</p>
   return <>
-    {file.mime === 'application/pdf' ? <p>PDF доступен для скачивания. Откройте его в своей программе просмотра.</p> : <FileImage fileId={fileId} alt={`Документ: ${title}`} />}
+    {file.mime === 'application/pdf' ? <p>PDF доступен для скачивания. Откройте его в своей программе просмотра.</p> : <BlobImage blob={file.blob} alt={`Документ: ${title}`} />}
     <div className="actions">
       <button type="button" disabled={action.pending} aria-label={`Скачать оригинал: ${title}`} onClick={() => {
         action.run(() => {

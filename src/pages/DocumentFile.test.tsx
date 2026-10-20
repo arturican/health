@@ -6,7 +6,7 @@ import type { StoredFile } from '../domain/storedFile'
 import type { AttachmentMime } from '../domain/attachment'
 
 vi.mock('../data/fileRepository', () => ({ getFile: vi.fn() }))
-vi.mock('../ui/FileImage', () => ({ FileImage: ({ alt }: { alt: string }) => <img alt={alt} src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jKz8AAAAASUVORK5CYII=" /> }))
+vi.mock('../ui/BlobImage', () => ({ BlobImage: ({ alt }: { alt: string }) => <img alt={alt} src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jKz8AAAAASUVORK5CYII=" /> }))
 
 const firstId = '00000000-0000-4000-8000-000000000001'
 const secondId = '00000000-0000-4000-8000-000000000002'

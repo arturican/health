@@ -3646,3 +3646,15 @@ Client export413 даёт fixed format-specific messages: text20MiB предла
 Full413 не вызывает download, повтор200 скачивает единственный валидный JSON.
 Границы/сохранность данных подтверждены T243, универсальная ёмкость остаётся
 ограничением BACKUP_CAPACITY. Логи /tmp/health-T244-*.log.
+
+## T245 — Повторное использование Blob
+
+DocumentFile передаёт проверенный Blob в ui/BlobImage; FileImage использует
+тот же renderer после своего read. Общая ответственность — URL/decode lifecycle,
+без нового cache/session слоя. Download получает тот же Blob.3appfiles в бюджете.
+Regression getFile count2→1 сначала FAIL, затем15unit+4Chromium PASS: image
+decode/исходныеbytes, purpose/id swap/late response, download identity, revoke.
+Count — unit fixture getFile, не сетевой benchmark. Read-only review без
+замечаний. Lint поймал избыточный nullableguard, types — exact optional width/
+height; исправлено, повторtypes/lint PASS. Docs/diff/staged PASS.
+Логи /tmp/health-T245-*.log; live ещё прежнийT231.
