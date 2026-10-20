@@ -3863,7 +3863,18 @@ Manifest отсутствуют у старого receiver; файлы/конф�
 Без изменения реализации запущен штатный backupRestore.test.ts: 1 passed,
 20 таблиц/файлы/миграции/ACL/RLS/изолированные владельцы, corrupt ciphertext и
 invalid dump, отзыв restore auth, source unchanged. Временные UUID БД/роли и
-GPG-пара очищены; aggregate query показал 0 временных БД после успешного теста.
+GPG-пара проходят finally cleanup; aggregate query показал 1 временную БД.
+Первоначальная запись «0» была ошибкой отчёта, исправлена в T254b1. Baseline
+aggregate до запуска не снят, происхождение остатка этой проверкой не доказано.
 Все 72 deploy Python tests прошли. BACKUP_CONTROL содержит команды и границы
 доказательства: не real-archive decrypt и не независимая доставка.
 check:docs/diff прошли; production данные и ключи не использовались.
+
+## T254b1 — Исправление cleanup proof
+
+Исправлено ошибочное «0 temporary DB» в T254b на фактическое aggregate=1.
+Metadata единственной оставшейся synthetic БД: directory mtime
+2026-10-16 10:07:15 UTC, до нынешнего drill; это согласуется с прежним остатком.
+Тест успешно выполнил свои finally/DROP, но пустой общий inventory не доказан.
+Неидентифицированный старый ресурс не удалялся. Только docs; check:docs/diff
+прошли. История коммитов не переписывалась.

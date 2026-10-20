@@ -158,6 +158,7 @@ push и frontend-релиз в него не входят.
 | T254 | done | [IMP-023: сохранять подтверждённый SHA копии](docs/tasks/T254.md) | T253 |
 | T254a | done | [IMP-023: независимая проверка offsite](docs/tasks/T254a.md) | T254 |
 | T254b | done | [IMP-023: синтетическое восстановление](docs/tasks/T254b.md) | T254a |
+| T254b1 | done | [Уточнить aggregate cleanup proof](docs/tasks/T254b1.md) | T254b |
 | T254c | blocked | [Активация offsite alerts](docs/tasks/T254c.md) | T254b, T252a |
 | T255 | todo | IMP-024: проверка anchors и design docs | T254b |
 | T256 | todo | IMP-025: Mermaid validation по выбранному tooling | T255 |
