@@ -97,3 +97,22 @@ it('при обновлении данных блокирует подтверж
   expect(cancel).toHaveBeenCalledOnce()
   expect(confirm).not.toHaveBeenCalled()
 })
+it('возвращает фокус в main, когда исходная строка стала недоступной', async () => {
+  function Example() {
+    const [open, setOpen] = useState(false)
+    const [stale, setStale] = useState(false)
+    return <main tabIndex={-1}>
+      <button disabled={stale} onClick={() => { setOpen(true) }}>Удалить учебную строку</button>
+      <button onClick={() => { setStale(true) }}>Обновить учебный список</button>
+      {open && <Confirmation question={question} pending={false} onConfirm={() => {}} onCancel={() => { setOpen(false) }} />}
+    </main>
+  }
+  render(<Example />)
+  const opener = screen.getByRole('button', { name: 'Удалить учебную строку' })
+  opener.focus()
+  fireEvent.click(opener)
+  await waitFor(() => { expect(screen.getByRole('button', { name: 'Отмена' })).toHaveFocus() })
+  fireEvent.click(screen.getByRole('button', { name: 'Обновить учебный список' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Отмена' }))
+  await waitFor(() => { expect(screen.getByRole('main')).toHaveFocus() })
+})

@@ -15,8 +15,12 @@ export function Confirmation({ question, pending, confirmDisabled = false, onCon
   const returnAfterConfirm = useRef(false)
   useEffect(() => {
     const previous = document.activeElement
+    const main = previous instanceof HTMLElement ? previous.closest('main') : null
     cancel.current?.focus()
-    return () => { if (previous instanceof HTMLElement && previous.isConnected) previous.focus() }
+    return () => {
+      if (previous instanceof HTMLElement && previous.isConnected && !previous.matches(':disabled')) previous.focus()
+      else if (document.activeElement === document.body && main instanceof HTMLElement && main.isConnected) main.focus()
+    }
   }, [])
   useEffect(() => {
     if (pending || !returnAfterConfirm.current) return
