@@ -53,8 +53,10 @@ CI выполняет полный check, Python deploy-тесты, verify_build
   Проверки кода — нужные разделы [TESTING](TESTING.md)/[TEST_CASES](TEST_CASES.md).
 - Формулы/даты/границы: [CALCULATIONS](CALCULATIONS.md). Объём продукта: [MVP](MVP.md).
 - Данные/API/auth/вложения: [PRIVACY_SECURITY](PRIVACY_SECURITY.md),
-  [DATABASE](DATABASE.md); решения перехода — [SERVER_STORAGE](SERVER_STORAGE.md),
-  фактический результат — [SERVER_COMPLETION](SERVER_COMPLETION.md).
+  актуальный [API_REFERENCE](API_REFERENCE.md) и [BACKEND_PLAN](BACKEND_PLAN.md).
+  [DATABASE](DATABASE.md), [SERVER_STORAGE](SERVER_STORAGE.md) и
+  [SERVER_COMPLETION](SERVER_COMPLETION.md) — схема и исторические решения перехода;
+  текущие маршруты проверяй по контракту и коду.
 - Доставка/копии/почта: [DEPLOYMENT](DEPLOYMENT.md), [BACKUPS](BACKUPS.md),
   [MAIL_DNS](MAIL_DNS.md) по изменяемому контуру. Зависимости — [DEPENDENCIES](DEPENDENCIES.md).
 - Идеи: [IDEAS](../IDEAS.md). Старые review/журнал — только по связанному вопросу.

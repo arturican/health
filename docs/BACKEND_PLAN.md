@@ -22,7 +22,7 @@
 | Шаги/тренировки/план | steps/workout/plan Routes/Records | stepsRoutes.test.ts, workoutRoutes.test.ts, planRoutes.test.ts, activity-plan E2E |
 | Фото/документы/анализы | uploadTransport, fileRecords, photo/document/lab Routes/Records | fileRecords.test.ts, attachmentCommands.test.ts, labRoutes.test.ts, media/lab E2E |
 | Настройки/очистка | settingsRoutes, diaryState, clearRoutes | settingsRoutes.test.ts, clearRoutes.test.ts, generationAssertions |
-| Импорт/экспорт | backupRoutes/Transport, prepareFullImport, restoreText/Full | backupRoutes.test.ts, restoreText/Full.test.ts, full/text/invalid backup E2E |
+| Импорт/экспорт | backupRoutes/Transport, prepareFullImport, restoreText/Full | backupRoutes.test.ts, restoreText.test.ts, restoreFull.test.ts, full/text/invalid backup E2E |
 | Изоляция/повторы | userTransaction, writeCommand, commands, FORCE RLS | userTransaction.test.ts, writeCommand.test.ts, journalCommands.test.ts, activityCommands.test.ts |
 | Серверные копии/восстановление | deploy/backup_*.py, backupRestore.test.ts, SQL T203 | 38 Python deploy, backupRestore.test.ts, restoredAccess.test.ts, T210 |
 
@@ -47,7 +47,27 @@ generation/revision, пользовательские транзакции из�
 Для изменений кода обязательны полный npm run check и соответствующие gates;
 для итоговой документации — check:docs/diff check. Новых зависимостей нет.
 
-## Границы
+## Итоговая приёмка T214
+
+Очередь T211–T214 завершена локально. Существующий функциональный backend
+проверен для восьми экранов; T212 сделал regression лимита паролей
+детерминированным, T213 добавил SQL readiness, T214 оформил
+[контракт API](API_REFERENCE.md). Все 62 явно зарегистрированные пары
+метод/путь сопоставлены с таблицами контракта, включая четыре backup-маршрута,
+создаваемых циклом. Отдельные DTO определены текущими domain/Records.
+
+Последний полный прогон неизменённого кода T213: npm run check PASS
+(1626 unit/API, 91 Browser, 80 E2E; lint/types/coverage/build),
+build:api и 12 целевых readiness/runtime-тестов PASS. Дополнительные gates:
+38 Python deploy-тестов, verify_build и systemd-analyze verify PASS.
+T214 меняет только документацию; check:docs и diff --check проверены отдельно.
+Данные тестов синтетические, внешние запросы/письма не нужны.
+
+Подтверждена локальная готовность согласованного MVP, а не новый релиз VPS.
+Следующий возможный этап — отдельный выпуск API с проверкой readiness
+на установленной версии; в этой очереди он не начинается.
+
+## Границы готовности
 
 В текущий backend не входят AI/распознавание, совместный доступ, биллинг,
 устройства/штрихкоды, новые дневники воды/сна/давления: это отдельные продукты

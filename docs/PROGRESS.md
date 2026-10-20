@@ -1,5 +1,29 @@
 # Прогресс
 
+## T214 — Контракт и итоговая приёмка backend
+
+Добавлен API_REFERENCE: все 62 явные пары метод/путь текущего runtime,
+Origin/cookie/CSRF, generation/changeRevision/revision и повторы команд,
+страницы/курсор, форматы загрузок/копий, ошибки и health/readiness.
+Контракт сопоставлен с Routes/Records, auth/email и клиентским transport;
+автоматическая сверка множества методов/путей не нашла пропусков/лишних строк.
+В частности complete email очищает cookie и требует последующего login,
+logout с cookie требует CSRF, seed/copy возвращают собственные результаты.
+BACKEND_PLAN фиксирует финальную приёмку и границы, PROJECT_MAP ведёт
+к текущему контракту отдельно от исторических спецификаций перехода.
+
+Последние полные gates кода — успешная T213: npm run check, 1626 unit/API,
+91 Browser, 80 E2E; build:api, 12 целевых runtime/readiness,
+38 Python deploy, verify_build и systemd-analyze verify PASS.
+T214 меняет только документацию; check:docs и git diff --check PASS.
+Секретов/реальных медицинских данных и production-операций нет.
+
+Проверка: открыть API_REFERENCE и итоговую приёмку BACKEND_PLAN.
+Полнота списка маршрутов проверяема отдельно от корректности каждого DTO.
+Работающий локальный код и установленная версия API — разные результаты.
+Вся согласованная очередь T211–T214 завершена; следующий возможный этап —
+отдельный выпуск API на VPS, он не начинается без отдельного разрешения.
+
 ## T213 — Readiness API с runtime SQL-пробой
 
 Добавлен server/readiness.ts, runtime регистрирует маршрут перед listen
