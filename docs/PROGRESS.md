@@ -1,5 +1,57 @@
 # Прогресс
 
+## T210 — Внедрение мониторинга на data VPS
+
+20.10.2026 пользователь разрешил все этапы внедрения после T209 и указал
+получателя; адрес сохранён только в root 0600 конфигурации VPS, не в Git.
+Дерево/индекс исходно чистые, локальная основа a1f47d5. SSH с закреплённым
+host key; исходные backup_send/backup_receive и основной service/timer
+побайтно совпали с репозиторием, API/backup timer активны, Postfix EHLO 250.
+
+Установлены backup_check/backup_monitor и новые monitor service/timer,
+SHA256 всех четырёх совпали с проверенной версией. До установки все пять
+целевых файлов отсутствовали; приватный rollback manifest сохранён в
+/etc/health-diary/monitor-before-T210. Конфиг root 0600, state root 0700.
+systemd-analyze verify PASS. Реальный dry-run: healthy/fresh/success,
+notification=disabled, state не изменён.
+
+Отдельный transient smoke unit повторил sandbox основного monitor.service
+с отдельным StateDirectory и синтетическим каталогом. Только в тестовом
+процессе status backup-сервиса моделировался как success; настоящий сервис
+не менялся. Переходы unhealthy/sent → unhealthy/unchanged → healthy/sent →
+healthy/unchanged PASS, два SMTP DATA приняты (250), повторов отправки нет.
+Содержимое и metadata реальных копий smoke не изменял.
+
+Оба тестовых письма удалены из очереди MTA; строки внешней доставки с адресами
+отсечены существующим LogFilterPatterns. Фильтр не ослаблялся; внешний приём
+по журналу не заявляется. Пользователь явно подтвердил получение обоих писем.
+На data VPS 7 копий, offsite 13 (предел 14), обе последние свежие, около 4 часов.
+
+После подтверждения выполнен настоящий start monitor.service: success, exit 0,
+healthy/state 0600, ProtectSystem=strict/ProtectHome/NoNewPrivileges.
+monitor.timer enabled/active, следующий почасовой запуск назначен systemd.
+Откат расписания проверен disable --now → inactive/disabled, затем enable --now
+→ active/enabled. API и основной backup.timer оставались active; notification
+state не изменился. Повторный healthy start state не переписал/писем не отправил.
+Итоговые SHA256 четырёх установленных файлов и четырёх исходных backup-файлов
+совпали, hash списка имён/размеров/mtime локальных копий до/после включения
+и отката совпал. Синтетический StateDirectory удалён после проверки точного
+пути и состава; приватные обезличенные отчёты оставлены в
+/var/lib/health-backup-monitor-deploy-T210. Журнал monitor без warnings.
+
+Проверки PASS: 38 Python deploy, remote systemd verify, SHA256/права, dry-run,
+sandbox SMTP smoke, подтверждение двух писем пользователем, production start/
+timer/rollback/повтор, финальная целостность, check:docs и diff --check.
+Приложение/зависимости не менялись, полный check T208 остаётся актуален.
+БД/API/Nginx/backup.service/timer/retention не менялись, push не выполнялся.
+
+Проверка оператором: BACKUPS, раздел T210; systemctl status/list-timers и журнал
+только health-backup-monitor. SMTP-принятие и реальное получение писем — разные
+проверки; вторую здесь подтвердил пользователь. Отключение мониторинга сохраняет
+state и не должно отключать резервирование.
+Следующая отдельная задача не начата: независимый внешний контроль недоступности
+самого VPS; локальный монитор не обнаруживает полное выключение своего сервера.
+
 ## T209 — Расписание мониторинга и комплект внедрения
 
 Локальная очередь T207–T209 завершена: восстановление, email-мониторинг,

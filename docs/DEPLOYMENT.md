@@ -121,6 +121,16 @@ Nginx -t и реальный локальный HTTP проверяются от
 
 ## Обновление и проверки
 
+С T210 на data VPS установлен дополнительный health-backup-monitor.service/timer:
+почасовая проверка свежести копий и результата backup.service, email через
+существующий loopback SMTP. Источник файлов a1f47d5, SHA256 совпали; приватный
+конфиг /etc/health-diary/backup-monitor.json (root 0600), state
+/var/lib/health-backup-monitor (0700, state.json 0600). Service проверен
+реальным запуском под sandbox, timer enabled/active. Получение двух тестовых
+писем подтвердил пользователь. Отключение/повторное включение расписания
+проверено с сохранением state; API и основной backup.timer не менялись.
+Порядок установки/отката и ограничения — [BACKUPS](BACKUPS.md), раздел T210.
+
 Исходящая почта приложения подготовлена отдельно: [DNS и SMTP](MAIL_DNS.md).
 Postfix/OpenDKIM находятся на VPS БД и слушают только loopback. DNS/PTR и
 соответствие DKIM-ключа повторно проверены в T196; приложение подключено к SMTP.
