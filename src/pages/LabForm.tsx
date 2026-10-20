@@ -17,10 +17,11 @@ export function LabForm({ documentId, defaultDate, disabled, onBusyChange, entry
   useEffect(() => { onBusyChange(action.pending); return () => { onBusyChange(false) } }, [action.pending, onBusyChange])
   useEffect(() => { if (entry) formRef.current?.querySelector<HTMLInputElement>('[name="date"]')?.focus() }, [entry])
   useEffect(() => {
-    if (!action.pending && focusAfterAttempt.current) { focusAfterAttempt.current = false; formRef.current?.querySelector<HTMLInputElement>('[name="name"]')?.focus() }
-  }, [revision, action.pending])
+    if (!action.pending && !disabled && focusAfterAttempt.current) { focusAfterAttempt.current = false; formRef.current?.querySelector<HTMLInputElement>('[name="name"]')?.focus() }
+  }, [revision, action.pending, disabled])
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (disabled) return
     const form = new FormData(event.currentTarget)
     const fieldErrors: Record<string, string> = {}
     const date = readField(form, 'date', text => {

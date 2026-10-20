@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
-import { useDiaryQuery, listProducts, addFood, listFood, updateFood } from '../dataAccess'
+import { useDiaryQueryState, listProducts, addFood, listFood, updateFood } from '../dataAccess'
 import { foodEntrySchema, gramsSchema, mealNames, mealSchema, type FoodEntry } from '../domain/nutrition'
 import { entityId, validate } from '../domain/schema'
 import { localDate, parseDate, parseNumber } from '../domain/input'
@@ -14,12 +14,12 @@ interface FoodFormProps {
 
 export function FoodForm({ entry, onSaved, onCancel, focusVersion = 0, disabled = false, onPendingChange }: FoodFormProps) {
   const { day } = useDay()
-  const result = useDiaryQuery(async () => ({ day, products: await listProducts(), entries: await listFood(day) }), [day])
+  const { data: result, current } = useDiaryQueryState(async () => ({ day, products: await listProducts(), entries: await listFood(day) }), [day])
   const data = result?.day === day ? result : undefined
   const [revision, setRevision] = useState(0)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const action = useAction(onPendingChange)
-  const busy = disabled || action.pending
+  const busy = disabled || action.pending || !current
   const formRef = useRef<HTMLFormElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const focusAfterSave = useRef(false)
@@ -33,6 +33,7 @@ export function FoodForm({ entry, onSaved, onCancel, focusVersion = 0, disabled 
   }, [data, busy, revision, focusVersion, entry])
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!current) return
     const form = new FormData(event.currentTarget)
     const fieldErrors: Record<string, string> = {}
     const productId = entry ? entry.productId : readField(form, 'productId', value => validate(entityId, value), fieldErrors)

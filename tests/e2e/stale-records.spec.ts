@@ -43,7 +43,8 @@ test('профиль, вес, шаги, каталог и еда ждут све
   await editProduct.click()
   await expect(page.getByRole('button', { name: 'Архивировать продукт Учебный продукт свежести', exact: true })).toBeDisabled()
   await page.getByLabel('Калории на 100 г, ккал', { exact: true }).fill('101')
-  await verifyRefresh(page, '**/api/v1/products?**', page.getByRole('button', { name: 'Сохранить продукт', exact: true }), editProduct)
+  await verifyRefresh(page, '**/api/v1/products?**', page.getByRole('button', { name: 'Сохранить продукт', exact: true }),
+    [editProduct, page.getByRole('button', { name: 'Добавить еду', exact: true })])
   await page.getByLabel('Продукт для записи', { exact: true }).selectOption({ label: 'Учебный продукт свежести' })
   await page.getByLabel('Масса порции, г', { exact: true }).fill('100')
   await page.getByRole('button', { name: 'Добавить еду', exact: true }).click()

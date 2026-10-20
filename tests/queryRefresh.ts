@@ -1,6 +1,7 @@
 import { expect, type Page, type Locator } from '@playwright/test'
 
-export async function verifyRefresh(page: Page, path: string, save: Locator | (() => Promise<void>), action: Locator) {
+export async function verifyRefresh(page: Page, path: string, save: Locator | (() => Promise<void>), action: Locator | Locator[]) {
+  const actions = Array.isArray(action) ? action : [action]
   let release = () => {}, entered = () => {}
   const gate = new Promise<void>(resolve => { release = resolve })
   const started = new Promise<void>(resolve => { entered = resolve })
@@ -8,7 +9,11 @@ export async function verifyRefresh(page: Page, path: string, save: Locator | ((
     if (route.request().method() === 'GET') { entered(); await gate }
     await route.continue()
   })
-  try { if (typeof save === 'function') await save(); else await save.click(); await started; await expect(action).toBeDisabled() }
+  try {
+    if (typeof save === 'function') await save(); else await save.click()
+    await started
+    for (const control of actions) await expect(control).toBeDisabled()
+  }
   finally { release(); await page.unrouteAll({ behavior: 'wait' }) }
-  await expect(action).toBeEnabled()
+  for (const control of actions) await expect(control).toBeEnabled()
 }

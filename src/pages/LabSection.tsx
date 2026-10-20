@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useDiaryQuery, listDocuments } from '../dataAccess'
+import { useDiaryQueryState, listDocuments } from '../dataAccess'
 import { SelectField } from '../ui/Field'
 import { LabForm } from './LabForm'
 import { LabList } from './LabList'
@@ -7,7 +7,7 @@ import { type LabResult } from '../domain/labResult'
 
 interface LabSectionProps { blocked?: boolean; onBusyChange?: (busy: boolean) => void }
 export function LabSection({ blocked = false, onBusyChange }: LabSectionProps = {}) {
-  const documents = useDiaryQuery(() => listDocuments())
+  const { data: documents, current } = useDiaryQueryState(() => listDocuments())
   const [documentId, setDocumentId] = useState('')
   const [busy, setBusy] = useState(false)
   const [listBusy, setListBusy] = useState(false)
@@ -19,13 +19,13 @@ export function LabSection({ blocked = false, onBusyChange }: LabSectionProps = 
   const focusAfterEdit = useRef(false)
   useEffect(() => { onBusyChange?.(busy || listBusy || activeEditing !== null); return () => { onBusyChange?.(false) } }, [busy, listBusy, activeEditing, onBusyChange])
   useEffect(() => {
-    if (focusAfterEdit.current && !activeEditing) { focusAfterEdit.current = false; section.current?.querySelector<HTMLInputElement>('[name="name"]')?.focus() }
-  }, [activeEditing])
+    if (focusAfterEdit.current && !activeEditing && current && !blocked && !listBusy) { focusAfterEdit.current = false; section.current?.querySelector<HTMLInputElement>('[name="name"]')?.focus() }
+  }, [activeEditing, current, blocked, listBusy])
   return <section ref={section} className="card lab-entry" aria-labelledby="lab-section-title">
     <h2 id="lab-section-title">Показатели документа</h2>
     <p>Введите результат вручную как на бланке. Дневник не интерпретирует референсы, не сравнивает разные единицы и не определяет диагноз.</p>
     {documents === undefined ? <p role="status">Загружаем бланки…</p> : documents.length === 0 ? <p>Сначала добавьте документ-источник.</p> : <>
-      <SelectField label="Бланк для показателей" value={documentId} disabled={blocked || busy || listBusy || activeEditing !== null} onChange={event => { setDocumentId(event.currentTarget.value); setEditing(null); setNotice(null) }}>
+      <SelectField label="Бланк для показателей" value={documentId} disabled={!current || blocked || busy || listBusy || activeEditing !== null} onChange={event => { setDocumentId(event.currentTarget.value); setEditing(null); setNotice(null) }}>
         <option value="">Выберите бланк</option>
         {documentId && !selected && <option value={documentId} disabled>Документ больше недоступен</option>}
         {documents.map(document => <option key={document.id} value={document.id}>{document.date} — {document.title}</option>)}
@@ -35,14 +35,14 @@ export function LabSection({ blocked = false, onBusyChange }: LabSectionProps = 
         <p>Дата документа: {selected.date}</p>
         <div className="lab-entry-layout">
         <div className="lab-editor">
-        <LabForm key={activeEditing?.id ?? selected.id} documentId={selected.id} defaultDate={selected.date} disabled={blocked || listBusy} onBusyChange={setBusy} entry={activeEditing} onSaved={() => {
+        <LabForm key={activeEditing?.id ?? selected.id} documentId={selected.id} defaultDate={selected.date} disabled={!current || blocked || listBusy} onBusyChange={setBusy} entry={activeEditing} onSaved={() => {
           if (activeEditing) { focusAfterEdit.current = true; setEditing(null); setNotice('Показатель обновлён') }
           else setNotice(null)
         }} onCancel={() => { focusAfterEdit.current = true; setEditing(null); setNotice(null) }} />
         {notice && <p role="status">{notice}</p>}
         </div>
         <div className="lab-records">
-        <LabList key={`list-${selected.id}`} documentId={selected.id} blocked={blocked || busy || activeEditing !== null} onBusyChange={setListBusy} onEdit={result => { setNotice(null); setEditing(result) }} />
+        <LabList key={`list-${selected.id}`} documentId={selected.id} blocked={!current || blocked || busy || activeEditing !== null} onBusyChange={setListBusy} onEdit={result => { setNotice(null); setEditing(result) }} />
         </div>
         </div>
       </> : <p>{documentId ? 'Документ больше недоступен. Выберите другой.' : 'Выберите бланк для ввода показателей.'}</p>}
