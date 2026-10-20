@@ -1,5 +1,27 @@
 # Прогресс
 
+## T212 — Детерминированный лимит параллельных проверок пароля
+
+registerAuthentication принимает необязательный verifier и передаёт его
+существующему createSessions; production использует прежний Argon2 по умолчанию.
+Тест auth.test.ts удерживает четыре реальных verifier на Promise-барьере,
+проверяет active/peak=4 и четыре следующих 429 без входа в verifier,
+освобождает в finally и подтверждает четыре успешных входа/следующий вход.
+Неожиданный пятый verifier не блокируется барьером, чтобы сломанный лимит
+провалил assertions без зависших HTTP. Исходное наблюдение IDEAS закрыто T212.
+Никаких sleep, ослабления rate limit, замены Argon2 или новых зависимостей.
+
+Целевые 8 auth-тестов и ESLint PASS. Сначала Promise.withResolvers не совпал
+с ES2023 lib проекта; использован обычный Promise-барьер без изменения tsconfig.
+Полный npm run check PASS: docs/lint/types/coverage, 1620 unit/API,
+91 Browser, build, 80 E2E. 38 Python deploy PASS; итоговые check:docs и
+diff --check PASS. Node/npm из nvm, выделенная health_test и существующий
+кэш библиотек Chromium. Никаких production-операций нет.
+
+Проверка: npm test -- src/server/auth.test.ts. Число успешных ответов за всё
+время не показывает число одновременно выполняемых проверок. Барьер делает
+момент проверки ограничителя явным. Следующий этап T213 — readiness с БД.
+
 ## T211 — Обзор backend и полная очередь текущего MVP
 
 20.10.2026 пользователь запросил изучение и полную реализацию backend с созданием

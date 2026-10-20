@@ -15,9 +15,10 @@ export async function assertRuntimeRole(pool: Pool) {
   if (z.object({ elevated: z.boolean() }).parse(rights.rows[0]).elevated) throw new Error('API требует ограниченную роль БД')
 }
 
-export async function registerAuthentication(app: FastifyInstance, pool: Pool, origin: string, clock = () => new Date()) {
+export async function registerAuthentication(app: FastifyInstance, pool: Pool, origin: string, clock = () => new Date(),
+  verifyPassword?: (encoded: string, password: string) => Promise<boolean>) {
   await assertRuntimeRole(pool)
-  const sessions = await createSessions(pool)
+  const sessions = await createSessions(pool, verifyPassword)
   const allowLogin = createAuthRateLimit(pool, 'login')
   const work = { active: 0 }
   installRequestProtection(app, origin)

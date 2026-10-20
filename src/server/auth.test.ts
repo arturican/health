@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, expect, it } from 'vitest'
 import { z } from 'zod'
+import { verify } from 'argon2'
 import { createApi } from './app'
 import { registerAuthentication } from './auth'
 import { createAccount } from './accounts'
@@ -114,9 +115,47 @@ it('отвергает подключение API с административ�
 })
 
 it('не запускает больше четырёх параллельных проверок пароля', async () => {
-  const responses = await Promise.all(Array.from({ length: 8 }, () => app.inject({
-    method: 'POST', url: '/api/v1/auth/login', headers: { origin }, payload: credentials,
-  })))
-  expect(responses.filter(response => response.statusCode === 200)).toHaveLength(4)
-  expect(responses.filter(response => response.statusCode === 429)).toHaveLength(4)
+  let markBlocked = () => {}, unblock = () => {}
+  const blocked = new Promise<void>(resolve => { markBlocked = resolve })
+  const release = new Promise<void>(resolve => { unblock = resolve })
+  let observed = 0, entered = 0, active = 0, peak = 0
+  const observe = () => { if (++observed === 4) markBlocked() }
+  await app.close()
+  app = createApi()
+  await registerAuthentication(app, database.runtime, origin, () => time, async (encoded, password) => {
+    entered++
+    active++
+    peak = Math.max(peak, active)
+    try {
+      if (entered <= 4) {
+        observe()
+        await release
+      }
+      // An unexpected fifth verifier must finish, so a broken limit fails
+      // assertions instead of leaving the extra HTTP requests blocked.
+      return await verify(encoded, password)
+    } finally { active-- }
+  })
+  const request = () => app.inject({ method: 'POST', url: '/api/v1/auth/login', headers: { origin }, payload: credentials })
+  const first = Promise.all(Array.from({ length: 4 }, async () => {
+    const response = await request()
+    if (response.statusCode !== 200) observe()
+    return response
+  }))
+  try {
+    await blocked
+    expect(entered).toBe(4)
+    expect(active).toBe(4)
+    const rejected = await Promise.all(Array.from({ length: 4 }, request))
+    expect(rejected.map(response => response.statusCode)).toEqual([429, 429, 429, 429])
+    expect(entered).toBe(4)
+  } finally {
+    unblock()
+    const responses = await first
+    expect(responses.map(response => response.statusCode)).toEqual([200, 200, 200, 200])
+  }
+  expect(active).toBe(0)
+  await login()
+  expect(entered).toBe(5)
+  expect(peak).toBe(4)
 })
