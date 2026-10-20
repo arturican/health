@@ -3941,3 +3941,17 @@ observedcheckbox5597.9→3629ms. JSCPU/route transitions не улучшилис
 LiveJS release792e0b0 подтверждён identity/513682B при Accept-Encodinggzip:
 добавлен AUD-016/IMP-029, отдельная T258a до config changes.
 Typecheck/targetedESLint/check:docs/diff прошли. Приложение не менялось.
+
+## T258a — Сжатие публичных assets
+
+Nginx config: gziplevel5/min1024/Vary только/assets; APIexplicitoff.
+Типы включают binaryoctetstream для фактического liveTTF (HEAD488584identity),
+без изменения байтов/URL/cache/CSP. Helper145lines создаёт syntheticassets/API,
+nativeNginxforegroundownedgroup/loopback/temp-copy без reload рабочего сервиса.
+НаfrontendNginx1.24Ubuntu: baselineFAILpublicgzip, новыйconfigPASS,
+mutantбезAPIoffFAILprivatecompression. Readinessfault и cleanup проверены;
+remaininghelpermasters0. Reviewзакрылdaemoncleanupgap и неподдержанные
+listeners/includes; итоговыхблокеровнет. Conditiondeadline10s+последнийsocket≤5s,
+не обещается hard10swallclock. Standalonehelper — manualdeploymentgate,неCI.
+72Pythondeploytests/check:docs/diff прошли. Liveconfig всёещёpreviouscommit,
+сервисactive; установкавT260. Всеявносозданные remote/tmpфайлыудалены.

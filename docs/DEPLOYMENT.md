@@ -385,3 +385,38 @@ Trace/video/автоматические screenshots отключены, сни�
 Системные fatal/panic сообщения не считаются конфиденциальным хранилищем.
 Основания: [PostgreSQL logging](https://www.postgresql.org/docs/18/runtime-config-logging.html),
 [ALTER ROLE](https://www.postgresql.org/docs/18/sql-alterrole.html).
+
+## Сжатие публичной статики (T258a)
+
+Подготовленный deploy/nginx.conf включает gzip level5/min1024/Vary только
+в /assets/. Сжимаются JS/CSS/SVG/TTF и application/octet-stream: текущий
+локальный Roboto.ttf на VPS имеет именно этот binary MIME. В /assets/ находятся
+публичные build artifacts, пользовательские файлы выдаёт авторизованный API.
+API location явно gzip off, независимо от global gzip_types; ответы с личными
+данными и сессией не включаются в новый режим. Bytes файлов/URLs/cache/CSP
+не меняются. Измерение и ограничения — [COLD_LOAD](COLD_LOAD.md).
+
+Перед изменением edge config обязателен native gate на хосте с Nginx:
+
+    python3 -B deploy/verify_static_compression.py --config deploy/nginx.conf
+
+Это отдельный manual/deployment gate, не часть unittest discovery/CI.
+Helper создаёт только synthetic public JS/CSS/TTF и JSON, запускает собственный
+foreground Nginx в отдельной process group на единственном loopback listener,
+переписывает roots/upstream в temp-copy и проверяет gzip/identity, decoded bytes,
+Vary/cache/security headers и API identity даже при global JSON gzip.
+Nginx -t относится к temp config. Рабочий Nginx не перезапускается и его
+конфигурация не меняется. Finally отправляет TERM собственной группе и ждёт
+завершения; при timeout использует KILL только этой группы.
+
+20.10.2026 на frontend Nginx1.24.0 Ubuntu: baseline без новых directives FAIL,
+новый config PASS, mutant без API gzip off FAIL на private response.
+Synthetic readiness timeout также проверен, незавершённых helper master
+процессов не осталось. Live конфигурация всё ещё побайтно совпадает с прежним
+commit, сервис active. Это готовность артефакта, не внедрение сжатия.
+
+Установка T260: сохранить текущий target config отдельно, проверить точный
+кандидат nginx -t, заменить только health-diary virtual host, снова nginx -t
+и reload. Проверить public asset gzip/identity+decoded hash, API identity,
+health/readiness/401, active status; при ошибке вернуть сохранённый config
+и reload после nginx -t. Другие virtual hosts не менять.
