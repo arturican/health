@@ -7,11 +7,15 @@ import { useDay } from '../ui/DayContext'
 import { Field } from '../ui/Field'
 import { Feedback, readField, useAction } from '../ui/actions'
 
-interface WorkoutFormProps { entry?: Workout; onSaved?: () => void; onCancel?: () => void }
+interface WorkoutFormProps {
+  entry?: Workout; onSaved?: () => void; onCancel?: () => void
+  disabled?: boolean; onPendingChange?: (pending: boolean) => void
+}
 
-export function WorkoutForm({ entry, onSaved, onCancel }: WorkoutFormProps = {}) {
+export function WorkoutForm({ entry, onSaved, onCancel, disabled = false, onPendingChange }: WorkoutFormProps = {}) {
   const { day } = useDay()
-  const action = useAction()
+  const action = useAction(onPendingChange)
+  const busy = disabled || action.pending
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [revision, setRevision] = useState(0)
   const formRef = useRef<HTMLFormElement>(null)
@@ -56,7 +60,7 @@ export function WorkoutForm({ entry, onSaved, onCancel }: WorkoutFormProps = {})
   }
   return <>
     <form ref={formRef} key={revision} className="form-grid" aria-label={entry ? 'Редактирование тренировки' : 'Добавление тренировки'} onSubmit={submit} noValidate>
-      <fieldset disabled={action.pending}>
+      <fieldset disabled={busy}>
         <legend>{entry ? 'Параметры тренировки' : `Тренировка за ${day}`}</legend>
         {entry && <Field label="Дата тренировки" name="date" type="date" required max={localDate()} defaultValue={entry.date} error={errors['date']} />}
         <Field label="Вид тренировки" name="kind" required maxLength={80} defaultValue={entry?.kind ?? ''} error={errors['kind']} />
@@ -67,8 +71,8 @@ export function WorkoutForm({ entry, onSaved, onCancel }: WorkoutFormProps = {})
         <Field label="Комментарий к тренировке (необязательно)" name="note" maxLength={500} defaultValue={entry?.note ?? ''} error={errors['note']} />
       </fieldset>
       <div className="actions">
-        <button type="submit" disabled={action.pending}>{action.pending ? 'Сохраняем…' : entry ? 'Сохранить тренировку' : 'Добавить тренировку'}</button>
-        {entry && <button type="button" disabled={action.pending} onClick={onCancel}>Отменить правку тренировки</button>}
+        <button type="submit" disabled={busy}>{action.pending ? 'Сохраняем…' : entry ? 'Сохранить тренировку' : 'Добавить тренировку'}</button>
+        {entry && <button type="button" disabled={busy} onClick={onCancel}>Отменить правку тренировки</button>}
       </div>
     </form>
     <Feedback error={action.error} message={action.message} />
