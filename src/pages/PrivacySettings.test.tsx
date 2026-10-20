@@ -50,7 +50,7 @@ it('сбой чтения скрывает разделы и блокирует 
   vi.spyOn(access, 'getVisibility').mockRejectedValueOnce(new Error(privateValue))
   const write = vi.spyOn(access, 'saveVisibility')
   render(<PrivacySettings />)
-  expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось прочитать настройки видимости. Фото и документы скрыты.')
+  expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось прочитать настройки видимости. Повторите загрузку настроек перед сохранением.')
   expect(screen.queryByText(privateValue)).not.toBeInTheDocument()
   expect(screen.getByRole('checkbox', { name: 'Показывать фото' })).toBeDisabled()
   expect(screen.getByRole('button', { name: 'Сохранить видимость' })).toBeDisabled()

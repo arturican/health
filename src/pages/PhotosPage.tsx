@@ -4,6 +4,7 @@ import { PhotoForm } from './PhotoForm'
 import { PhotoGallery } from './PhotoGallery'
 import { PhotoComparison } from './PhotoComparison'
 import { Icon } from '../ui/Icon'
+import { StorageBoundary } from '../ui/StorageBoundary'
 import '../photos.css'
 
 export function PhotosPage() {
@@ -29,8 +30,12 @@ export function PhotosPage() {
     }} onCancel={() => { focusAfterEdit.current = true; setEditing(null); setNotice(null) }} />
     {notice && <p role="status">{notice}</p>}
     </div>
-    <PhotoComparison />
+    <StorageBoundary>
+      <PhotoComparison />
+    </StorageBoundary>
     </div>
-    <PhotoGallery blocked={formBusy || editing !== null} onBusyChange={setGalleryBusy} onEdit={photo => { setNotice(null); setEditing(photo) }} />
+    <StorageBoundary>
+      <PhotoGallery blocked={formBusy || editing !== null} onBusyChange={setGalleryBusy} onEdit={photo => { setNotice(null); setEditing(photo) }} />
+    </StorageBoundary>
   </section>
 }

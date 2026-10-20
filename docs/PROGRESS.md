@@ -1,5 +1,23 @@
 # Прогресс
 
+## T233 — Черновики медиа при ошибках чтения
+
+useVisibility хранит последнее успешно принятое значение текущего epoch,
+сохраняет его при failed refresh/pending retry и не принимает старый async ответ.
+Исходный объект/recordRevision сохранены, current=false при отказе; новый epoch
+не наследует видимость. App показывает error/retry/loading, возвращает фокус.
+PrivacySettings больше не утверждает, что разделы скрыты при любом отказе.
+
+Новый реальный E2E обнаружил отдельное размонтирование документа из-за initial
+LabTrends error: читающие карточки фото/документов обёрнуты собственными
+StorageBoundary отдельно от редакторов. Итого5app-файлов, менее250строк.
+
+Регрессия до fix2FAIL/3PASS; после6новых+21существующих unit=27PASS, typecheck/
+lint/build PASS; stale-media6E2E PASS (desktop/mobile, synthetic API/PG).
+Первые E2E выявили размонтирование и ожидаемый React console report; точная
+синтетическая network error проверяется отдельно, прочие ошибки не скрываются.
+docs/diff/staged/secret review перед коммитом. Полные логи /tmp/health-T233-*.
+
 ## T232a — Устойчивое ожидание флагов настроек
 
 Regression PrivacySettings ждёт исчезновение ошибки, оба сохранённых checkbox

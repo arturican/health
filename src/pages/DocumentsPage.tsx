@@ -5,6 +5,7 @@ import { DocumentList } from './DocumentList'
 import { LabSection } from './LabSection'
 import { LabTrends } from './LabTrends'
 import { Icon } from '../ui/Icon'
+import { StorageBoundary } from '../ui/StorageBoundary'
 import '../documents.css'
 
 export function DocumentsPage() {
@@ -23,7 +24,9 @@ export function DocumentsPage() {
     <p>Бланки анализов и история показателей в одном месте.</p>
     <ol className="documents-steps"><li>Сохраните бланк</li><li>Внесите показатели вручную</li><li>Наблюдайте изменения по датам</li></ol>
     <p>Сохраняйте полные резервные копии дневника: они включают оригиналы документов и показатели.</p>
-    <LabTrends />
+    <StorageBoundary>
+      <LabTrends />
+    </StorageBoundary>
     <div className="documents-layout">
     <div className="card document-editor">
     <h2><Icon name="documents" /> {editing ? 'Изменить бланк' : 'Загрузить анализ'}</h2>
@@ -34,8 +37,12 @@ export function DocumentsPage() {
     }} onCancel={() => { focusAfterEdit.current = true; setEditing(null); setNotice(null) }} />
     {notice && <p role="status">{notice}</p>}
     </div>
-    <DocumentList blocked={formBusy || labBusy || editing !== null} onBusyChange={setListBusy} onEdit={document => { setNotice(null); setEditing(document) }} />
+    <StorageBoundary>
+      <DocumentList blocked={formBusy || labBusy || editing !== null} onBusyChange={setListBusy} onEdit={document => { setNotice(null); setEditing(document) }} />
+    </StorageBoundary>
     </div>
-    <LabSection blocked={formBusy || listBusy || editing !== null} onBusyChange={setLabBusy} />
+    <StorageBoundary>
+      <LabSection blocked={formBusy || listBusy || editing !== null} onBusyChange={setLabBusy} />
+    </StorageBoundary>
   </section>
 }

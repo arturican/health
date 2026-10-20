@@ -64,3 +64,52 @@ test('вложения, показатели, связанное количес�
   await expect(page.getByLabel('Показывать фото', { exact: true })).not.toBeChecked()
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
+
+for (const [routeName, title, fileLabel] of [
+  ['photos', 'Подпись фото', 'Файл фото'],
+  ['documents', 'Название документа', 'Файл документа'],
+] as const) {
+  test(routeName + ': черновик и выбранный файл переживают отказ видимости и ожидающий повтор', async ({ page }) => {
+    const errors: string[] = [], expectedFailures: string[] = []
+    const readFailure = 'Error: Не удалось получить данные. Проверьте соединение и повторите действие.'
+    page.on('pageerror', error => { errors.push(error.message) })
+    page.on('console', message => {
+      if (message.type() !== 'error') return
+      if (message.text().includes('net::ERR_FAILED') && message.location().url.endsWith('/api/v1/diary-state')) return
+      if (message.text().split('\n')[0] === readFailure) expectedFailures.push(message.text())
+      else errors.push(message.text())
+    })
+    await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'))
+    await page.goto('/#' + routeName)
+    const field = page.getByLabel(title, { exact: true })
+    const file = page.getByLabel(fileLabel, { exact: true })
+    await field.fill('Учебный черновик отказа')
+    const png = await sharp({ create: { width: 8, height: 6, channels: 3, background: '#346789' } }).png().toBuffer()
+    await file.setInputFiles({ name: 'synthetic-draft.png', mimeType: 'image/png', buffer: png })
+    let fail = true
+    let release: () => void = () => { throw new Error('Нет ожидающего повтора') }
+    const gate = new Promise<void>(resolve => { release = resolve })
+    await page.route('**/api/v1/diary-state', async route => {
+      if (fail) { await route.abort('failed'); return }
+      await gate
+      await route.continue()
+    })
+    try {
+      await page.evaluate(() => { window.dispatchEvent(new Event('online')) })
+      await expect(page.getByText('Не удалось обновить видимость разделов. Ваш ввод сохранён.', { exact: true })).toBeVisible()
+      await expect(field).toHaveValue('Учебный черновик отказа')
+      fail = false
+      await page.getByRole('button', { name: 'Повторить загрузку видимости', exact: true }).click()
+      await expect(page.getByText('Обновляем настройки видимости…', { exact: true })).toBeVisible()
+      await expect(field).toHaveValue('Учебный черновик отказа')
+      expect(await file.evaluate(element => element instanceof HTMLInputElement ? element.files?.[0]?.name : null)).toBe('synthetic-draft.png')
+      release()
+      await expect(page.getByText('Обновляем настройки видимости…', { exact: true })).toHaveCount(0)
+      await expect(field).toHaveValue('Учебный черновик отказа')
+      expect(await file.evaluate(element => element instanceof HTMLInputElement ? element.files?.[0]?.name : null)).toBe('synthetic-draft.png')
+      if (await page.getByRole('heading', { name: 'Раздел недоступен', exact: true }).count()) expect(expectedFailures.length).toBeGreaterThan(0)
+      for (const message of expectedFailures) expect(message.split('\n')[0]).toBe(readFailure)
+      expect(errors).toEqual([])
+    } finally { release(); await page.unroute('**/api/v1/diary-state') }
+  })
+}

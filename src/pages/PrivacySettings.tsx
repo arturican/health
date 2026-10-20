@@ -41,7 +41,7 @@ export function PrivacySettings() {
     <h2 id="visibility-title"><Icon name="settings" /> Видимость разделов</h2>
     <p>Скрытие убирает раздел из интерфейса. Записи и файлы сохраняются и входят в полную копию. Это не защита доступа и не шифрование.</p>
     {!settings ? <p role="status">Загружаем настройки видимости…</p> : <>
-      {settings.failed && <p role="alert">Не удалось прочитать настройки видимости. Фото и документы скрыты. Повторите загрузку настроек перед сохранением.</p>}
+      {settings.failed && <p role="alert">Не удалось прочитать настройки видимости. Повторите загрузку настроек перед сохранением.</p>}
       {settings.failed && <button type="button" onClick={() => { draft.current = undefined; settings.retry() }}>Повторить загрузку настроек</button>}
       <form ref={formRef} aria-label="Видимость разделов" onSubmit={save} onChange={() => { draft.current ??= settings.value }}>
         <fieldset disabled={action.pending || !settings.current || settings.failed}>

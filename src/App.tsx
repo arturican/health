@@ -24,6 +24,8 @@ export function App() {
   const previousHidden = useRef(hidden)
   const previousRoute = useRef(route)
   const main = useRef<HTMLElement>(null)
+  const visibilityRetry = useRef<HTMLButtonElement>(null)
+  const focusAfterRetry = useRef(false)
 
   useEffect(() => {
     const navigate = () => { setRoute(getRoute(window.location.hash)); }
@@ -36,6 +38,13 @@ export function App() {
     previousRoute.current = route
     previousHidden.current = hidden
   }, [route, hidden])
+
+  useEffect(() => {
+    if (!focusAfterRetry.current || !visibility || (!visibility.current && !visibility.failed)) return
+    focusAfterRetry.current = false
+    if (visibility.failed) visibilityRetry.current?.focus()
+    else main.current?.focus()
+  }, [visibility])
 
   return (
     <DayProvider>
@@ -50,6 +59,10 @@ export function App() {
       </div>
       <main id="main" tabIndex={-1} ref={main}>
         <QueryFeedback />
+        {mediaRoute && visibility && (visibility.failed || (visibility.known && !visibility.current)) && <div role={visibility.failed ? 'alert' : 'status'}>
+          <p>{visibility.failed ? visibility.known && !hidden ? 'Не удалось обновить видимость разделов. Ваш ввод сохранён.' : 'Не удалось загрузить настройки видимости.' : 'Обновляем настройки видимости…'}</p>
+          <button ref={visibilityRetry} type="button" disabled={!visibility.failed} onClick={() => { focusAfterRetry.current = true; visibility.retry() }}>Повторить загрузку видимости</button>
+        </div>}
         {(route === 'today' || route === 'nutrition' || route === 'activity') && <DayPicker />}
         <StorageBoundary key={route + String(hidden)}>
         {mediaRoute && !visibility ? <p role="status">Загружаем настройки видимости…</p> : hidden ? <section className="page">
