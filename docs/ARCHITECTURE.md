@@ -490,7 +490,7 @@ build:api, поэтому серверная сборка уже участву�
 
 Liveness: GET health; SQL-ready: GET readiness; защита доступа: GET profile без
 cookie должен дать 401. Readiness не проверяет миграции/SMTP/резервную копию.
-Frontend SHA проверяется release.txt. Логи API — journalctl health-api, копий —
+Frontend SHA проверяется release.txt. Логи API после установки T241a — journalctl --namespace=health-diary -u health-api; до неё — default namespace. Копий —
 health-backup/health-backup-monitor и status-файлы; пути и команды — профильные
 runbooks. API не логирует тела/SQL/реквизиты; диагностика 500 сейчас ограничена.
 Не проверяйте эксплуатацию созданием реальных медицинских записей.

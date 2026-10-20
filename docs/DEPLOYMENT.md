@@ -244,13 +244,57 @@ ID случайный, не связан с user/session и не добавле�
 Искать нужно всплеск event и время; точную причину воспроизводить только
 на синтетических данных, не включать подробные production логи.
 
-Хранение и команды namespace будут зафиксированы T241a до выпуска;
-один этот коммит не подтверждает ограничение retention на действующем VPS.
+Конфигурация T241a: [unit](../deploy/health-api.service) использует
+LogNamespace=health-diary; [drop-in](../deploy/health-api-journal.conf) устанавливается
+в /etc/systemd/journald@health-diary.conf.d/60-health-api.conf. Политика:
+persistent16MiB/runtime8MiB, файлы1MiB, rotation1h, retention7day, forwarding
+выключен. Namespace имеет собственное хранилище; unit rate120/60s — дополнительная политика journald
+(её effective burst зависит от free disk); app rate остаётся жёстким. Поддержка LogNamespace/journalctl --namespace — systemd245+.
+[systemd.exec](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html#LogNamespace=),
+[journalctl](https://www.freedesktop.org/software/systemd/man/latest/journalctl.html#--namespace=NAMESPACE).
+
+Это политика journald, не точный срок удаления каждого сообщения: удаляются
+архивные файлы, активные дают дополнительный объём/время; при потоке ошибок
+история может закончиться раньше7дней из-за лимита места. Доступ — root или
+разрешённые системой journal groups; namespace не является шифрованием.
+[journald.conf](https://www.freedesktop.org/software/systemd/man/latest/journald.conf.html).
+
+Перед включением на data VPS (T260):
+сохранить прежний unit и существующий namespace drop-in в закрытый каталог
+данного релиза, проверить systemd version и diff. Установить только эти два
+файла root:root0644; родительский каталог drop-in0755. Сначала drop-in,
+затем unit. Не менять глобальный journald.conf. Выполнить:
+
+    systemd-analyze verify /etc/systemd/system/health-api.service
+    systemctl daemon-reload
+    systemctl try-restart systemd-journald@health-diary.service
+    systemctl restart health-api
+    systemctl show health-api -p ActiveState -p SubState -p LogNamespace
+    systemd-analyze cat-config systemd/journald@health-diary.conf
+    journalctl --namespace=health-diary --disk-usage
+
+Для первого запуска namespace требуется установка unit; его socket dependencies
+создаются systemd. Проверить health/ready через HTTPS и synthetic diagnostic event
+в namespace, не печатая реальные request/log payload. Перед переключением
+проверить наличие executable из ExecStart. При отказе вернуть сохранённый unit
+и drop-in, daemon-reload/restart API, повторить health/ready; ссылку current/
+схему/данные этот откат не меняет. Старый namespace архив остаётся до политики,
+общий journal не очищается.
+
+Локальная/CI проверка:
+python3 -B deploy/verify_api_units.py и Python deploy tests. Native parser читает
+временную копию unit с ExecStart=/usr/bin/true после проверки исходной команды
+по .nvmrc. Это проверка syntax/policy, не запуска/доставки событий.
+На WSL systemd255 PASS; exact исходный verify здесь FAIL из-за отсутствующего
+production Node path, namespace activation не запускалась (нет sudo).
+Фактическое включение/приёмка на VPS будут отражены в T260.
 
 Диагностика (на соответствующем VPS):
 
     systemctl status health-api health-backup.timer
     systemctl status health-api-tunnel nginx
+    journalctl --namespace=health-diary -u health-api --since today
+    # До установки T241a прежний вывод находится в default namespace:
     journalctl -u health-api --since today
     curl --fail https://dev.arturican.com/api/v1/health
     curl -o /dev/null -w '%{http_code}' https://dev.arturican.com/api/v1/profile

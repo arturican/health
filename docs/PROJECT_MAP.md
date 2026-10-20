@@ -34,6 +34,7 @@ node подключи nvm в Linux shell (`. ~/.nvm/nvm.sh`), затем `nvm us
 | Целевая проверка в ходе работы | `npm test -- src/domain/bmi.test.ts`; `npm run test:browser:run -- src/App.browser.test.tsx`; `npm run build` и `npm run test:e2e -- profile-weight.spec.ts`. Не заменяют обязательный check |
 | Сборки | `npm run build` → dist; `npm run build:api` → build-api (проверка серверных типов и сборка API); `npm run preview` — просмотр frontend |
 | Deploy/упаковка | `python3 -B -m unittest discover -s deploy -p 'test_*.py' -v`; после актуального build — `python3 -B deploy/verify_build.py dist` |
+| API unit/journal policy | `python3 -B deploy/verify_api_units.py`; positive/negative cases включены в Python deploy tests; parser использует временный executable, фактические namespace/Node проверяются при релизе |
 | Backup monitor units | `systemd-analyze verify deploy/health-backup-monitor.service deploy/health-backup-monitor.timer`; подготовка установки/отката — BACKUPS |
 
 CI выполняет все фазы check параллельными jobs: static, coverage/API, browser,

@@ -3580,3 +3580,27 @@ writer. Child IPC regression сначала завершался exit1; default 
 коротким writeSync(fd2) под try/catch. Child с закрытым stderr/env{} достигает
 alive и exit0, без произвольных задержек/глобального error handler.
 После исправления повторные71tests/build:api/lint PASS.
+
+## T241a — Policy хранения API diagnostics
+
+health-api unit направляет stdout/stderr в health-diary journalnamespace;
+drop-in для /etc/systemd/journald@health-diary.conf.d/60-health-api.conf задаёт
+system16MiB/runtime8MiB,files1MiB,rotation1h,retention7day и4no-forwarding.
+Unit120/60s дополняет hardapp30/type/min (journald effective burst имеет
+disk multiplier). Globaljournalpolicy не меняется. README env не менялись.
+DEPLOYMENT содержит точныеinstall/read/rollback/preflight/livegates и официальные
+systemd ссылки; ARCHITECTURE/PROJECT_MAP уточняют namespace/границы проверки.
+
+Новый validator и Python negative/positive tests включены в существующий
+CI unittestdiscover; дублирующий новый step не оставлен. Native systemdparser
+проверяет tempunit, толькоExecStart заменён наtrue после сверки исходного пути
+с.nvmrc. Policy поддерживает только bounded knownkeys, не наследуетDEFAULT.
+Missingpolicy/rate/defaultcases FAIL до исправления; все48 deploytests PASS,
+docs/diff/staged review. Логи /tmp/health-T241a-*.log.
+
+Локально systemd255; exactunitverify FAIL толькоproductionNodepath отсутствует;
+sudoне доступен, daemon activation не выполнялась. Это ограничение окружения,
+не доказательство работыretention. НаVPS T260 обязательны exactunitverify,
+activation/syntheticevent/healthready;7дней фактического истечения не ожидались.
+Activefiles могут оставаться сверх политики до ротации, size может сократить
+историю раньше7дней. Сохранность/схема дневника этим коммитом не затрагиваются.
