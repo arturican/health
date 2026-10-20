@@ -1,5 +1,14 @@
 # Прогресс
 
+## T232a — Устойчивое ожидание флагов настроек
+
+Regression PrivacySettings ждёт исчезновение ошибки, оба сохранённых checkbox
+и включение формы в одном waitFor. Дальнейшее сохранение/проверка latest+original
+сохранены. Runtime не менялся. Весь файл7tests и targeted ESLint PASS.
+Исходный CI FAIL T231 сохранён; sleeps/retries/skip и ослабление gates не добавлены.
+check:docs/diff/staged review перед коммитом; общий check после очереди.
+Логи /tmp/health-T232a-{tests,lint}.log.
+
 ## T232 — Изоляция runtime smoke
 
 Разрешена очередь исправлений T232–T260 по аудиту T231, с отдельными коммитами,

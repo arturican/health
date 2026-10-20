@@ -124,7 +124,7 @@ push и frontend-релиз в него не входят.
 | ID | Статус | Результат | Зависимость |
 |---|---|---|---|
 | [T232](docs/tasks/T232.md) | done | IMP-001: изоляция окружения runtime smoke | T231 |
-| T232a | todo | Устойчивое ожидание обновления флагов в PrivacySettings regression | T232 |
+| [T232a](docs/tasks/T232a.md) | done | Устойчивое ожидание обновления флагов в PrivacySettings regression | T232 |
 | T233 | todo | IMP-002: сохранение media-черновиков при отказе visibility | T232a |
 | T234 | todo | IMP-003: доступная отмена устаревших редакторов | T233 |
 | T235 | todo | IMP-004: явное восстановление настроек и плана после409 | T234 |
