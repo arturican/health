@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef } from 'react'
-import { useDiaryQuery, getNutritionSummary, setNutritionDay } from '../dataAccess'
+import { useDiaryQueryState, getNutritionSummary, setNutritionDay } from '../dataAccess'
 import { foodTotals } from '../domain/nutrition'
 import { useDay } from './DayContext'
 import { Feedback, useAction } from './actions'
@@ -12,7 +12,7 @@ function amount(value: number | null, unit: string) {
 export function NutritionSummary() {
   const title = useId()
   const { day } = useDay()
-  const result = useDiaryQuery(() => getNutritionSummary(day), [day])
+  const { data: result, current } = useDiaryQueryState(() => getNutritionSummary(day), [day])
   const data = result?.day === day ? result : undefined
   const complete = data?.status?.complete ?? false
   const totals = data ? foodTotals(data.entries, complete) : null
@@ -20,11 +20,11 @@ export function NutritionSummary() {
   const checkbox = useRef<HTMLInputElement>(null)
   const focusAfterSave = useRef<string | null>(null)
   useEffect(() => {
-    if (action.pending || focusAfterSave.current === null) return
+    if (action.pending || !current || focusAfterSave.current === null) return
     const savedDay = focusAfterSave.current
     focusAfterSave.current = null
     if (savedDay === day) checkbox.current?.focus()
-  }, [action.pending, action.error, action.message, day])
+  }, [action.pending, action.error, action.message, day, current])
   return (
     <section className="card nutrition-summary" aria-labelledby={title}>
       <h2 id={title}><Icon name="nutrition" /> Итоги питания</h2>
@@ -37,7 +37,8 @@ export function NutritionSummary() {
           <p>Углеводы: {amount(totals.carbs, 'г')}</p>
         </>
       )}
-      <label><input ref={checkbox} type="checkbox" checked={complete} disabled={!data || action.pending} onChange={event => {
+      <label><input ref={checkbox} type="checkbox" checked={complete} disabled={!data || !current || action.pending} onChange={event => {
+        if (!current) return
         const checked = event.target.checked
         if (event.currentTarget === document.activeElement) focusAfterSave.current = day
         action.run(() => setNutritionDay(day, checked, data?.status ?? null), 'Полнота дня сохранена')
