@@ -258,18 +258,32 @@ tests/deployed/playwright.config.ts проверяет HTTPS, release.txt, ре�
 ### Автоматические проверки перед доставкой
 
 Workflow [.github/workflows/check.yml](../.github/workflows/check.yml) проверяет
-push и pull request в dev/master; доступен ручной запуск. Ubuntu 24.04 устанавливает
-Node из .nvmrc, npm ci и Chromium с системными библиотеками, затем выполняет полный
-npm run check. Actions закреплены по проверенным SHA; права contents: read,
-credential persistence отключён. Traces проваленных Playwright E2E-сценариев
-с синтетическими данными и HTML-отчёт с визуальными diff сохраняются на 7 дней. Не используй реальные фотографии
-людей, медицинские документы или личные данные в тестах, скриншотах, traces и
-логах. Успех локального check не означает
-успех удалённого workflow: его состояние проверяется отдельно после push.
+push и pull request в dev/master; доступен ручной запуск. Ubuntu 24.04 использует
+Node из .nvmrc и npm ci с npm cache. Независимые jobs выполняют все фазы локального
+npm run check: static — docs/lint/typecheck, coverage — unit/API с PostgreSQL,
+browser — Native Browser, build — production-сборка и deploy-проверки.
+Chromium с системными библиотеками устанавливается только в browser/E2E jobs.
 
-CI также запускает `python3 -B -m unittest discover -s deploy -p 'test_*.py' -v`
-для установщика/резервирования/мониторинга и `systemd-analyze verify`
-для deploy/health-backup-monitor.service и deploy/health-backup-monitor.timer.
-После успешных проверок push в dev публикует тот же dist
-через отдельный deploy job; PR и master не публикуются. Настройки окружения,
-проверка версии и откат описаны в [DEPLOYMENT.md](DEPLOYMENT.md).
+Build один раз сохраняет dist. Два E2E jobs скачивают этот артефакт по его
+неизменяемому ID и запускают соответственно chromium и mobile-chromium.
+Каждый job имеет отдельные PostgreSQL/API, часы и слот резервного копирования;
+workers: 1 сохраняется. fail-fast: false позволяет получить результат обоих
+проектов. Локально те же выборки можно проверить после npm run build командами
+`npm run test:e2e -- --project=chromium` и
+`npm run test:e2e -- --project=mobile-chromium`; запускайте их последовательно,
+так как локальная конфигурация использует фиксированные порты API/preview.
+
+Итоговый job check требует success всех обязательных jobs; ошибка, отмена
+или пропуск любого gate блокируют успех и deploy. Actions закреплены по SHA;
+права contents: read, checkout credential persistence отключён. Артефакт сборки
+и отчёты проваленных браузерных/E2E-проверок сохраняются на 7 дней; имена отчётов
+разделены по проекту и попытке. Только синтетические данные, без личных фото,
+медицинских документов и секретов. Успех локальных команд не подтверждает
+удалённый workflow: его состояние проверяется отдельно после push.
+
+Build также запускает `python3 -B -m unittest discover -s deploy -p 'test_*.py' -v`,
+`systemd-analyze verify` для backup monitor service/timer и
+`python3 -B deploy/verify_build.py dist`. После успешного итогового check push
+или ручной workflow в dev публикует тот же dist по ID артефакта через deploy job;
+PR и master не публикуются. Настройки окружения, проверка версии и откат описаны
+в [DEPLOYMENT.md](DEPLOYMENT.md). Локальный npm run check остаётся последовательным.

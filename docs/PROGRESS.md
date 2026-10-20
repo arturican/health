@@ -1,5 +1,40 @@
 # Прогресс
 
+## T229 — Параллельные проверки GitHub Actions
+
+Вместо последовательного npm run check CI выполняет независимые static,
+coverage/API, build и Native Browser jobs. Desktop/mobile E2E разделены
+матрицей; каждый job получает свои PostgreSQL/API, часы и backup slot,
+workers: 1 сохранён. Оба проекта выполняются без matrix fail-fast.
+
+Единственный production build после Python/systemd/archive gates сохраняется
+для всех проверяемых событий; оба E2E и deploy скачивают один dist по ID
+неизменяемого артефакта. Имена failure artifacts разделены по проекту/попытке,
+включены screenshots Vitest Browser. Итоговый check требует success всех gates;
+failure/skipped/cancelled не разрешают публикацию. SHA actions, permissions,
+checkout credentials, secrets, dev concurrency и условия deploy сохранены.
+Runtime, test limits, coverage thresholds, npm run check и зависимости не менялись.
+
+Локально прошли все команды фаз: docs/lint/types, coverage 1633 теста,
+Native Browser 91, build, 38 Python deploy-тестов, systemd verify и verify_build.
+E2E последовательно из-за фиксированных локальных портов: chromium 44/44,
+mobile-chromium 44/44. Проверка --list доказала полное покрытие 88 сценариев
+ровно один раз. Передача dist через архив и повторный SHA256 всех 6 файлов
+подтвердили неизменность сборки, использованной E2E.
+
+Actionlint 1.7.12 PASS (временный бинарник, SHA256 сверён с GitHub release).
+Разбор YAML/графа, сохранение всех gates/pins, ID артефакта и policy deploy PASS;
+21 сценарий shell итогового check: success принят, failure/skipped/cancelled
+и пустой результат каждого gate отклонены. Финальный read-only review без
+замечаний; docs/diff/staged checks PASS, секретов и личных данных в diff нет.
+Логи и проверочные скрипты вне Git: /tmp/health-T229-*.
+
+Обновлены TESTING/PROJECT_MAP/DEPLOYMENT. Один файл реализации, 135 изменённых
+строк; остальные файлы — документы. Проверка через GitHub UI после разрешённого
+push: независимые jobs, два E2E проекта, итоговый check и затем deploy;
+сравнить общее время с прежними 8:40–9:02. Push/деплой не выполнялись,
+фактическое удалённое ускорение пока не измерено.
+
 ## T228 — Опубликовано исправление бокового меню
 
 По явному разрешению пользователя dev отправлен до

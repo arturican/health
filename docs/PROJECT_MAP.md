@@ -36,8 +36,10 @@ node подключи nvm в Linux shell (`. ~/.nvm/nvm.sh`), затем `nvm us
 | Deploy/упаковка | `python3 -B -m unittest discover -s deploy -p 'test_*.py' -v`; после актуального build — `python3 -B deploy/verify_build.py dist` |
 | Backup monitor units | `systemd-analyze verify deploy/health-backup-monitor.service deploy/health-backup-monitor.timer`; подготовка установки/отката — BACKUPS |
 
-CI выполняет полный check, Python deploy-тесты, verify_build и проверку monitor unit-файлов
-для push/PR dev/master.
+CI выполняет все фазы check параллельными jobs: static, coverage/API, browser,
+build с Python deploy-тестами/verify_build/monitor units; два E2E jobs проверяют
+один dist по ID артефакта в изолированных PostgreSQL/API (desktop/mobile).
+Итоговый check требует успеха всех gates для push/PR dev/master и ручного workflow.
 После успешного push или ручного workflow на dev отдельный job публикует frontend
 и проверяет release.txt; PR/master не публикуются. API/БД и SMTP обновляются
 отдельно по DEPLOYMENT. Локальный check не подтверждает удалённый CI или VPS.

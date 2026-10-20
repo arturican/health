@@ -248,6 +248,12 @@ Roboto-LICENSE.txt находится внутри assets. current перекл�
 обновляются отдельно администратором. Этот переход выполнен прямой доставкой
 проверенного артефакта, без push/PR/merge.
 
+CI разделён на static, coverage/API, browser, build и два изолированных E2E
+jobs (desktop/mobile). Build создаёт единственный dist; оба E2E и deploy скачивают
+его по ID неизменяемого артефакта. Итоговый check требует success всех gates;
+при failure/skipped/cancelled публикация не запускается. Build доступен и PR/master
+для E2E, но deploy по-прежнему работает только для push/workflow_dispatch dev.
+
 Окружение health-dev: HEALTH_DEPLOY_KEY и HEALTH_KNOWN_HOSTS — secrets,
 HEALTH_DEPLOY_HOST — variable; доступ ограничен dev. Ключ разрешает только
 deploy <SHA>, без shell/forwarding/sudo. CI сверяет HTTPS/release.txt после
