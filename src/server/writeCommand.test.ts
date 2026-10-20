@@ -4,13 +4,14 @@ import { afterEach, beforeEach, expect, it } from 'vitest'
 import { z } from 'zod'
 import { testApi } from '../../tests/serverApi'
 import { DEFAULT_VISIBILITY } from '../domain/visibility'
+import { registerBackups } from './backupRoutes'
 import { registerSettings } from './settingsRoutes'
 import { withUser } from './userTransaction'
 import { runCommand } from './commands'
 
 let context: Awaited<ReturnType<typeof testApi>>
 let headers: Awaited<ReturnType<typeof context.headers>>
-beforeEach(async () => { context = await testApi(registerSettings); headers = await context.headers() })
+beforeEach(async () => { context = await testApi((app, pool, authorize, clock) => { registerSettings(app, pool, authorize); registerBackups(app, pool, authorize, clock) }); headers = await context.headers() })
 afterEach(async () => { await context.close() })
 const payload = { value: { ...DEFAULT_VISIBILITY, showPhotos: false }, revision: 1 }
 const save = (key: string, body = payload, ownHeaders: Record<string, string> = headers) => context.app.inject({ method: 'PUT', url: '/api/v1/settings', headers: { ...ownHeaders, 'idempotency-key': key }, payload: body })
@@ -87,4 +88,21 @@ it('не допускает неверную версию и переполне�
   await context.database.pool.query('UPDATE health.settings SET change_revision=9007199254740991 WHERE user_id=$1', [context.alice.id])
   expect((await save(randomUUID())).statusCode).toBe(409)
   expect((await context.app.inject({ url: '/api/v1/diary-state', headers })).json<unknown>()).toMatchObject({ value: DEFAULT_VISIBILITY, changeRevision: Number.MAX_SAFE_INTEGER })
+})
+
+it('предел журнала объясним, откатывает запись и оставляет replay/чтение/копии/другого владельца', async () => {
+  await context.database.pool.query("INSERT INTO health.commands(user_id,id,request_hash,response) SELECT $1,gen_random_uuid(),repeat('0',64),'null'::jsonb FROM generate_series(1,99999)", [context.alice.id])
+  const key = randomUUID()
+  const saved = await save(key)
+  expect(saved.statusCode).toBe(200)
+  const before = (await context.app.inject({ url: '/api/v1/diary-state', headers })).json<unknown>()
+  const rejected = await save(randomUUID(), { value: DEFAULT_VISIBILITY, revision: 2 })
+  expect(rejected.statusCode).toBe(409)
+  expect(rejected.json<unknown>()).toMatchObject({ error: { code: 'command_capacity' } })
+  expect(rejected.headers['x-health-error-code']).toBe('command_capacity')
+  expect((await context.app.inject({ url: '/api/v1/diary-state', headers })).json<unknown>()).toEqual(before)
+  expect((await save(key)).json<unknown>()).toEqual(saved.json<unknown>())
+  expect((await context.database.pool.query('SELECT count(*)::int AS count FROM health.commands WHERE user_id=$1', [context.alice.id])).rows).toEqual([{ count: 100000 }])
+  for (const format of ['text', 'full']) expect((await context.app.inject({ url: '/api/v1/backup/' + format, headers })).statusCode).toBe(200)
+  expect((await save(randomUUID(), payload, await context.headers('bob'))).statusCode).toBe(200)
 })

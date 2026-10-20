@@ -6,6 +6,13 @@ export class DataError extends Error {
   }
 }
 
+export class CommandCapacityError extends DataError {
+  constructor() {
+    super(409)
+    this.message = 'Достигнут предел журнала действий. Сохранение временно недоступно. Данные и создание копии доступны. Обратитесь к администратору.'
+  }
+}
+
 function assertDatabaseText(value: unknown): void {
   // PostgreSQL text/JSONB cannot store U+0000. Check decoded input before writes.
   if (typeof value === 'string') {

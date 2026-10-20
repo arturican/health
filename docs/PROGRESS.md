@@ -3478,3 +3478,19 @@ Regression FAIL до изменения; все43 Python tests PASS, включ�
 проверен без traceback). Build и verify_build принимают актуальный dist6files,
 license сохранена; docs/diff/staged review PASS. Логи /tmp/health-T237-*.log.
 Изменения live receiver будут установлены в T260 после release gates.
+
+## T238 — Диагностика предела команд
+
+CommandCapacityError даёт409 command_capacity и фиксированное безопасное
+сообщение; X-Health-Error-Code передаёт allowlisted код клиенту без чтения
+произвольного error body. Count/work placement не менялось: исключение
+откатывает всю owner transaction, replay прежде квоты остаётся доступен.
+Ротация/обслуживание — следующие T239/T240, не удаление дневника.
+
+Регрессия FAIL до изменения; writeCommand/http/commands42PASS: настоящие
+99999→100000→отказ, unchanged state/revisions, прежний key replay200,
+text/full exports200 и независимая запись Bob. Header/status mismatch
+остаётся общей ошибкой, приватное body не читается. Build:api/types/lint/
+docs/diff/staged review. Первый lint нашёл any внутри expect matcher;
+assertion переписан с unknown+narrowing, без отключения правила.
+Read-only review не выявил дополнительных ошибок; логи /tmp/health-T238-*.log.

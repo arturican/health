@@ -105,3 +105,18 @@ it.each([null, bob.account.id])('не читает тело ответа с не
   expect(read).not.toHaveBeenCalled()
   expect(getClientSession().session).toBeNull()
 })
+
+it('показывает только allowlisted409 command_capacity без чтения error body', async () => {
+  const response = new Response('synthetic-private-server-details', { status: 409, headers: { 'X-Health-Error-Code': 'command_capacity' } })
+  const read = vi.spyOn(response, 'json')
+  network.mockResolvedValue(response)
+  const failure: unknown = await requestJSON('/api/v1/settings', z.unknown()).catch((error: unknown) => error)
+  expect(failure).toMatchObject({ status: 409, code: 'command_capacity' })
+  if (!(failure instanceof ApiError)) throw new Error('Ожидалась безопасная ошибка API')
+  expect(failure.message).toContain('предел журнала действий')
+  expect(read).not.toHaveBeenCalled()
+})
+it.each([[400, 'command_capacity'], [500, 'command_capacity'], [409, 'synthetic-private-code']])('игнорирует неизвестную комбинацию error header %s/%s', async (status, code) => {
+  network.mockResolvedValue(new Response('synthetic-private-server-details', { status, headers: { 'X-Health-Error-Code': code } }))
+  await expect(requestJSON('/api/v1/settings', z.unknown())).rejects.toMatchObject({ status, message: new ApiError(status).message })
+})
