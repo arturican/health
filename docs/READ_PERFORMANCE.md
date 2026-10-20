@@ -89,3 +89,7 @@ rotation/owner switch меняютepoch и очищаютданные. Pendingп
 Close не отменяетHTTP; readerпослеunmount не кешируетответ. Междуэкранами
 cacheнепереиспользуется — меньшеprivacy/lifecycle сложности, достаточная
 измеренная экономия≈19MB наfocus+редактирование этойгалереи.
+
+После T251a обеихprofiles: initial6GET≈9.49MB, focus0/metadata0. Cache local
+mountedviewer реализован; failedmetadataпослеlocalDELETE ещё требуетT251b.
+До этойзадачи полнаяочисткаdeletedBlob не заявляется и выпуск не выполняется.

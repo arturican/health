@@ -33,7 +33,7 @@ test('файлы галереи: вход, focus и правка метадан�
       await expect(gallery.getByRole('img')).toHaveCount(6)
       await page.waitForLoadState('networkidle')
       console.log(JSON.stringify({phase,fileGET:transfers.length,bytes:transfers.reduce((sum,row)=>sum+row.bytes,0),oneJPEG:jpeg.length}))
-      expect(transfers.length).toBeLessThanOrEqual(6)
+      expect(transfers.length).toBe(phase === 'initial' ? 6 : 0)
       expect(transfers.every(row=>row.bytes===jpeg.length)).toBe(true)
       transfers.length=0
     }

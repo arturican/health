@@ -3762,3 +3762,18 @@ RealE2E6noiseJPEG по1582151bytes: initial/focus/metadata по6GET/9492906bytes
 РешениеT251a: per-mounted-filecheckedBlob, owner/generation/epoch/fileID,
 clearonunmount, noURLs/globalpersistentcache;смREAD_PERFORMANCE.
 Логи /tmp/health-T251-*.log. Appбезизменений.
+
+## T251a — Cache lifetime viewer
+
+useFileReader держит один validatedpositiveBlob/pending вslot поowner/gen/epoch/id.
+Effectcleanup сбрасываетссылки/active; postawaitguard отвергаетlateowner/id/unmount.
+NoURL/cacheMap/persistence. FileImage/OpenedDocumentFile usequerydepsidentity,
+DocumentFileparentpending сохраняетT246Close/Open singleflight.
+3appfiles вбюджете. Переддальнейшимdeletefix выделенаT251b4files; этотbase
+не объявленготовымвыпуском без неё (localdelete+failedmetadata).
+
+FileE2Ered6>0→2desktop/mobilePASS:initial~9.49MB, focus/metadata0bytes.
+21unit PASS identity/errors/null/pending/late/unmount+existing;7nativeBrowser
+decode/revoke/actions и4realmedia/fullrestoreE2E PASS. Types/lint/build/docs/
+diff/staged PASS, readonlyreviewбеззамечанийвbase. Логи /tmp/health-T251a-*.
+T251bобязательнадовыпуска: cacheможетостатьсяпослеDELETEеслиlistrefetchотказал.

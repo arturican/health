@@ -1,3 +1,4 @@
+import { useFileReader } from '../ui/useFileReader'
 import { useRef, useState } from 'react'
 import { useDiaryQuery } from '../dataAccess'
 import { getFile } from '../dataAccess'
@@ -32,10 +33,11 @@ function DocumentFileState({ fileId, title }: DocumentFileProps) {
 }
 
 function OpenedDocumentFile({ fileId, title, readFile, onRetry }: DocumentFileProps & { readFile: () => ReturnType<typeof getFile>; onRetry: () => void }) {
+  const reader = useFileReader(fileId, readFile)
   const result = useDiaryQuery(async () => {
-    try { return { fileId, file: await readFile() } }
+    try { return { fileId, file: await reader.readFile() } }
     catch { return { fileId, file: null } }
-  }, [fileId])
+  }, [reader.identity])
   const action = useAction()
   if (result?.fileId !== fileId) return <p role="status">Загружаем вложение…</p>
   const file = result.file
