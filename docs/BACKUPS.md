@@ -243,3 +243,6 @@ health_restore_f23b887a67b93d666c171ad6. SHA256 совпал, GPG провере
 [GPG key management](https://www.gnupg.org/documentation/manuals/gnupg/OpenPGP-Key-Management.html).
 
 Ёмкость пользовательских JSON-копий и границы измерений: [BACKUP_CAPACITY](BACKUP_CAPACITY.md).
+
+Независимый контроль: проверенная инвентаризация и открытый вопрос доставки —
+[BACKUP_CONTROL](BACKUP_CONTROL.md).

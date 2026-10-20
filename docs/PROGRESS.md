@@ -3798,3 +3798,16 @@ Lintнеучёлcallbackmutationboolean, mutable requestState object выраж�
 desktop/mobile failedmetadataDELETE иfiles0focus/metadata PASS. Build/docs/
 diff/staged PASS, повторreview обоих агентов безоставшихся блокеров.
 Логи /tmp/health-T251b-*.log. Новыйcache готовдляобщейприёмки, выпускещёнесделан.
+
+## T252 — Independent backup inventory
+
+ReadonlySSH подтвердилdataAPI/backup+monitor timers/Postfixactive, systemd255;
+monitor config0600/30h/recipientconfigured (значение не выводилось),
+dryrunexit0/statushealthy,7local. Frontendnginx/tunnelactive,14offsite,
+latest129180bytes; noPostfix/Exim/sendmail/msmtp/listener25/sendmailbinary.
+Provider monitoring unknown. Никакихписем/инсталляций/дневниковыхстрок/GPGdecrypt.
+BACKUP_CONTROL выбирает frontendprobe/offsite и фиксирует пределы expectedhash/
+oldunattestedarchives/неравенствоhashиrestoreproof. IndependentSMTP отсутствует;
+вопросыprovider/channel отправлены, ответа пока нет. T252a blocked(channel),
+T253artifact доступен, T253aactivationзависитотответа. НеобъявлятьAUD011закрытым.
+Docs/diff/staged PASS. SSHключи/globalconfig не менялись.
