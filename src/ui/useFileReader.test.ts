@@ -1,12 +1,12 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useFileReader } from './useFileReader'
-import { getFile } from '../client/fileRepository'
+import { getFile, notifyFileDeleted } from '../client/fileRepository'
 import { ApiError } from '../client/http'
 import { clientDiary, clientSession } from '../../tests/clientSession'
 import { setClientSession } from '../client/session'
 vi.unmock('../dataAccess')
-vi.mock('../client/fileRepository',()=>({getFile:vi.fn()}))
+vi.mock('../client/fileRepository',async()=>({...await vi.importActual<typeof import('../client/fileRepository')>('../client/fileRepository'),getFile:vi.fn()}))
 const id='10000000-0000-4000-8000-000000000001'
 const blob=new Blob(['synthetic'],{type:'image/png'})
 const file={id,blob,mime:'image/png',purpose:'document',size:blob.size} as const
@@ -59,4 +59,17 @@ it.each(['unmount','owner'] as const)('late response после %s не попа
     expect(await hook.result.current.readFile()).toBe(file)
     expect(getFile).toHaveBeenCalledTimes(2)
   }
+})
+
+it('delete во время pending забывает ответ и не загружает файл повторно',async()=>{
+  let resolve:(value:typeof file)=>void=()=>{throw new Error('not ready')}
+  vi.mocked(getFile).mockReturnValueOnce(new Promise(done=>{resolve=done}))
+  const hook=renderHook(()=>useFileReader(id))
+  const pending=hook.result.current.readFile()
+  const rejected=expect(pending).rejects.toThrow('прежнему просмотру')
+  act(()=>{notifyFileDeleted(id)})
+  resolve(file)
+  await rejected
+  expect(await hook.result.current.readFile()).toBeNull()
+  expect(getFile).toHaveBeenCalledTimes(1)
 })

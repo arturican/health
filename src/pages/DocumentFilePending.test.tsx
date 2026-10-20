@@ -5,7 +5,7 @@ import { getFile } from '../client/fileRepository'
 import { setClientSession } from '../client/session'
 import type { StoredFile } from '../domain/storedFile'
 vi.unmock('../dataAccess')
-vi.mock('../client/fileRepository', () => ({ getFile: vi.fn() }))
+vi.mock('../client/fileRepository',async()=>({...await vi.importActual<typeof import('../client/fileRepository')>('../client/fileRepository'),getFile:vi.fn()}))
 vi.mock('../ui/BlobImage', () => ({ BlobImage: () => <img alt="Synthetic" src="data:image/png;base64,aQ==" /> }))
 const firstId = '10000000-0000-4000-8000-000000000001'
 const secondId = '10000000-0000-4000-8000-000000000002'

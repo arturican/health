@@ -1,4 +1,5 @@
-import { useEffect, useRef, useSyncExternalStore } from 'react'
+import { subscribeFileDeletion } from '../client/fileRepository'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { getFile } from '../dataAccess'
 import { getClientSession, subscribeSession } from '../client/session'
 
@@ -12,13 +13,21 @@ function fileIdentity(id: string) {
 /** Immutable bytes только на время жизни viewer; URLs принадлежат renderer. */
 export function useFileReader(fileId: string, load = () => getFile(fileId)) {
   const identity = useSyncExternalStore(subscribeSession, () => fileIdentity(fileId))
+  const [deletedIdentity, setDeletedIdentity] = useState<string | null>(null)
   const cache = useRef<Slot | null>(null)
   useEffect(() => {
     const slot: Slot = { identity, active: true, file: null, pending: null }
     cache.current = slot
-    return () => { slot.active = false; slot.file = null; slot.pending = null }
-  }, [identity])
+    const epoch = getClientSession().epoch
+    const unsubscribe = subscribeFileDeletion(event => {
+      if (!slot.active || event.epoch !== epoch || event.fileId !== fileId) return
+      slot.active = false; slot.file = null; slot.pending = null
+      setDeletedIdentity(identity)
+    })
+    return () => { unsubscribe(); slot.active = false; slot.file = null; slot.pending = null }
+  }, [identity, fileId])
   async function readFile() {
+    if (deletedIdentity === identity) return null
     const slot = cache.current
     if (!slot?.active || slot.identity !== identity || fileIdentity(fileId) !== identity) throw new Error('Файл относится к прежнему просмотру.')
     if (slot.file) return slot.file
@@ -30,5 +39,5 @@ export function useFileReader(fileId: string, load = () => getFile(fileId)) {
     })().finally(() => { slot.pending = null })
     return slot.pending
   }
-  return { identity, readFile }
+  return { identity: JSON.stringify([identity, deletedIdentity === identity]), readFile }
 }

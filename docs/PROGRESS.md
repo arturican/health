@@ -3777,3 +3777,24 @@ FileE2Ered6>0→2desktop/mobilePASS:initial~9.49MB, focus/metadata0bytes.
 decode/revoke/actions и4realmedia/fullrestoreE2E PASS. Types/lint/build/docs/
 diff/staged PASS, readonlyreviewбеззамечанийвbase. Логи /tmp/health-T251a-*.
 T251bобязательнадовыпуска: cacheможетостатьсяпослеDELETEеслиlistrefetchотказал.
+
+## T251b — Очистка после DELETE
+
+FileRepository live listenerSet (безhistory), photo/document deleters после
+ack+assertContext уведомляют fileID/epoch. Hook адресно очищаетslot и меняет
+querytoken: URL/download исчезают даже со staleDTO, соседниеbytes остаются.
+4appfiles вбюджете. Initial eviction regressionFAIL→PASS. SQL проверяетphoto409
+безуведомления, success/plain/count, позднийackстарогоowner безновогоevent.
+
+UIreview нашёл pendingholder внеchildhook: Retry/CloseOpen мог повторно получить
+старыйGETpromise. Новые2regressionsFAIL→PASS: sourcegetFile слушаетdelete до
+завершенияrequestApi/validation, затем nullприdelete, finallyunsubscribe.
+Tests используют настоящийgetFile/requestApi, mockedfetch/nativePDFResponse;
+deferred GETresponse, не физическийHTTP/отложенныйbody. Запрос не отменён.
+Lintнеучёлcallbackmutationboolean, mutable requestState object выражаетguard
+безослабленияlint; повторrace2PASS/types/lintPASS.
+
+Финально32unit/SQL PASS,6Browser privacy/restore/documents PASS,4realE2E
+desktop/mobile failedmetadataDELETE иfiles0focus/metadata PASS. Build/docs/
+diff/staged PASS, повторreview обоих агентов безоставшихся блокеров.
+Логи /tmp/health-T251b-*.log. Новыйcache готовдляобщейприёмки, выпускещёнесделан.

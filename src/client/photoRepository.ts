@@ -1,9 +1,10 @@
+import { notifyFileDeleted } from './fileRepository'
 import { photoSchema, readPhotoInput, type Photo } from '../domain/photo'
 import { preparePhoto } from '../media/preparePhoto'
 import { prepareFile } from '../media/prepareFile'
 import { readPages } from './pages'
 import { deleteRecord, mutateJSON } from './mutations'
-import { captureContext, recordRevision, recordSchema } from './records'
+import { assertContext, captureContext, recordRevision, recordSchema } from './records'
 import { uploadRecord } from './upload'
 
 const schema = recordSchema(photoSchema)
@@ -20,4 +21,9 @@ export async function updatePhoto(original: Photo, input: unknown) {
   const value = { value: readPhotoInput(input), revision: recordRevision(original) }
   await mutateJSON(`updatePhoto ${original.id}`, value, schema, () => ({ path: `/api/v1/photos/${original.id}`, method: 'PUT', value }))
 }
-export const deletePhoto = (original: Photo) => deleteRecord(`/api/v1/photos/${original.id}`, original)
+export async function deletePhoto(original: Photo) {
+  const context = captureContext()
+  await deleteRecord(`/api/v1/photos/${original.id}`, original)
+  assertContext(context)
+  notifyFileDeleted(original.fileId)
+}

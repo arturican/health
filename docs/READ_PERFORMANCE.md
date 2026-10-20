@@ -93,3 +93,11 @@ cacheнепереиспользуется — меньшеprivacy/lifecycle сл
 После T251a обеихprofiles: initial6GET≈9.49MB, focus0/metadata0. Cache local
 mountedviewer реализован; failedmetadataпослеlocalDELETE ещё требуетT251b.
 До этойзадачи полнаяочисткаdeletedBlob не заявляется и выпуск не выполняется.
+
+T251b завершает localdelete eviction: подтверждение DELETE+context → событие
+fileId/epoch → только соответствующий viewer забываетbytes/URL, даже если DTO
+остался из-за failedrefetch. Pending getFile тоже не публикует удалённые bytes
+новому viewer после Retry/CloseOpen. Соседний viewer не перекачивается.
+Real E2E failedmetadata на desktop/mobile и повторный filesbudget0/0 PASS.
+Тест deferredGET использует реальный getFile/requestApi с mockedfetch/native
+Response; это не физический HTTP и не delayed response.body().
