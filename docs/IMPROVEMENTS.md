@@ -115,3 +115,12 @@ framework, новый state manager, microservices и переписывание
 Документальная задача — check:docs и diff --check. Отдельный коммит подтверждает
 done, push/деплой требуют своего разрешения. Итог выпуска подтверждается точным
 SHA, CI и live-проверками; локальный аудит этого не заменяет.
+
+## Дополнение по измерению T258
+
+| ID / приоритет | Связь и цель | Модули / зависимости | Сложность / риск | Приёмка |
+|---|---|---|---|---|
+| IMP-029 / P2 | AUD-016: сократить передачу публичной статики | deploy/nginx.conf, native verify/runbook; IMP-027/T258 | S / средний: webserver config | gzip/identity negotiation для JS/CSS/TTF, decoded bytes прежние, API явно identity, CSP/cache и health сохранены; nginx -t, rollback, live metadata после T260 |
+
+Это измеренное уточнение порядка: сначала T258a (не требует изменения UI),
+затем решение T259 по условному IMP-028. См. [COLD_LOAD](COLD_LOAD.md).

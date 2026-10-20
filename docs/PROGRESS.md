@@ -3926,3 +3926,18 @@ tests/serverDatabase.ts отслеживает acquired role/DB/pools, чист�
 6 passed, inventory UUID DB/roles до/после побайтно совпал. Старый остаток
 сохранён. Typecheck и targeted ESLint прошли после правок тестового стиля;
 check:docs/diff прошли. Read-only review блокеров не нашёл.
+
+## T258 — Cold-load measurement
+
+Добавлен отдельный ручной benchmark tests/performance (не обычный CI):
+реальный dist/API, UUID SQL fixtures, fresh contexts, cacheoff,1360×900,
+CPU4x/network150ms/1.6Mbps. Финальные10runs passed (5identity/5gzip),
+guards исключают пустые/невалидные metrics и page/network/API ошибки.
+Identity assets1045464→gzip440551bytes, medianFCP3476→1500ms,
+observedcheckbox5597.9→3629ms. JSCPU/route transitions не улучшились;
+не productionp95/не hardwaremobile, inclusive trace не суммаCPU.
+ПилотfakePerformance отброшен; другой pilotoutlier указан, расширение5runs
+обосновано. Все5точек/команды/границы в COLD_LOAD. Read-onlyreview блокеров нет.
+LiveJS release792e0b0 подтверждён identity/513682B при Accept-Encodinggzip:
+добавлен AUD-016/IMP-029, отдельная T258a до config changes.
+Typecheck/targetedESLint/check:docs/diff прошли. Приложение не менялось.

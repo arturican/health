@@ -164,8 +164,9 @@ push и frontend-релиз в него не входят.
 | T256 | done | [IMP-025: выбрать Mermaid tooling](docs/tasks/T256.md) | T255 |
 | T256a | done | [IMP-025: pinned Mermaid syntax gate](docs/tasks/T256a.md) | T256 |
 | T257 | done | [IMP-026: cleanup частичного SQL setup](docs/tasks/T257.md) | T256a |
-| T258 | todo | IMP-027: замер cold load | T257 |
-| T259 | todo | IMP-028: решение о lazy routes по замеру | T258 |
+| T258 | done | [IMP-027: замер cold load](docs/tasks/T258.md) | T257 |
+| T258a | todo | [Сжатие публичной статики Nginx](docs/tasks/T258a.md) | T258 |
+| T259 | todo | IMP-028: решение о lazy routes по замеру | T258a |
 | T260 | todo | Итоговая приёмка, push/CI и backend/frontend/ops delivery | T259 |
 
 ## Подготовка
