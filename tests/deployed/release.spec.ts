@@ -11,6 +11,12 @@ test('публикация имеет ожидаемый SHA, HTTPS и реди�
   const page = await request.get('/')
   expect(page.status()).toBe(200)
   expect(page.headers()['content-type']).toContain('text/html')
+  const policy = page.headers()['content-security-policy']
+  expect(policy).toBeTruthy()
+  expect(policy?.split(';').map(value => value.trim())).toContain("script-src 'self'")
+  expect(policy).toContain("connect-src 'self' blob:")
+  expect(policy).toContain("frame-ancestors 'none'")
   const missing = await request.get('/synthetic-missing-route')
   expect(missing.status()).toBe(404)
+  expect(missing.headers()['content-security-policy']).toBe(policy)
 })

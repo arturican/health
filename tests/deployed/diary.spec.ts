@@ -45,7 +45,7 @@ test('HTTPS дневник: вход, восемь экранов, вложен�
   const today = original[0]?.value.date
   if (!today) throw new Error('Missing synthetic observation date')
   await page.clock.setFixedTime(new Date(today + 'T12:00:00Z'))
-  await page.addScriptTag({ content: axe.source })
+  await page.evaluate(axe.source)
   for (const [route, title] of [
     ['today', 'Сегодня'], ['profile', 'Профиль'], ['weight', 'Вес'], ['nutrition', 'Питание'],
     ['activity', 'Активность'], ['photos', 'Фото'], ['documents', 'Документы'], ['settings', 'Настройки'],
