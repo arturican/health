@@ -3890,3 +3890,14 @@ Review нашёл ложный slug code identifiers с несколькими u
 angle+title; исправлены и покрыты регрессиями. HTML anchors не сдвигают
 автоматические суффиксы заголовков; positive checked counts защищают от пропуска.
 Итоговый review блокеров не нашёл. Без новых зависимостей и внешнего link checker.
+
+## T256 — Решение о Mermaid tooling
+
+Проверены npm metadata mermaid12.2.0 / @mermaid-js/parser2.0.1 и фактические
+exports parser tarball вне Git. Parser2.0.1 по-прежнему не содержит parse
+flowchart/ER/sequence; старое issue не использовалось как единственное основание.
+Выбран mermaid12.2.0 dev-only, совместимый Node>=22.12; DOM при необходимости
+из существующего jsdom. Решение и компромиссы в MERMAID_TOOLING.
+До установки создана отдельная T256a с exact dependency/lock/audit/grammargate.
+Проектные зависимости ещё не менялись, parse/render не заявлены.
+check:docs/diff прошли.
