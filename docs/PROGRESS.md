@@ -3443,3 +3443,21 @@ PrivacySettings и EnergyPlanForm дают явное отбрасывание �
 Browser сначала FAIL из-за прежнего ожидания скрыть известные разделы при
 failed read; ожидание приведено к контракту T233 (known flags сохранены).
 Docs/diff/staged review; логи /tmp/health-T235-*.log. Общий check перед push.
+
+## T236 — Часовой пояс ссылки регистрации
+
+016_registration_timezone добавляет nullable verify-only token zone и заменяет
+три SQL-функции с прежними сигнатурами/ACL/search_path. begin обновляет zone
+только при реально выданной ссылке под lock пользователя; generic resend
+переносит token zone. Complete применяет zone только для нового email_required
+аккаунта. Cooldown/expiry/replay/verified/legacy/reset не меняют её произвольно.
+Ссылки015 с NULL совместимы; старые миграции не менялись. API/ARCHITECTURE
+актуализированы. Будущий backend deploy требует fresh внешней копии и016.
+
+Регрессия до изменения FAIL на timezone повторной регистрации/HTTP входе;
+после: шесть SQL/HTTP файлов90PASS, дополнительно timezone9PASS с гонками
+signup/signup и signup/complete, constraints/runtime denial, upgrade/reapply.
+Настоящий вход возвращает Asia/Tokyo; diaryDate подтверждает следующий день
+для23:30UTC. Письма только в памяти, БД — локальные UUID fixtures.
+Build:api/его tsc, lint/docs/diff/staged review пройдены.
+Логи /tmp/health-T236-*.log. Общий check — перед push очереди.

@@ -1,6 +1,7 @@
 # Как устроен Health Diary
 
-Срез 20.10.2026: `dev` @ `9718e60423c28bbc708db95bf045db6403575769`.
+Исходный срез 20.10.2026: `dev` @ `9718e60423c28bbc708db95bf045db6403575769`.
+Исправления T232–T236 учтены ниже; статусы и проверки — в TASKS/PROGRESS.
 Это описание существующего кода. Проверки и ограничения — [AUDIT](AUDIT.md),
 будущие изменения — [IMPROVEMENTS](IMPROVEMENTS.md), быстрый поиск файлов —
 [PROJECT_MAP](PROJECT_MAP.md).
@@ -151,7 +152,7 @@ domain-функциями. `StorageBoundary` различает первонач
 |---|---|---|
 | GET `/health`, `/readiness` | публичные liveness и SQL SELECT 1 → 200/503 | app, readiness |
 | POST `/auth/login`, `/auth/logout`; GET `/auth/session` | реквизиты/cookie → account+csrf либо 204 | auth, sessions, accounts |
-| POST `/auth/email/register`, `/auth/email/request`, `/auth/email/complete` | email/zone или purpose/token/password → accepted | emailAuth и SQL-функции миграций 013/014 |
+| POST `/auth/email/register`, `/auth/email/request`, `/auth/email/complete` | email/zone или purpose/token/password → accepted | emailAuth и SQL-функции миграций 013/014/016 |
 | GET `/auth/email`; POST `/auth/email/bind` | текущая сессия, адрес+пароль → состояние/accepted | emailBinding |
 | GET/POST/PUT `/profile` | профиль+первый вес / правка → R или null | profileRoutes, profileRecords |
 | GET/POST `/weights`; PUT/DELETE `/weights/:id` | asOf/before или дата/кг/ревизия → страница/R/204 | weightRoutes, weightRecords |
@@ -203,7 +204,7 @@ changeRevision до/после составного чтения, повторя
 
 ## Модель данных
 
-Схема `health`, SQL в `migrations/001…015`; checksum и журнал миграций создаются
+Схема `health`, SQL в `migrations/001…016`; checksum и журнал миграций создаются
 `server/migrations.ts`. UUID идентифицируют аккаунты/объекты; дата — строка
 `YYYY-MM-DD` (SQL date), момент события — timestamptz. Часовой пояс аккаунта
 используется для «сегодня». Числовые пределы — технические, не медицинские нормы.
@@ -212,7 +213,7 @@ changeRevision до/после составного чтения, повторя
 |---|---|---|
 | users | id, unique login, Argon2id password_hash, timezone, email/email_required/email_verified_at; unique lower(email) | аккаунт; очистка дневника его сохраняет |
 | sessions | token_hash PK, user_id FK, created/expires/last_seen/revoked | срок/выход/смена пароля; секрет cookie не хранится открыто |
-| account_tokens | hash PK, user_id, purpose, email, срок/consumed; unique user+purpose | одноразовая ссылка, 1 час verify / 15 минут reset |
+| account_tokens | hash PK, user_id, purpose, email, nullable registration_timezone для verify, срок/consumed; unique user+purpose | одноразовая ссылка, 1 час verify / 15 минут reset |
 | auth_rate_limits | bucket/dimension/digest PK, attempts/expires_at | общий SQL-бюджет auth; истёкшее очищается при обращении |
 | profiles | user_id PK, name, height_cm, birth_date?, formula_sex, revision | максимум один; первый вес создаётся атомарно |
 | weights | user_id+id PK, date, kg, revision; unique user+date | FK на profiles; один вес в день |
@@ -320,9 +321,13 @@ sequenceDiagram
 
 Неверный пароль даёт 401, бюджет — 429; до готового diary-state App не
 монтируется. Email-flow находится в RegistrationForm/PasswordRecovery →
-emailAuth → SQL-функции миграций 013/014 → accountMail/Postfix. Ссылка содержит
+emailAuth → SQL-функции миграций 013/014/016 → accountMail/Postfix. Ссылка содержит
 секрет во fragment, UI удаляет его из history. Погашение атомарно меняет пароль,
-отзывает все сессии/другие ссылки и требует нового входа. Ошибка доставки
+отзывает все сессии/другие ссылки и требует нового входа. Часовой пояс
+нового email_required аккаунта берётся из подтверждаемого токена016;
+повторная регистрация связывает новый пояс только с реально выданной ссылкой.
+Cooldown не меняет прежнюю ссылку, resend переносит её пояс. Старые NULL-токены
+и legacy/reset сохраняют users.timezone. Ошибка доставки
 не раскрывает существование адреса; искать причину следует в mail-контуре,
 учитывая ограниченную диагностику AUD-009.
 

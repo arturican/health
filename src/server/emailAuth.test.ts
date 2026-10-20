@@ -4,6 +4,7 @@ import { createApi } from './app'
 import { registerAuthentication } from './auth'
 import { migrate, readMigrations } from './migrations'
 import { testDatabase } from '../../tests/serverDatabase'
+import { diaryDate } from './recordValidation'
 import { tokenHash } from './sessions'
 
 let db: Awaited<ReturnType<typeof testDatabase>>, app: ReturnType<typeof createApi>
@@ -115,4 +116,18 @@ it('без включённой почты выдача недоступна и 
     expect((await disabled.inject({ method: 'POST', url: '/api/v1/auth/email/register', headers: { origin }, payload: { email, timezone: 'UTC' } })).statusCode).toBe(503)
     expect((await db.pool.query('SELECT * FROM health.users')).rowCount).toBe(0)
   } finally { await disabled.close() }
+})
+
+it('повтор регистрации применяет выбранный пояс при подтверждении, вход и день используют его', async () => {
+  await signup()
+  const previous = secret()
+  now = new Date('2026-10-16T10:01:00Z')
+  expect((await post('register', { email, timezone: 'Asia/Tokyo' })).statusCode).toBe(202)
+  expect((await finish(previous)).statusCode).toBe(400)
+  expect((await finish(secret())).statusCode).toBe(200)
+  const login = await app.inject({ method: 'POST', url: '/api/v1/auth/login', headers: { origin }, payload: { login: email, password } })
+  expect(login.statusCode).toBe(200)
+  const response = login.json<{ account: { timezone: string } }>()
+  expect(response.account.timezone).toBe('Asia/Tokyo')
+  expect(diaryDate(response.account.timezone, new Date('2026-10-16T23:30:00Z'))).toBe('2026-10-17')
 })
