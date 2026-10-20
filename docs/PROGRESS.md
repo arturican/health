@@ -3604,3 +3604,19 @@ sudoне доступен, daemon activation не выполнялась. Это
 activation/syntheticevent/healthready;7дней фактического истечения не ожидались.
 Activefiles могут оставаться сверх политики до ротации, size может сократить
 историю раньше7дней. Сохранность/схема дневника этим коммитом не затрагиваются.
+
+## T242 — Поверхность собранного API
+
+Built production runtime проверяет62 операции public/private по HTTP.
+Валидная synthetic session отличает настоящий handler от глобального401;
+неизвестные test hooks404. Invalid writes400 не меняют business rows/revision.
+Seed использует unexpected field (пустой объект по контракту запускает seed).
+Временные копии bundle без registerDocuments и с переименованным PUT/settings
+отвергаются; реальные source/build не меняются, child/dir/DB cleanup finally.
+Первый тестовый запрос login с лишним timezone исправлен согласно strict
+контракту; первый seed{} действительно записал synthetic catalogue в UUID DB,
+fixture удалена. Это ошибки тестовых probes, не дефекты приложения.
+
+Runtime9PASS (production surface3.4s), types/targetedlint/docs/diff/staged PASS.
+Статическое сопоставление62 source operations и62 expectations без пропусков.
+Логи /tmp/health-T242-*.log. Smoke не заменяет функциональные API regressions.

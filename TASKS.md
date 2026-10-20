@@ -136,7 +136,7 @@ push и frontend-релиз в него не входят.
 | [T240a](docs/tasks/T240a.md) | done | IMP-009: объяснение ротации и смены generation в интерфейсе | T240 |
 | [T241](docs/tasks/T241.md) | done | IMP-010: безопасные диагностические события | T240a |
 | [T241a](docs/tasks/T241a.md) | done | IMP-010: ограниченное хранение безопасных API events в journald | T241 |
-| T242 | todo | IMP-011: поверхность собранного runtime | T241a |
+| [T242](docs/tasks/T242.md) | in_progress | IMP-011: поверхность собранного runtime | T241a |
 | T243 | todo | IMP-012: проверенная ёмкость JSON-копий | T242 |
 | T244 | todo | IMP-013: понятный отказ и альтернатива копии | T243 |
 | T245 | todo | IMP-014: переиспользование Blob документа | T244 |

@@ -3,7 +3,12 @@ import { execFile, spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { createServer } from 'node:net'
 import { promisify } from 'node:util'
-import { readFile, readdir } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { z } from 'zod'
+import { createAccount } from './accounts'
+import { verifyRuntimeSurface } from '../../tests/runtimeSurface'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { testDatabase } from '../../tests/serverDatabase'
 import { migrate, readMigrations } from './migrations'
@@ -86,7 +91,7 @@ it('занятый порт завершает процесс с безопас�
   } finally { await reserved.close() }
 })
 
-it('собранный production runtime подключает readiness к настоящему runtime pool', async () => {
+it('собранный production runtime проверяет62 операции и обнаруживает пропущенную регистрацию', async () => {
   const database = await testDatabase()
   try {
     await migrate(database.pool, await readMigrations())
@@ -101,17 +106,63 @@ it('собранный production runtime подключает readiness к на
     const exited = once(child, 'exit')
     try {
       await waitForStartup(child, exited)
-      const response = await fetch(`http://127.0.0.1:${String(reserved.port)}/api/v1/readiness`)
-      expect(response.status).toBe(200)
-      expect(response.headers.get('cache-control')).toBe('no-store')
-      expect(await response.json()).toEqual({ status: 'ready' })
+      const base = `http://127.0.0.1:${String(reserved.port)}`
+      const origin = 'https://health.example.test'
+      const credentials = { login: 'synthetic-runtime', password: 'synthetic-password-only', timezone: 'UTC' }
+      const account = await createAccount(database.pool, credentials)
+      const login = await fetch(base + '/api/v1/auth/login', { method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: JSON.stringify({ login: credentials.login, password: credentials.password }) })
+      expect(login.status).toBe(200)
+      const loggedIn: unknown = await login.json()
+      const csrf = z.object({ csrf: z.string() }).parse(loggedIn).csrf
+      const cookie = login.headers.get('set-cookie')
+      if (!cookie) throw new Error('Нет синтетической сессии')
+      const state = await fetch(base + '/api/v1/diary-state', { headers: { cookie } })
+      const stateBody: unknown = await state.json()
+      const diary = z.object({ generation: z.uuid(), changeRevision: z.number() }).parse(stateBody)
+      const headers = { cookie, 'x-csrf-token': csrf, 'x-diary-generation': diary.generation }
+      await verifyRuntimeSurface(base, origin, headers, account.id)
+      expect((await database.pool.query('SELECT change_revision::int AS revision FROM health.settings')).rows).toEqual([{ revision: 0 }])
+      for (const table of ['profiles', 'weights', 'products', 'food_entries', 'nutrition_days', 'steps', 'workouts', 'energy_plans', 'files', 'photos', 'documents', 'lab_results', 'commands']) {
+        expect((await database.pool.query(`SELECT * FROM health.${table}`)).rowCount, table).toBe(0)
+      }
       child.kill('SIGTERM')
       expect(await exited).toEqual([0, null])
+      const temporary = await mkdtemp(join(tmpdir(), 'health-runtime-surface-'))
+      try {
+        await cp('build-api', join(temporary, 'build-api'), { recursive: true })
+        await symlink(join(process.cwd(), 'node_modules'), join(temporary, 'node_modules'))
+        await writeFile(join(temporary, 'package.json'), JSON.stringify({ type: 'module' }))
+        const target = join(temporary, 'build-api/main.js')
+        const source = await readFile(target, 'utf8')
+        const call = 'registerDocuments(app, pool, authorize, uploads);'
+        expect(source.split(call)).toHaveLength(2)
+        const settingsCall = 'app.put("/api/v1/settings"'
+        expect(source.split(settingsCall)).toHaveLength(2)
+        const variants = [
+          { code: source.replace(call, '/* Deliberately omitted by isolated smoke regression. */'), failure: 'GET /documents' },
+          { code: source.replace(settingsCall, 'app.put("/api/v1/synthetic-unused-settings"'), failure: 'PUT /settings' },
+        ]
+        for (const variant of variants) {
+          await writeFile(target, variant.code)
+          const mutant = spawn(process.execPath, [target], {
+            env: runtimeEnvironment({ NODE_ENV: 'production', DATABASE_URL: database.runtime.options.connectionString,
+              APP_ORIGIN: origin, API_HOST: '127.0.0.1', API_PORT: String(reserved.port) }),
+            stdio: ['ignore', 'pipe', 'pipe'],
+          })
+          const mutantExited = once(mutant, 'exit')
+          try {
+            await waitForStartup(mutant, mutantExited)
+            await expect(verifyRuntimeSurface(base, origin, headers, account.id)).rejects.toThrow(variant.failure)
+            mutant.kill('SIGTERM')
+            expect(await mutantExited).toEqual([0, null])
+          } finally { if (mutant.exitCode === null) { mutant.kill('SIGKILL'); await mutantExited } }
+        }
+      } finally { await rm(temporary, { recursive: true, force: true }) }
     } finally {
       if (child.exitCode === null) { child.kill('SIGKILL'); await exited }
     }
   } finally { await database.close() }
-})
+}, 15000)
 
 it('неверные настройки не открывают listener и не попадают в stderr', async () => {
   await expect(promisify(execFile)(process.execPath, ['build-api/main.js'], {
