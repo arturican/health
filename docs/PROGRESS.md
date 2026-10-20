@@ -3845,3 +3845,15 @@ ciphertext без ack; повтор безопасно завершает пуб
 Review блокеров не нашёл; неатомарная пара корректно даёт unattested до retry,
 SHA не является подписью и не доказывает restore. check:docs/diff прошли.
 Live receiver пока прежний; установка и доверенный backfill остаются T260.
+
+## T254a — Read-only integrity probe
+
+Добавлен offsite_check.py: freshness отдельно от SHA, найденные daily archives
+до 14, 2 GiB/file, SH nonblocking receive lock, CLI deadline 60 s. Нет записи,
+расшифровки, email; fixed report без путей/hash. Семь synthetic tests прошли,
+review блокеров не нашёл, check:docs/diff прошли. Внутренние corrupt/invalid
+агрегируются в CLI failed; исчезновение целой старой пары не обнаруживается
+без исторического ledger, healthy не обещает ровно 14 ожидаемых копий.
+Read-only in-memory live frontend run: fresh, 0 verified/14 unattested/0 failed.
+Manifest отсутствуют у старого receiver; файлы/конфигурация VPS не менялись.
+Доставка T254c blocked до T252a, backfill/installation остаются T260.

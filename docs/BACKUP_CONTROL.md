@@ -122,3 +122,35 @@ Cluster-копии и посторонние файлы не удаляются.
 заметить порчу сохранённых bytes относительно SHA, подтверждённого при приёме,
 и не заменяет GPG-проверку/восстановление. Новые правила пока проверены локально;
 установка receiver и проверяемый backfill — release step T260.
+
+## Read-only offsite probe T254a
+
+deploy/offsite_check.py принимает --directory и --max-age-hours (штатно 30).
+Проверяется весь набор до 14 дневниковых ciphertext, каждый до 2 GiB,
+по manifest соответствующего имени. Общий CLI deadline — 60 секунд:
+его превышение означает незавершённую проверку, а не доказанную порчу.
+Вывод содержит только status, freshness, integrity и агрегатные счётчики.
+Посторонние/cluster-файлы не входят в daily inventory.
+
+Freshness и hash независимы: healthy получается только при свежем последнем
+архиве и verified для каждого сохраняемого daily архива. Unattested означает
+отсутствие доверенного expected SHA; failed — несовпадение/неприемлемый файл.
+Orphan manifest и более 14 архивов дают invalid_inventory. Shared nonblocking
+receive lock исключает чтение промежуточной публикации; busy не считается
+healthy и не запускает обход без блокировки. Программа не создаёт lock или
+manifest, не изменяет ciphertext, не расшифровывает и не отправляет email.
+
+Read-only запуск в памяти на frontend VPS 20.10.2026: freshness=fresh,
+integrity=unattested, verified=0, unattested=14, failed=0. Это ожидаемый результат
+старого receiver без sidecar, а не заключение о повреждении. На VPS не оставлено
+новых файлов. Новые передачи получат manifest после установки T254/T260.
+Backfill требует одинакового имени и совпавшего SHA с ещё сохранённым source;
+более старые копии остаются unattested. Нельзя разрешить TOFU ради зелёного статуса.
+Для последующей установки нужны offsite_check.py, backup_check.py,
+backup_receive.py и watchdog_probe.py. Независимая доставка — blocked T254c.
+
+Healthy подтверждает все найденные архивы (1–14) и freshness последнего.
+Полное исчезновение пары archive+sidecar из прошлого inventory не обнаруживается
+без отдельного доверенного исторического ledger. Программа не заявляет, что
+сохранились ровно 14 ожидаемых копий. Причины corrupt/invalid_manifest/
+invalid_archive различаются внутри check_archive; CLI агрегирует их в failed.
