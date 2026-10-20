@@ -28,6 +28,19 @@ def prune(directory, keep):
                          and not path.is_symlink()), reverse=True)
     for path in candidates[keep:]:
         path.unlink()
+        (directory / (path.name + ".sha256")).unlink(missing_ok=True)
+
+
+def attest(target, expected):
+    descriptor, temporary = tempfile.mkstemp(prefix=".manifest-", dir=target.parent)
+    try:
+        with os.fdopen(descriptor, "w") as output:
+            output.write(expected + "\n")
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary, target.with_name(target.name + ".sha256"))
+    finally:
+        Path(temporary).unlink(missing_ok=True)
 
 
 def receive(directory, command, source, limit=LIMIT, reserve=RESERVE):
@@ -64,6 +77,7 @@ def receive(directory, command, source, limit=LIMIT, reserve=RESERVE):
             else:
                 os.link(temporary, target)
             temporary.unlink()
+            attest(target, expected)
             directory_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
             try:
                 os.fsync(directory_fd)

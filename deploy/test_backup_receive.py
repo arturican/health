@@ -35,6 +35,35 @@ class ReceiveTests(unittest.TestCase):
         self.assertEqual(target.read_bytes(), b"synthetic encrypted bytes")
         self.assertFalse(list(self.directory.glob(".receive-*")))
 
+    def test_attestation_is_exact_private_atomic_and_retryable(self):
+        checksum = self.send()
+        manifest = self.directory / (NAME + ".sha256")
+        self.assertEqual(manifest.read_text(), checksum + "\n")
+        self.assertEqual(manifest.stat().st_mode & 0o777, 0o600)
+        manifest.unlink()
+        with patch("backup_receive.os.replace", side_effect=OSError("synthetic failure")):
+            with self.assertRaises(OSError):
+                self.send()
+        self.assertTrue((self.directory / NAME).is_file())
+        self.assertFalse(manifest.exists())
+        self.assertEqual(self.send(), checksum)
+        self.assertEqual(manifest.read_text(), checksum + "\n")
+        self.assertFalse(list(self.directory.glob(".manifest-*")))
+
+    def test_mismatched_stream_does_not_create_attestation(self):
+        with self.assertRaises(ValueError):
+            receive(self.directory, NAME + " " + "0"*64, io.BytesIO(b"synthetic"))
+        self.assertFalse((self.directory / (NAME + ".sha256")).exists())
+
+    def test_manifest_symlink_never_overwrites_referenced_file(self):
+        unrelated = self.directory / "private"
+        unrelated.write_bytes(b"preserve")
+        manifest = self.directory / (NAME + ".sha256")
+        manifest.symlink_to(unrelated)
+        self.send()
+        self.assertFalse(manifest.is_symlink())
+        self.assertEqual(unrelated.read_bytes(), b"preserve")
+
     def test_untrusted_names_and_hash_never_escape_directory(self):
         for name in ["../outside", "/tmp/outside", NAME + " extra", "health-diary-2026.dump.gpg"]:
             with self.subTest(name=name), self.assertRaises(ValueError):
@@ -90,6 +119,8 @@ class ReceiveTests(unittest.TestCase):
         for name in names:
             self.send(name=name)
         self.assertFalse((self.directory / names[0]).exists())
+        self.assertFalse((self.directory / (names[0] + ".sha256")).exists())
+        self.assertTrue((self.directory / (names[-1] + ".sha256")).is_file())
         self.assertTrue((self.directory / names[-1]).exists())
         self.assertTrue((self.directory / CLUSTER).exists())
         alias = self.directory / names[0]

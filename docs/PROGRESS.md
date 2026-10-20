@@ -3834,3 +3834,14 @@ Review обнаружил поглощение общего deadline; испра
 notify/state, отдельная регрессия это проверяет. Итоговый review блокеров не нашёл.
 SMTP acceptance и получение писем не проверялись; ничего не установлено на VPS.
 T253a blocked до T252a: отсутствует выбранный независимый транспорт.
+
+## T254 — Подтверждённый SHA offsite-копии
+
+backup_receive сохраняет expected SHA256 только после проверки потока/target:
+sidecar 0600, fsync, atomic replace под receive lock. Ошибка manifest сохраняет
+ciphertext без ack; повтор безопасно завершает публикацию. Retention 14 удаляет
+соответствующий sidecar, cluster/unrelated не затронуты. Новые регрессии сначала
+дали 2 failures/1 error, после реализации все 9 receiver tests прошли.
+Review блокеров не нашёл; неатомарная пара корректно даёт unattested до retry,
+SHA не является подписью и не доказывает restore. check:docs/diff прошли.
+Live receiver пока прежний; установка и доверенный backfill остаются T260.
