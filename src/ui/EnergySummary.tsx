@@ -1,3 +1,4 @@
+import { useTodaySummary } from './TodaySummaryContext'
 import { useId } from 'react'
 import { useDiaryQuery, getEnergySummary } from '../dataAccess'
 import { calculateEnergyDay, calculateExpenditure } from '../domain/energy'
@@ -8,9 +9,17 @@ function exact(value: number | null) { return value === null ? 'нет данн�
 function estimate(value: number | null) { return value === null ? 'нет данных' : `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} ккал` }
 
 export function EnergySummary() {
-  const title = useId()
+  const shared = useTodaySummary()
+  return shared ? <EnergySummaryContent result={shared.data} /> : <StandaloneEnergySummary />
+}
+function StandaloneEnergySummary() {
   const { day } = useDay()
   const result = useDiaryQuery(() => getEnergySummary(day), [day])
+  return <EnergySummaryContent result={result} />
+}
+function EnergySummaryContent({ result }: { result: Awaited<ReturnType<typeof getEnergySummary>> | undefined }) {
+  const title = useId()
+  const { day } = useDay()
   const data = result?.day === day ? result : undefined
   if (!data) return <section className="card" aria-labelledby={title}><h2 id={title}>Цель и оценочный баланс</h2><p role="status">Загружаем энергетические показатели…</p></section>
   const { plan } = data

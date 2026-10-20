@@ -1,12 +1,21 @@
+import { useTodaySummary } from './TodaySummaryContext'
 import { useId } from 'react'
 import { useDiaryQuery, getActivitySummary } from '../dataAccess'
 import { useDay } from './DayContext'
 import { Icon } from './Icon'
 
 export function ActivitySummary() {
-  const title = useId()
+  const shared = useTodaySummary()
+  return shared ? <ActivitySummaryContent result={shared.data} /> : <StandaloneActivitySummary />
+}
+function StandaloneActivitySummary() {
   const { day } = useDay()
   const result = useDiaryQuery(() => getActivitySummary(day), [day])
+  return <ActivitySummaryContent result={result} />
+}
+function ActivitySummaryContent({ result }: { result: Awaited<ReturnType<typeof getActivitySummary>> | undefined }) {
+  const title = useId()
+  const { day } = useDay()
   const data = result?.day === day ? result : undefined
   return <section className="card activity-summary" aria-labelledby={title}>
     <h2 id={title}><Icon name="activity" /> Активность за день</h2>

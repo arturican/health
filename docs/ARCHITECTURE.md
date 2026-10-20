@@ -542,3 +542,12 @@ mounted FileState переиспользуется, settled bytes отдельн
 Одна внешняя пара diary-state защищает все вложенные страницы сводки; scoped
 reader проверяет owner/generation и время жизни scope после await. Default
 list без scope сохраняет свою пару fences;3retry/409 и cursor guards прежние.
+
+После T250/T250a TodayPage оборачивает карточки TodaySummaryProvider.
+Он вызывает getTodaySummary одинраз: profile/weights, food/nutrition-day/plan,
+steps/workouts. Единая before/after diary-state пара защищает весь snapshot.
+NutritionSummary/EnergySummary/ActivitySummary берут shared data/current;
+TodayMeals и вес используют те же данные. В других экранах компоненты сохраняют
+свои standalone hooks. При failedrefresh все карточки удерживают прежний
+snapshot и отметка полноты disabled до успешного обновления; day/owner/epoch
+не смешиваются. Формулы и модель хранения не менялись.

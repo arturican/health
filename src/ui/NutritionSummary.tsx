@@ -1,3 +1,4 @@
+import { useTodaySummary } from './TodaySummaryContext'
 import { useEffect, useId, useRef } from 'react'
 import { useDiaryQueryState, getNutritionSummary, setNutritionDay } from '../dataAccess'
 import { foodTotals } from '../domain/nutrition'
@@ -9,10 +10,20 @@ function amount(value: number | null, unit: string) {
   return value === null ? 'нет данных' : `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} ${unit}`
 }
 
+type NutritionQuery = { data: Awaited<ReturnType<typeof getNutritionSummary>> | undefined; current: boolean }
 export function NutritionSummary() {
+  const shared = useTodaySummary()
+  return shared ? <NutritionSummaryContent query={shared} /> : <StandaloneNutritionSummary />
+}
+function StandaloneNutritionSummary() {
+  const { day } = useDay()
+  const query = useDiaryQueryState(() => getNutritionSummary(day), [day])
+  return <NutritionSummaryContent query={query} />
+}
+function NutritionSummaryContent({ query }: { query: NutritionQuery }) {
   const title = useId()
   const { day } = useDay()
-  const { data: result, current } = useDiaryQueryState(() => getNutritionSummary(day), [day])
+  const { data: result, current } = query
   const data = result?.day === day ? result : undefined
   const complete = data?.status?.complete ?? false
   const totals = data ? foodTotals(data.entries, complete) : null

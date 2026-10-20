@@ -1,4 +1,4 @@
-import { useDiaryQuery, getWeightOverview, listFood } from '../dataAccess'
+import { TodaySummaryProvider, useTodaySummary } from '../ui/TodaySummaryContext'
 import { BmiCard } from '../ui/BmiCard'
 import { NutritionSummary } from '../ui/NutritionSummary'
 import { EnergySummary } from '../ui/EnergySummary'
@@ -11,9 +11,13 @@ import { foodTotals, mealNames } from '../domain/nutrition'
 import '../today.css'
 
 export function TodayPage() {
+  return <TodaySummaryProvider><TodayContent /></TodaySummaryProvider>
+}
+
+function TodayContent() {
   const { day } = useDay()
   const visibility = useVisibility()
-  const result = useDiaryQuery(() => getWeightOverview(day), [day])
+  const result = useTodaySummary()?.data
   const data = result?.day === day ? result : undefined
   const weight = data?.weights[0] ?? null
   return <section className="page today-page" aria-labelledby="today-title">
@@ -58,7 +62,7 @@ export function TodayPage() {
 
 function TodayMeals() {
   const { day } = useDay()
-  const result = useDiaryQuery(async () => ({ day, entries: await listFood(day) }), [day])
+  const result = useTodaySummary()?.data
   const entries = result?.day === day ? result.entries : undefined
   const meals = (['breakfast', 'lunch', 'snack', 'dinner'] as const).map(meal => ({
     meal, kcal: entries ? foodTotals(entries.filter(entry => entry.meal === meal), false).kcal : null,

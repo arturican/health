@@ -15,8 +15,10 @@ test('Сегодня: ограниченный бюджет GET на вход/fo
     await page.waitForLoadState('networkidle')
     const counts = Object.fromEntries([...new Set(paths)].sort().map(path => [path, paths.filter(item => item === path).length]))
     console.log(JSON.stringify({ phase, total: paths.length, counts, networkMs: Math.round(lastFinish - start) }))
-    expect(paths.length).toBeLessThanOrEqual(23)
-    expect(paths.filter(path => path === '/api/v1/diary-state').length).toBeLessThanOrEqual(13)
+    expect(paths.length).toBeLessThanOrEqual(12)
+    expect(paths.filter(path => path === '/api/v1/diary-state').length).toBeLessThanOrEqual(5)
+    expect(paths.filter(path => path === '/api/v1/food')).toHaveLength(1)
+    expect(paths.filter(path => path.startsWith('/api/v1/nutrition-days/'))).toHaveLength(1)
     paths.length = 0
   }
   let start = performance.now()

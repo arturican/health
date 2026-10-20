@@ -3737,3 +3737,16 @@ getTodaySummary возвращает7ресурсов под одной паро
 Types/lint/docs/diff/staged PASS. UIпока не подключён, budget улучшение ещё
 не заявляется. T250a4UIкомпонента подключает provider следующим коммитом.
 Логи /tmp/health-T250-*.log.
+
+## T250a — Shared Today UI
+
+4appfiles подключают provider/Content wrappers, TodayMeals/weight используют
+общий snapshot; standalonehooks другихэкранов сохранены. Никакой новойсуммы
+вstate. Failure одногоresource сохраняет весьsnapshot/disabledfullness —
+осознанный tradeoff согласованного view. Originalstatus revision не клонируется.
+Budgetred23>12 доизменения; после2E2E PASS initial12/5,focus/mutation11/4,
+food/status1each.10unit PASS: legacyday/precision/null и realqueryhook stale/
+failure/current/daylate; getTodaySummary вUItestmocked, real coherence отдельно
+SQLT250 иE2Ecounts.4realday/nutritionE2Edesktop/mobile и1nativeEnergyBrowser PASS.
+Types/lint/build/docs/diff/staged PASS, readonlyreview без замечаний.
+Логи /tmp/health-T250a-*.log. Скорость поsingleloopbacksample не заявляется.

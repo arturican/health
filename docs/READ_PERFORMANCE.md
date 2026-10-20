@@ -48,3 +48,18 @@ Mobile23/13 (305ms),22/12 (115ms),22/12 (179ms). По одному sample; count
 устойчив в обоих profiles, ms не статистическое сравнение скорости.
 SQL regression5summaries подтверждает ровно2stateGET каждая; standalone list
 по-прежнему сам fenced. Gate ужесточён≤23/13. DataGET food3/status2 пока прежние.
+
+## После T250/T250a
+
+TodaySummaryProvider читает общий getTodaySummary: все7ресурсов по1, outerstate2.
+App/Today visibility добавляют2state и bootstrapещё1. Initial12GET/5state,
+focus/mutation11/4 наdesktop иmobile. Food3→1, nutrition-days2→1.
+Desktop312/150/185ms, mobile318/129/203ms; одиночные loopback samples не
+подтверждают ускорение UI. Устранены19GET/initial и19GET/refresh относительно
+T248, тоесть≈61–63% запросов. Gate≤12/5 и ровно1food/status.
+
+Снимок группирует view одногоowner/day; при failedлюбомresource сохраняются
+прежние данные целиком, currentfalse блокирует fullness. Это расширяет область
+отказа между карточками, зато они не смешивают разные snapshot revisions.
+Initial failure какпрежде обрабатывает StorageBoundary. Остальные экраны
+сохраняют standalone summaries/fences. Derived sums остаются domain.
