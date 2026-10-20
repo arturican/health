@@ -12,6 +12,7 @@ export function EnergyPlanForm({ latest = null, disabled = false }: { latest?: E
   const busy = action.pending || disabled
   const [method, setMethod] = useState<EnergyPlanInput['method']>('none')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [loaded, setLoaded] = useState<EnergyPlan | null>(null)
   const [revision, setRevision] = useState(0)
   const formRef = useRef<HTMLFormElement>(null)
   const focusAfterSave = useRef(false)
@@ -21,6 +22,17 @@ export function EnergyPlanForm({ latest = null, disabled = false }: { latest?: E
       formRef.current?.querySelector<HTMLInputElement>('[name="effectiveFrom"]')?.focus()
     }
   }, [revision, busy])
+
+  function discard() {
+    if (busy) return
+    draft.current = latest
+    setLoaded(latest)
+    setMethod(latest?.method ?? 'none')
+    setErrors({})
+    action.reset()
+    focusAfterSave.current = true
+    setRevision(value => value + 1)
+  }
 
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -48,6 +60,7 @@ export function EnergyPlanForm({ latest = null, disabled = false }: { latest?: E
     action.run(async () => {
       await addEnergyPlan({ effectiveFrom, goalKcal, method: selectedMethod, manualKcal, factor, source }, original)
       draft.current = undefined
+      setLoaded(null)
       setMethod('none')
       focusAfterSave.current = true
       setRevision(value => value + 1)
@@ -58,19 +71,20 @@ export function EnergyPlanForm({ latest = null, disabled = false }: { latest?: E
     <form ref={formRef} key={revision} className="form-grid" aria-label="Новая версия энергетического плана" onSubmit={submit} onChange={() => { if (draft.current === undefined) draft.current = latest }} noValidate>
       <fieldset disabled={busy}>
         <legend>Новая версия плана</legend>
-        <Field label="Дата начала действия плана" name="effectiveFrom" type="date" required min={localDate()} defaultValue={localDate()} error={errors['effectiveFrom']} />
-        <Field label="Калорийная цель, ккал/сутки (необязательно)" name="goalKcal" inputMode="decimal" maxLength={12} error={errors['goalKcal']} />
+        <Field label="Дата начала действия плана" name="effectiveFrom" type="date" required min={localDate()} defaultValue={loaded && loaded.effectiveFrom > localDate() ? loaded.effectiveFrom : localDate()} error={errors['effectiveFrom']} />
+        <Field label="Калорийная цель, ккал/сутки (необязательно)" name="goalKcal" defaultValue={loaded?.goalKcal ?? ''} inputMode="decimal" maxLength={12} error={errors['goalKcal']} />
         <p>Пустое поле означает, что цель не задана. Цель и оценка расхода задаются отдельно.</p>
         <SelectField label="Способ оценки суточного расхода" name="method" value={method} onChange={event => { setMethod(validate(energyPlanInputSchema.shape.method, event.target.value)) }} error={errors['method']}>
           <option value="none">Без оценки расхода</option>
           <option value="manual">Общая ручная оценка</option>
           <option value="factor">Расход в покое × коэффициент активности</option>
         </SelectField>
-        {method === 'manual' && <Field label="Общая ручная оценка расхода, ккал/сутки" name="manualKcal" inputMode="decimal" maxLength={12} required error={errors['manualKcal']} />}
-        {method === 'factor' && <Field label="Ваш коэффициент активности" name="factor" inputMode="decimal" maxLength={12} required error={errors['factor']} />}
-        <Field label="Источник оценки расхода (необязательно)" name="source" maxLength={160} error={errors['source']} />
+        {method === 'manual' && <Field label="Общая ручная оценка расхода, ккал/сутки" name="manualKcal" defaultValue={loaded?.manualKcal ?? ''} inputMode="decimal" maxLength={12} required error={errors['manualKcal']} />}
+        {method === 'factor' && <Field label="Ваш коэффициент активности" name="factor" defaultValue={loaded?.factor ?? ''} inputMode="decimal" maxLength={12} required error={errors['factor']} />}
+        <Field label="Источник оценки расхода (необязательно)" name="source" defaultValue={loaded?.source ?? ''} maxLength={160} error={errors['source']} />
       </fieldset>
       <button type="submit" disabled={busy}>{action.pending ? 'Сохраняем…' : 'Сохранить новую версию'}</button>
+      <button type="button" disabled={busy} onClick={discard}>Отбросить ввод и загрузить текущий план</button>
     </form>
     <Feedback error={action.error} message={action.message} />
   </>

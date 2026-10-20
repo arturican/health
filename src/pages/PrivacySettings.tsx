@@ -25,6 +25,17 @@ export function PrivacySettings() {
     focusAfterSave.current = false
     button.current?.focus()
   }, [action.pending, settings])
+  function discard() {
+    if (action.pending || !settings?.current || settings.failed) return
+    draft.current = settings.value
+    focusAfterSave.current = false
+    action.reset()
+    for (const name of ['showPhotos', 'showDocuments'] as const) {
+      const input = formRef.current?.elements.namedItem(name)
+      if (input instanceof HTMLInputElement) input.checked = settings.value[name]
+    }
+    formRef.current?.querySelector<HTMLInputElement>('[name="showPhotos"]')?.focus()
+  }
   function save(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!settings || !settings.current || settings.failed) return
@@ -42,7 +53,7 @@ export function PrivacySettings() {
     <p>Скрытие убирает раздел из интерфейса. Записи и файлы сохраняются и входят в полную копию. Это не защита доступа и не шифрование.</p>
     {!settings ? <p role="status">Загружаем настройки видимости…</p> : <>
       {settings.failed && <p role="alert">Не удалось прочитать настройки видимости. Повторите загрузку настроек перед сохранением.</p>}
-      {settings.failed && <button type="button" onClick={() => { draft.current = undefined; settings.retry() }}>Повторить загрузку настроек</button>}
+      {settings.failed && <button type="button" onClick={settings.retry}>Повторить загрузку настроек</button>}
       <form ref={formRef} aria-label="Видимость разделов" onSubmit={save} onChange={() => { draft.current ??= settings.value }}>
         <fieldset disabled={action.pending || !settings.current || settings.failed}>
           <legend>Разделы дневника</legend>
@@ -50,6 +61,7 @@ export function PrivacySettings() {
           <Field label="Показывать документы и показатели" name="showDocuments" type="checkbox" defaultChecked={settings.value.showDocuments} />
         </fieldset>
         <button ref={button} type="submit" disabled={action.pending || !settings.current || settings.failed}>{action.pending ? 'Сохраняем видимость…' : 'Сохранить видимость'}</button>
+        <button type="button" disabled={action.pending || !settings.current || settings.failed} onClick={discard}>Отбросить ввод и загрузить текущие настройки</button>
       </form>
     </>}
     <Feedback error={action.error} message={action.message} />

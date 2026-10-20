@@ -3427,3 +3427,19 @@ Parent delete/archive после Cancel продолжаются; новая ф�
 три Browser-файла6PASS, types/lint/docs/diff/staged review.
 Первый lint выявил async mock без await; mock исправлен без изменения проверок.
 Логи /tmp/health-T234-*.log. Полный check/build:api — перед push очереди.
+
+## T235 — Явное восстановление после409
+
+PrivacySettings и EnergyPlanForm дают явное отбрасывание ввода и загрузку
+свежего snapshot. Повтор GET не отбрасывает ввод; повтор Save до выбора
+использует исходную ревизию. Snapshot после explicit load закреплён сразу,
+в том числе null для отсутствующего плана. Pending/stale не разрешают сброс.
+Фокус возвращается на checkbox/дату; stale intent фокуса Save очищается.
+
+Настоящие API hooks проверили R1 draft →409/GET R2 →повтор R1 →explicit R2;
+дополнительно load R2 →GET R3 →Save R2/409 →explicit R3 →успех.
+Обе новые регрессии сначала FAIL (нет действия; затем выявленная review гонка),
+после исправлений три unit-файла15PASS, два Browser-файла3PASS, types/lint.
+Browser сначала FAIL из-за прежнего ожидания скрыть известные разделы при
+failed read; ожидание приведено к контракту T233 (known flags сохранены).
+Docs/diff/staged review; логи /tmp/health-T235-*.log. Общий check перед push.

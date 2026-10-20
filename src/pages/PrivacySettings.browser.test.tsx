@@ -175,7 +175,7 @@ test('сохранённые флаги управляют меню и прям�
   expect((await axe.run(view.container)).violations).toEqual([])
 }, 15000)
 
-test('отказ записи сохраняет черновик, ошибка чтения закрывает разделы и блокирует запись до восстановления', async () => {
+test('отказ записи сохраняет черновик, ошибка чтения сохраняет известную видимость и блокирует запись до восстановления', async () => {
   const { before } = await populate()
   const view = await render(<App />)
   await page.getByRole('link', { name: 'Настройки', exact: true }).click()
@@ -201,7 +201,7 @@ test('отказ записи сохраняет черновик, ошибка 
   await expect.element(save).toHaveFocus()
   await db.metadata.put({ id: VISIBILITY_SETTING_ID, value: 'synthetic-private-corrupt-json' })
   await expect.element(page.getByRole('alert')).toHaveTextContent('Не удалось прочитать настройки видимости.')
-  await expectNavigation(false, false)
+  await expectNavigation(false, true)
   await expect.element(photos).not.toBeChecked()
   await expect.element(documents).toBeChecked()
   await expect.element(save).toBeDisabled()

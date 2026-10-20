@@ -122,7 +122,7 @@ it('блокирует поля и повторный submit до заверше
 })
 
 
-it('повтор чтения после сбоя обновляет и значения, и исходную запись прежнего черновика', async () => {
+it('повтор чтения сохраняет ввод, явное отбрасывание обновляет значения и исходную запись', async () => {
   const latest = { version: 1 as const, showPhotos: false, showDocuments: false }
   const read = vi.spyOn(access, 'getVisibility')
   const write = vi.spyOn(access, 'saveVisibility')
@@ -135,9 +135,12 @@ it('повтор чтения после сбоя обновляет и знач
   await waitFor(() => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Показывать фото' })).not.toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Показывать документы и показатели' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Показывать документы и показатели' })).toBeChecked()
     expect(screen.getByRole('button', { name: 'Сохранить видимость' })).toBeEnabled()
   })
+  fireEvent.click(screen.getByRole('button', { name: 'Отбросить ввод и загрузить текущие настройки' }))
+  expect(screen.getByRole('checkbox', { name: 'Показывать фото' })).not.toBeChecked()
+  expect(screen.getByRole('checkbox', { name: 'Показывать документы и показатели' })).not.toBeChecked()
   save()
   await screen.findByText('Видимость разделов сохранена')
   expect(write).toHaveBeenCalledWith(latest, latest)
