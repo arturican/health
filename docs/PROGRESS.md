@@ -3494,3 +3494,22 @@ text/full exports200 и независимая запись Bob. Header/status m
 docs/diff/staged review. Первый lint нашёл any внутри expect matcher;
 assertion переписан с unknown+narrowing, без отключения правила.
 Read-only review не выявил дополнительных ошибок; логи /tmp/health-T238-*.log.
+
+## T239 — Решение по replay/ротации
+
+COMMAND_REPLAY описывает существующий контракт и выбранное обслуживание:
+outer HTTP pre-work persistedcount≥90000, rollback валидной новой команды,
+затем отдельный owner-locked DELETEcommands+новыйgeneration и409command_rotation.
+Nested runCommand сохраняет hard100000, существующий replay обходит execute.
+Старые отсутствующие ключи после очистки отвергаются generation до business
+work; нет TTL удаления/автоматического переноса запроса. User tables/revisions
+не меняются; редкая смена generation сбрасывает несохранённые формы, это явно
+объясняется T240a. Online/offline, lost response, concurrent clear/import,
+ошибки двух фаз и owner isolation разобраны.
+
+Read-only review выявил89999+nested liveness-дыру в первой версии решения.
+До реализации условие изменено на persisted PRE-work count только внешней
+HTTP-операции; обе фазы согласованы,89999+nested сохраняет90001 и следующий
+валидный запрос обслуживает журнал. Граничные89998/89999 включены в regressions.
+T240 разделена заранее на server4 app-файла и T240a client2 app-файла.
+Это документационный коммит, ротация ещё не включена. Docs/diff/staged review.
