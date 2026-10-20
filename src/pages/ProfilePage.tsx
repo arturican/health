@@ -1,5 +1,5 @@
 import { useState, type SyntheticEvent } from 'react'
-import { useDiaryQuery, createProfile, getProfile, updateProfile } from '../dataAccess'
+import { useDiaryQueryState, createProfile, getProfile, updateProfile } from '../dataAccess'
 import { profileSchema, weightSchema, type Profile } from '../domain/profile'
 import { localDate, parseDate, parseNumber } from '../domain/input'
 import { validate } from '../domain/schema'
@@ -12,14 +12,16 @@ import '../profile.css'
 const coefficientNames = { none: 'Не указан', male: 'Мужской', female: 'Женский' }
 
 export function ProfilePage() {
-  const profile = useDiaryQuery(() => getProfile(), [])
+  const { data: profile, current } = useDiaryQueryState(() => getProfile(), [])
   const action = useAction()
+  const busy = action.pending || !current
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [editing, setEditing] = useState<Profile | null>(null)
   const formProfile = editing ?? profile
 
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!current) return
     const form = new FormData(event.currentTarget)
     const fieldErrors: Record<string, string> = {}
     const birthControl = event.currentTarget.elements.namedItem('birthDate')
@@ -68,7 +70,7 @@ export function ProfilePage() {
         <form className="form-grid" onSubmit={submit} noValidate aria-label={editing ? 'Редактирование профиля' : 'Создание профиля'} aria-busy={action.pending}>
           <h2>{editing ? 'Изменить параметры' : 'Основные параметры'}</h2>
           <p>{editing ? 'Изменение профиля сохраняет историю измерений.' : 'Создайте профиль и сохраните первое измерение.'} Дата рождения и параметр формулы необязательны.</p>
-          <fieldset disabled={action.pending}>
+          <fieldset disabled={busy}>
             <legend>Личные параметры</legend>
             <Field label="Имя (необязательно)" name="name" maxLength={80} defaultValue={formProfile?.name ?? ''} error={errors['name']} />
             <Field label="Рост, см" name="heightCm" inputMode="decimal" maxLength={12} defaultValue={formProfile?.heightCm ?? ''} required error={errors['heightCm']} />
@@ -77,13 +79,13 @@ export function ProfilePage() {
               <option value="none">Не указывать</option><option value="male">Мужской</option><option value="female">Женский</option>
             </SelectField>
           </fieldset>
-          {!editing && <fieldset disabled={action.pending}>
+          {!editing && <fieldset disabled={busy}>
             <legend>Первое измерение</legend>
             <Field label="Вес, кг" name="kg" inputMode="decimal" maxLength={12} required error={errors['kg']} />
             <Field label="Дата первого измерения" name="date" type="date" defaultValue={localDate()} max={localDate()} required error={errors['date']} />
           </fieldset>}
           {Object.keys(errors).length > 0 && <p role="alert">Проверьте отмеченные поля.</p>}
-          <button type="submit" disabled={action.pending}>{action.pending ? 'Сохраняем…' : editing ? 'Сохранить профиль' : 'Создать профиль'}</button>
+          <button type="submit" disabled={busy}>{action.pending ? 'Сохраняем…' : editing ? 'Сохранить профиль' : 'Создать профиль'}</button>
           {editing && <button type="button" disabled={action.pending} onClick={() => { setEditing(null); setErrors({}) }}>Отмена</button>}
         </form>
       ) : (
@@ -95,7 +97,7 @@ export function ProfilePage() {
             <dt>Дата рождения</dt><dd>{profile.birthDate?.split('-').reverse().join('.') ?? 'Не указана'}</dd>
             <dt>Параметр формулы расхода</dt><dd>{coefficientNames[profile.formulaSex]}</dd>
           </dl>
-          <button type="button" onClick={() => { setErrors({}); setEditing(profile) }}>Редактировать профиль</button>
+          <button type="button" disabled={busy} onClick={() => { setErrors({}); setEditing(profile) }}>Редактировать профиль</button>
         </section>
       )}
       <Feedback error={Object.keys(errors).length > 0 ? null : action.error} message={Object.keys(errors).length > 0 ? null : action.message} />

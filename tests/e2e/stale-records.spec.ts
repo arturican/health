@@ -1,0 +1,69 @@
+import { expect, test, type Page, type Locator } from './fixtures'
+
+async function verifyRefresh(page: Page, path: string, save: Locator, action: Locator) {
+  let release = () => {}, entered = () => {}
+  const gate = new Promise<void>(resolve => { release = resolve })
+  const started = new Promise<void>(resolve => { entered = resolve })
+  await page.route(path, async route => {
+    if (route.request().method() === 'GET') { entered(); await gate }
+    await route.continue()
+  })
+  try { await save.click(); await started; await expect(action).toBeDisabled() }
+  finally { release(); await page.unrouteAll({ behavior: 'wait' }) }
+  await expect(action).toBeEnabled()
+}
+
+test('профиль, вес, шаги, каталог и еда ждут свежих ревизий после сохранения', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'))
+  await page.goto('/#profile')
+  await page.getByLabel('Рост, см', { exact: true }).fill('170')
+  await page.getByLabel('Вес, кг', { exact: true }).fill('70')
+  await page.getByRole('button', { name: 'Создать профиль', exact: true }).click()
+  const editProfile = page.getByRole('button', { name: 'Редактировать профиль', exact: true })
+  await editProfile.click()
+  await page.getByLabel('Рост, см', { exact: true }).fill('171')
+  await verifyRefresh(page, '**/api/v1/profile', page.getByRole('button', { name: 'Сохранить профиль', exact: true }), editProfile)
+  await expect(page.getByText('171 см', { exact: true })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Вес', exact: true }).click()
+  await page.getByRole('button', { name: 'Изменить вес за 14.10.2026', exact: true }).click()
+  await page.getByLabel('Вес, кг', { exact: true }).fill('71')
+  const removeWeight = page.getByRole('button', { name: 'Удалить вес за 14.10.2026', exact: true })
+  await verifyRefresh(page, '**/api/v1/weights?**', page.getByRole('button', { name: 'Сохранить вес', exact: true }), removeWeight)
+  await expect(page.getByLabel('Вес, кг', { exact: true })).toBeFocused()
+  await removeWeight.click()
+  await expect(page.getByRole('button', { name: 'Сохранить вес', exact: true })).toBeDisabled()
+  await page.getByRole('button', { name: 'Отмена', exact: true }).click()
+
+  await page.getByRole('link', { name: 'Активность', exact: true }).click()
+  await page.getByLabel('Шаги за день', { exact: true }).fill('100')
+  await page.getByRole('button', { name: 'Сохранить шаги', exact: true }).click()
+  await expect(page.getByText('Шаги за этот день: 100', { exact: true })).toBeVisible()
+  await page.getByLabel('Шаги за день', { exact: true }).fill('200')
+  const removeSteps = page.getByRole('button', { name: 'Удалить итог шагов', exact: true })
+  await verifyRefresh(page, '**/api/v1/steps/2026-10-14', page.getByRole('button', { name: 'Сохранить шаги', exact: true }), removeSteps)
+  await removeSteps.click()
+  await expect(page.getByRole('button', { name: 'Сохранить шаги', exact: true })).toBeDisabled()
+  await page.getByRole('button', { name: 'Отмена', exact: true }).click()
+
+  await page.getByRole('link', { name: 'Питание', exact: true }).click()
+  await page.getByLabel('Название продукта', { exact: true }).fill('Учебный продукт свежести')
+  await page.getByLabel('Калории на 100 г, ккал', { exact: true }).fill('100')
+  await page.getByRole('button', { name: 'Сохранить продукт', exact: true }).click()
+  const editProduct = page.getByRole('button', { name: 'Править продукт Учебный продукт свежести', exact: true })
+  await editProduct.click()
+  await expect(page.getByRole('button', { name: 'Архивировать продукт Учебный продукт свежести', exact: true })).toBeDisabled()
+  await page.getByLabel('Калории на 100 г, ккал', { exact: true }).fill('101')
+  await verifyRefresh(page, '**/api/v1/products?**', page.getByRole('button', { name: 'Сохранить продукт', exact: true }), editProduct)
+  await page.getByLabel('Продукт для записи', { exact: true }).selectOption({ label: 'Учебный продукт свежести' })
+  await page.getByLabel('Масса порции, г', { exact: true }).fill('100')
+  await page.getByRole('button', { name: 'Добавить еду', exact: true }).click()
+  const editFood = page.getByRole('button', { name: /^Изменить запись еды/ })
+  await editFood.click()
+  await page.getByLabel('Масса порции, г', { exact: true }).fill('110')
+  await verifyRefresh(page, '**/api/v1/food?**', page.getByRole('button', { name: 'Сохранить запись еды', exact: true }), editFood)
+  await page.getByRole('button', { name: /^Удалить запись еды/ }).click()
+  await page.getByRole('button', { name: 'Подтвердить удаление', exact: true }).click()
+  await expect(editFood).toHaveCount(0)
+  await expect(page.getByRole('alert')).toHaveCount(0)
+})

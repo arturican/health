@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useDiaryQuery, archiveProduct, listProducts } from '../dataAccess'
+import { useDiaryQueryState, archiveProduct, listProducts } from '../dataAccess'
 import type { Product } from '../domain/nutrition'
 import { Field } from '../ui/Field'
 import { Feedback, useAction } from '../ui/actions'
@@ -11,15 +11,15 @@ function macroLabel(value: number | null) {
 }
 
 export function ProductCatalog() {
-  const products = useDiaryQuery(() => listProducts(true), [])
+  const { data: products, current } = useDiaryQueryState(() => listProducts(true), [])
   const [editing, setEditing] = useState<Product | null>(null)
   const [search, setSearch] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [formPending, setFormPending] = useState(false)
   const action = useAction()
-  const busy = action.pending || formPending
-  const formProps = { disabled: action.pending, onPendingChange: setFormPending }
+  const busy = action.pending || formPending || !current
+  const formProps = { disabled: action.pending || (!current && editing !== null), onPendingChange: setFormPending }
   const filtered = products?.filter(product => (showArchived || !product.archived) && product.name.toLocaleLowerCase('ru-RU').includes(search.trim().toLocaleLowerCase('ru-RU')))
   return (
     <div className="catalog-layout">
@@ -44,7 +44,7 @@ export function ProductCatalog() {
               </div>
               <div className="actions">
                 <button type="button" className="secondary" disabled={busy} aria-label={`Править продукт ${product.name}`} onClick={() => { setEditing(product); setNotice(null) }}>Править</button>
-                <button type="button" className="secondary" disabled={busy} aria-label={`${product.archived ? 'Вернуть' : 'Архивировать'} продукт ${product.name}`} onClick={() => {
+                <button type="button" className="secondary" disabled={busy || editing?.id === product.id} aria-label={`${product.archived ? 'Вернуть' : 'Архивировать'} продукт ${product.name}`} onClick={() => {
                   setNotice(null)
                   action.run(() => archiveProduct(product, !product.archived), product.archived ? 'Продукт возвращён из архива' : 'Продукт перемещён в архив')
                 }}>{product.archived ? 'Вернуть' : 'Архивировать'}</button>

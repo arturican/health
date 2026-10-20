@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
-import { useDiaryQuery, deleteSteps, getSteps, saveSteps } from '../dataAccess'
+import { useDiaryQueryState, deleteSteps, getSteps, saveSteps } from '../dataAccess'
 import { stepsSchema, type Steps } from '../domain/activity'
 import { parseNumber } from '../domain/input'
 import { validate } from '../domain/schema'
@@ -10,8 +10,9 @@ import { Feedback, readField, useAction } from '../ui/actions'
 
 export function StepsForm() {
   const { day } = useDay()
-  const steps = useDiaryQuery(() => getSteps(day), [day])
+  const { data: steps, current } = useDiaryQueryState(() => getSteps(day), [day])
   const action = useAction()
+  const busy = action.pending || !current
   const form = useRef<HTMLFormElement>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [deleting, setDeleting] = useState<Steps | null>(null)
@@ -22,6 +23,7 @@ export function StepsForm() {
 
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!current || deleting !== null) return
     const fieldErrors: Record<string, string> = {}
     const count = readField(new FormData(event.currentTarget), 'count', text => validate(stepsSchema.shape.count, parseNumber(text)), fieldErrors)
     setErrors(fieldErrors)
@@ -40,19 +42,19 @@ export function StepsForm() {
     <p>{steps === null ? 'Шаги за этот день: нет данных' : `Шаги за этот день: ${steps.count.toLocaleString('ru-RU')}`}</p>
     <form ref={form} aria-label="Итог шагов" noValidate onSubmit={submit}>
       <p>Введите общий итог за день {day}. Повторный ввод заменит сохранённое значение.</p>
-      <Field label="Шаги за день" name="count" inputMode="numeric" maxLength={12} required defaultValue={steps?.count ?? ''} error={errors['count']} disabled={action.pending}
+      <Field label="Шаги за день" name="count" inputMode="numeric" maxLength={12} required defaultValue={steps?.count ?? ''} error={errors['count']} disabled={busy}
         onChange={() => { if (draft.current === undefined) draft.current = steps }} />
       <div className="actions">
-        <button type="submit" disabled={action.pending}>{action.pending ? 'Сохраняем…' : 'Сохранить шаги'}</button>
-        {steps !== null && <button type="button" disabled={action.pending} onClick={() => { setDeleting(steps) }}>Удалить итог шагов</button>}
-        {action.error && <button type="button" disabled={action.pending} onClick={() => {
+        <button type="submit" disabled={busy || deleting !== null}>{action.pending ? 'Сохраняем…' : 'Сохранить шаги'}</button>
+        {steps !== null && <button type="button" disabled={busy} onClick={() => { setDeleting(steps) }}>Удалить итог шагов</button>}
+        {action.error && <button type="button" disabled={busy} onClick={() => {
           draft.current = undefined; setDeleting(null); setErrors({}); action.reset()
           const control = form.current?.elements.namedItem('count')
           if (control instanceof HTMLInputElement) { control.value = steps ? String(steps.count) : ''; control.focus() }
         }}>Загрузить сохранённый итог</button>}
       </div>
     </form>
-    {deleting && <Confirmation question={`Удалить итог шагов за ${deleting.date}?`} pending={action.pending} onCancel={() => { setDeleting(null) }} onConfirm={() => {
+    {deleting && <Confirmation question={`Удалить итог шагов за ${deleting.date}?`} pending={action.pending} confirmDisabled={!current} onCancel={() => { setDeleting(null) }} onConfirm={() => {
       action.run(async () => {
         await deleteSteps(deleting)
         setDeleting(null)

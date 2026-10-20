@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useDiaryQuery, deleteFood, listFood } from '../dataAccess'
+import { useDiaryQueryState, deleteFood, listFood } from '../dataAccess'
 import { mealNames, portion, type FoodEntry } from '../domain/nutrition'
 import { useDay } from '../ui/DayContext'
 import { Confirmation } from '../ui/Confirmation'
@@ -10,7 +10,7 @@ import { exactNumber } from '../ui/exactNumber'
 
 export function FoodJournal() {
   const { day } = useDay()
-  const result = useDiaryQuery(async () => ({ day, entries: await listFood(day) }), [day])
+  const { data: result, current } = useDiaryQueryState(async () => ({ day, entries: await listFood(day) }), [day])
   const entries = result?.day === day ? result.entries : undefined
   const [editing, setEditing] = useState<FoodEntry | null>(null)
   const [deleting, setDeleting] = useState<FoodEntry | null>(null)
@@ -18,8 +18,8 @@ export function FoodJournal() {
   const [focusVersion, setFocusVersion] = useState(0)
   const [formPending, setFormPending] = useState(false)
   const action = useAction()
-  const busy = action.pending || formPending
-  const formProps = { disabled: action.pending, onPendingChange: setFormPending }
+  const busy = action.pending || formPending || !current
+  const formProps = { disabled: action.pending || (!current && editing !== null) || (editing !== null && deleting?.id === editing.id), onPendingChange: setFormPending }
   const dialog = useRef<HTMLDivElement>(null)
   useEffect(() => { if (action.error && deleting) dialog.current?.querySelector<HTMLButtonElement>('button')?.focus() }, [action.error, deleting])
   function finishEditing() {
@@ -51,7 +51,7 @@ export function FoodJournal() {
           </li>
         })}
       </ul>}
-      <div ref={dialog}>{deleting && <Confirmation question={`Удалить запись «${deleting.snapshot.name}» за ${deleting.date.split('-').reverse().join('.')}?`} pending={busy} onCancel={() => { setDeleting(null); action.reset() }} onConfirm={() => {
+      <div ref={dialog}>{deleting && <Confirmation question={`Удалить запись «${deleting.snapshot.name}» за ${deleting.date.split('-').reverse().join('.')}?`} pending={action.pending || formPending} confirmDisabled={!current} onCancel={() => { setDeleting(null); action.reset() }} onConfirm={() => {
         action.run(async () => {
           await deleteFood(deleting)
           setDeleting(null)
