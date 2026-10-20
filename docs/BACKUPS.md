@@ -241,3 +241,5 @@ health_restore_f23b887a67b93d666c171ad6. SHA256 совпал, GPG провере
 Основания: [pg_dump](https://www.postgresql.org/docs/18/app-pgdump.html),
 [pg_dumpall](https://www.postgresql.org/docs/18/app-pg-dumpall.html),
 [GPG key management](https://www.gnupg.org/documentation/manuals/gnupg/OpenPGP-Key-Management.html).
+
+Ёмкость пользовательских JSON-копий и границы измерений: [BACKUP_CAPACITY](BACKUP_CAPACITY.md).

@@ -3620,3 +3620,17 @@ fixture удалена. Это ошибки тестовых probes, не деф
 Runtime9PASS (production surface3.4s), types/targetedlint/docs/diff/staged PASS.
 Статическое сопоставление62 source operations и62 expectations без пропусков.
 Логи /tmp/health-T242-*.log. Smoke не заменяет функциональные API regressions.
+
+## T243 — Ёмкость копий
+
+Synthetic UUID SQL/API measurement PASS: exact ASCII text boundary50778/50779,
+80kproducts full33MB, плюс100MiB PDF full172856037bytes200. CJK maxfields
+в том же mixed fixture full413; накопленный peakRSS≈2.01GiB включает test
+harness/response/GC. После413 products80000 сохранены. Никаких рабочих данных.
+Первый probe ожидал413 при50000, но20,650,201bytes меньше20MiB; ожидание исправлено.
+Первое расположение temp test вне src не было включено Vitest; это не app fail.
+BACKUP_CAPACITY содержит полный воспроизводимый temporary test и ограничения.
+Выбраны прежние byte limits, явный full fallback следующейT244; универсальная
+ёмкость не заявляется, streaming формат требует отдельного решения, admin
+encrypted DB backup — путь при full413. Browser max import не измерен.
+Docs/diff/staged PASS; логи /tmp/health-T243-*.log, benchmark удалён из source.
