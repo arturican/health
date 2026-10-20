@@ -1,6 +1,6 @@
 # Как устроен Health Diary
 
-Код и конфигурация сверены 20.10.2026 после T259, dev @ eebeebd.
+Код и конфигурация сверены 20.10.2026 после T260, код dev @ b58094a.
 Исходный аудит относится к 9718e60; исправления учтены здесь. Это описание
 репозитория. Установленные component SHA и результаты доставки фиксируются
 отдельно в [DEPLOYMENT](DEPLOYMENT.md) и [PROGRESS](PROGRESS.md): наличие
@@ -31,7 +31,8 @@ Email-регистрация требует письма: адрес → под�
 Эти скачанные копии не зашифрованы. Серверные GPG-копии — отдельный механизм.
 
 Сценарии проверяются локально с настоящими API/PostgreSQL и Chromium.
-Read-only live release/health проверены при T231; выпуск T260 имеет свои gates.
+T260: live release/health/readiness/401, публичные desktop/mobile формы и
+сохранность данных при миграции подтверждены; production CRUD не запускался.
 Safari/Firefox, screen reader и реальный телефон не покрыты. Независимый канал
 оповещений ещё не выбран; подготовленные scripts не равны включённому monitor.
 Пределы JSON-копий — [BACKUP_CAPACITY](BACKUP_CAPACITY.md).
@@ -53,7 +54,7 @@ flowchart TB
 Nginx отдаёт статику и проксирует API через закрытый туннель. API/БД слушают
 loopback. SMTP передаёт только служебные письма. Схема получена из конфигурации
 и инструкций; read-only инвентаризация T252 подтвердила основные процессы и связи.
-Изменения этой очереди ещё требуют доставки T260. Подробности
+Доставка кода и основных ops подтверждена T260; independent alerts остаются blocked. Подробности
 и границы доверия — [PRIVACY_SECURITY](PRIVACY_SECURITY.md).
 
 ## Компоненты и зависимости
@@ -485,8 +486,9 @@ sequenceDiagram
     S->>S: Локальная retention и status
 ```
 
-Диаграмма отражает receiver в репозитории: live установка sidecar и доверенный
-backfill входят в T260. Отдельной прикладной очереди нет. Прежний локальный
+Receiver установлен T260: свежая внешняя копия attested, для сохранённых
+source-копий выполнен доверенный replay. Сейчас 7 verified/7 unattested;
+последние сохраняются до доказательства происхождения либо штатной ротации. Отдельной прикладной очереди нет. Прежний локальный
 monitor на data VPS проверяет свежесть/результат и шлёт сообщение при смене
 состояния; он не переживает исчезновение этого VPS.
 
@@ -599,14 +601,15 @@ email_binding_failed. Поля — event, UTC time, случайный ID, suppr
 до 30 событий каждого типа в минуту. Нет account/адреса/IP/URL/token/body/SQL/raw error.
 Отказ sink не завершает API. Это сигнал отказа, не полная причина инцидента.
 
-API unit policy подготовлена для journal namespace health-diary:
+API unit policy установлена T260 для journal namespace health-diary:
 16 MiB persistent / 8 MiB runtime, семь дней. Disk pressure/active file не гарантируют
-точную длительность хранения. После активации: journalctl
+точную длительность хранения. Для просмотра: journalctl
 --namespace=health-diary -u health-api; до неё default namespace.
-Точный unit verify, activation и synthetic event proof — release gates T260.
+Точный unit verify, activation и synthetic diagnostic function в transient unit
+прошли T260. Реальный сбой API ради проверки логов не вызывался.
 Backup/monitor логи/status-файлы описаны профильными runbooks.
 
-Frontend config готовит gzip только публичного /assets/, API gzip off;
+Frontend config с T260 сжимает только публичный /assets/, API gzip off;
 binary MIME локального TTF также включён. Bytes/URLs/CSP/cache прежние.
 Native isolated helper проверяет encoding/decoded bytes/API exclusion без
 reload рабочего Nginx; это manual deployment gate, не unittest discovery.

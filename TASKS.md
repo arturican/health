@@ -169,7 +169,7 @@ push и frontend-релиз в него не входят.
 | T259 | done | [IMP-028: решение о lazy routes](docs/tasks/T259.md) | T258a |
 | T260a | done | [Свести документы перед выпуском](docs/tasks/T260a.md) | T259 |
 | T260b | done | [Стабилизировать тестовые зависимости gate](docs/tasks/T260b.md) | T260a |
-| T260 | todo | Итоговая приёмка, push/CI и backend/frontend/ops delivery | T260a |
+| T260 | done | [Итоговая приёмка и доставка](docs/tasks/T260.md) | T260a |
 
 ## Подготовка
 

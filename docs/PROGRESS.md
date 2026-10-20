@@ -3989,3 +3989,23 @@ AppVisibility проверяла background failure до завершения н
 добавлены условия loaded empty states и pending retry до release promise.
 Проверки DOM/draft/File/focus сохранены, таймауты и приложение не менялись.
 Targeted 9/9, ESLint и typecheck PASS; полный gate повторяется в T260.
+
+## T260 — Приёмка, push/CI и доставка
+
+Код b58094a198444e1547993c3f10e58d7d61b2e2c1 отправлен в dev.
+CI39472582412: все8jobs success, frontend release.txt соответствует.
+После T260b полный check на affinity4CPU:1726 unit/SQL+92browser+100E2E PASS,
+coverage95.36/93.11/97.03/97.44; build:api,72Python,verify_build/APIunits PASS.
+Прежние два прогона не скрыты:2test defects/6errors исправлены T260b;
+далее17SQL/hook timeouts при20CPU, разрешены ограничением параллелизма
+процесса без изменения timeout/assertions/gates. CI без rerun.
+API artifact SHA/версия, native gates, backup, private fingerprint,
+migration016/ACL,7.9s switch, namespace synthetic event, Nginx gzip и live
+4readonly browser tests подробно в DEPLOYMENT#приёмка-t260-20102026.
+До push обновлены receivers, fresh offsite pair подтверждена. Trusted replay7,
+ещё7unattested не удалялись: общий integrityunhealthy, независимые alerts blocked.
+API current T260-b58094a19844, env/ключи/volumes/реальные записи не менялись;
+data/auth/commands/access fingerprints равны при закрытом edge.
+Docs согласованы с live; последующая docs-only публикация использует тот же
+код через CI. Authenticated production CRUD/реальные письма/production restore
+не выполнялись; возврат к прежним bundle/config подготовлен, не упражнялся.

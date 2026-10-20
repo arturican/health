@@ -2,10 +2,10 @@
 
 Адрес приложения: <https://dev.arturican.com>. Frontend/Nginx находятся на
 159.194.208.200; PostgreSQL 18.3 и API — на 2.26.54.81, Ubuntu 24.04.
-Email-регистрация и восстановление опубликованы в T196. Frontend T222 проверен
-на 279a3e2ca1747b1d0d8eb0121131024f67bc3cb2; API T222-1be2d33a2817.
-Итоговый docs-коммит публикует тот же код через CI; точный frontend SHA
-проверяется по release.txt и успешному CI выбранного коммита.
+Email-регистрация и восстановление опубликованы в T196. Текущая приёмка
+кода/API/ops — [T260](#приёмка-t260-20102026); старые T222 и другие записи ниже —
+история предыдущих выпусков. Точный frontend SHA проверяется по release.txt
+и успешному CI выбранного коммита, в том числе после docs-only публикации.
 
 ## Сервер данных
 
@@ -259,7 +259,7 @@ persistent16MiB/runtime8MiB, файлы1MiB, rotation1h, retention7day, forwardi
 разрешённые системой journal groups; namespace не является шифрованием.
 [journald.conf](https://www.freedesktop.org/software/systemd/man/latest/journald.conf.html).
 
-Перед включением на data VPS (T260):
+Порядок включения на data VPS (выполнен T260):
 сохранить прежний unit и существующий namespace drop-in в закрытый каталог
 данного релиза, проверить systemd version и diff. Установить только эти два
 файла root:root0644; родительский каталог drop-in0755. Сначала drop-in,
@@ -287,7 +287,7 @@ python3 -B deploy/verify_api_units.py и Python deploy tests. Native parser чи
 по .nvmrc. Это проверка syntax/policy, не запуска/доставки событий.
 На WSL systemd255 PASS; exact исходный verify здесь FAIL из-за отсутствующего
 production Node path, namespace activation не запускалась (нет sudo).
-Фактическое включение/приёмка на VPS будут отражены в T260.
+Фактическое включение/приёмка на VPS выполнены T260, см. раздел ниже.
 
 Диагностика (на соответствующем VPS):
 
@@ -409,14 +409,116 @@ Nginx -t относится к temp config. Рабочий Nginx не перез
 конфигурация не меняется. Finally отправляет TERM собственной группе и ждёт
 завершения; при timeout использует KILL только этой группы.
 
-20.10.2026 на frontend Nginx1.24.0 Ubuntu: baseline без новых directives FAIL,
+До T260, 20.10.2026 на frontend Nginx1.24.0 Ubuntu: baseline без новых directives FAIL,
 новый config PASS, mutant без API gzip off FAIL на private response.
 Synthetic readiness timeout также проверен, незавершённых helper master
-процессов не осталось. Live конфигурация всё ещё побайтно совпадает с прежним
-commit, сервис active. Это готовность артефакта, не внедрение сжатия.
+процессов не осталось. В тот момент live конфигурация побайтно совпадала с
+прежним commit, сервис был active. Внедрение затем выполнено T260; приёмка ниже.
 
-Установка T260: сохранить текущий target config отдельно, проверить точный
+Порядок установки (выполнен T260): сохранить текущий target config отдельно, проверить точный
 кандидат nginx -t, заменить только health-diary virtual host, снова nginx -t
 и reload. Проверить public asset gzip/identity+decoded hash, API identity,
 health/readiness/401, active status; при ошибке вернуть сохранённый config
 и reload после nginx -t. Другие virtual hosts не менять.
+
+## Приёмка T260 20.10.2026
+
+Исправления очереди доставлены; это фактическая приёмка кода, а не только
+готовность артефактов. Последующие docs-коммиты публикуются тем же CI;
+точную текущую frontend-версию проверяйте по release.txt.
+
+| Компонент | Принятая версия |
+|---|---|
+| Код frontend/API/ops | b58094a198444e1547993c3f10e58d7d61b2e2c1 |
+| Frontend при этой приёмке | тот же SHA, HTTPS release.txt и browser proof |
+| API current | /opt/health-api/releases/T260-b58094a19844 |
+| API archive SHA256 | 3e80687a1dcd3fa92a29a1614bb1e6894c81040e0b6fee5d62d22232435fe507 |
+| Миграции | все16 names/checksum совпали с точными файлами релиза |
+
+[CI39472582412](https://github.com/arturican/health/actions/runs/39472582412):
+static, coverage, build, browser, оба E2E, check и deploy — success.
+Новых обходов gates/таймаутов/ретраев CI не добавляли.
+
+Локальные gates на Node 24.22.0/npm 11.19.1, PostgreSQL 18.3 в отдельном Docker:
+
+- npm run check: 185 файлов/1726 unit+SQL, 37 файлов/92 browser, 100 desktop/mobile E2E PASS;
+  coverage statements95.36%, branches93.11%, functions97.03%, lines97.44%.
+- npm run build:api; 72 Python deploy tests; verify_api_units.py; verify_build.py dist PASS.
+- check:docs проверяет все собственные Markdown, ссылки/anchors и 11 Mermaid;
+  схемы отрисованы локально, изменённые просмотрены при T260a.
+- native exact unit на data VPS и native isolated Nginx gate на frontend PASS.
+
+Первый полный check остановился на двух тестовых дефектах и6 uncaught errors:
+исправлены T260b. Следующий прогон на20 CPU получил17 SQL/test/hook timeouts.
+Финальный полный **taskset -c 0-3 npm run check** прошёл: ограничена только
+affinity/число одновременных фикстур, исходные timeout/assertions/состав сохранены.
+CI на штатном runner прошёл без повторного запуска. Логи вне Git:
+WSL /tmp/health-T260-*, приватные operator logs /root/health-T260 на VPS.
+
+До push атомарно обновлены health-deploy и backup_receive.py, bytes сверены.
+Установлены readonly CLI backup_check.py/watchdog_probe.py/offsite_check.py;
+новые monitor timers не включались. Штатный health-backup.service завершился
+Result=success/ExecMainStatus=0. Свежий ciphertext на втором VPS совпал с
+source SHA и sidecar0600; GPG private key на VPS не передавался.
+Для ещё сохранённых7 source-копий выполнен replay штатной transfer-процедуры.
+Итог offsite: fresh, verified7/unattested7/failed0, общий status=unhealthy.
+Старые непроверенные копии сохранены, самоподписывание по их текущему хешу не делалось.
+
+API artifact передан с проверкой SHA, распакован в новый root-owned каталог;
+npm ci --omit=dev выполнен закреплёнными Node/npm. Seed не запускался,
+env/ключи/роли/контейнеры/volumes не менялись.
+На время миграции edge возвращал503 для API. После остановки/drain API снят
+приватный fingerprint, из нового release directory выполнен migrate.js.
+Применена только016; затем schema/ACL gate и два сравнения — после миграции
+и после запуска, пока внешние запросы закрыты.
+
+Fingerprint: одна READ ONLY REPEATABLE READ transaction на снимок,
+существующий admin с row_security=off fail-guard, server-side timeouts.
+Учтены все поля14 business tables+users, bytes файлов отдельным SHA,
+прежние поля account_tokens, sessions/auth_rate_limits/commands и
+RLS/ACL/function security metadata. Hash/count остаются только root0600 в0700;
+в отчёт выведены исключительно равенства. Во всех сравнениях:
+business_and_users_equal, existing_auth_and_commands_equal, access_policy_equal=true.
+Это проверка сохранности при доставке, не тестирование бизнес-сценариев на рабочей БД.
+
+Schema gate: 20 tables,15 FORCE RLS owner policies, nullable text
+registration_timezone/no default/validated constraint, три прежние signatures,
+SECURITY DEFINER/search_path/PUBLIC denied/runtime execute, роли/права — PASS.
+016 обратно совместима со старым API; при откате bundle не удаляйте миграцию.
+
+Установлены namespace drop-in и API unit; exact systemd verify PASS.
+API current переключён атомарно; readiness готова. Собственно stop/migrate/
+switch/start boundary заняла7.9s (внешняя503 включает также SSH/Nginx reload).
+LogNamespace=health-diary, namespace service active. Точная createDiagnostics
+под закреплённым Node в transient unit доставила безопасное synthetic событие
+в namespace; реальные API/internal/SMTP failures не вызывались.
+Policy file сверён; journal занимал1.0MiB. Это не доказательство7дней истории.
+
+Рабочий health virtual host заменён подготовленным Nginx config:
+полный candidate и active nginx -t PASS, затем reload. Старые warnings об
+устаревших http2 directives относятся к другому прежнему virtual host;
+его файлы не менялись. Временный503 удалён; final config bytes сверены.
+Live public gzip/identity: JS521845→149835, CSS35035→7416, TTF488584→282464 bytes.
+Decoded bytes/SHA равны; Vary/cache/CSP/security headers сохранены.
+GET health/readiness=200 с ожидаемым JSON, без cookie diary-state=401;
+API Content-Encoding отсутствует. Первый operator helper ошибочно отверг
+два одинаковых nosniff от edge+API; уточнена только проверка helper:
+непустые одинаковые значения допускаются, противоречащие отклоняются.
+После уточнения все live flags PASS; приложение ради этого не менялось.
+
+Read-only Playwright release.spec.ts+registration.spec.ts:
+4 desktop/mobile tests PASS. Проверены release/TLS/redirect/CSP/404,
+формы и client validation без отправки POST/писем, test routes закрыты.
+Authenticated production CRUD, реальные документы/фото, Safari/Firefox,
+screen reader, production heap/p95 и восстановление рабочих архивов не проверялись.
+Основные CRUD/owner/conflict/import/file сценарии покрыты isolated E2E/SQL.
+
+Откатные материалы обоих VPS: /root/health-T260/before, root0700;
+прежний API target T222-1be2d33a2817, frontend до очереди792e0b0,
+unit/drop-in marker, receivers и health Nginx config сохранены.
+Для отката использовать описанные выше atomic current/config/unit steps,
+native verify и health/readiness. Совместимая016 остаётся; данные/миграции
+вручную назад не удалять. Реальный rollback после успешного выпуска не выполнялся.
+
+Независимые alerts T252a/T253a/T254c остаются blocked: нет выбранного канала
+и подтверждения получения. Сжатие/доставка приложения этот риск не закрывают.

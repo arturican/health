@@ -7,7 +7,7 @@
 [технический аудит T231](docs/AUDIT.md), [план улучшений](docs/IMPROVEMENTS.md)
 и [файловый охват аудита](docs/AUDIT_SCOPE.md). Исходный срез 20.10.2026 —
 9718e60; AUDIT содержит актуальную матрицу исправлений, ARCHITECTURE описывает
-код после очереди T232–T259. Установленные SHA и приёмка — в DEPLOYMENT/PROGRESS.
+код после очереди T232–T260. Установленные SHA и приёмка — в DEPLOYMENT/PROGRESS.
 [Измерения чтений](docs/READ_PERFORMANCE.md),
 [ёмкость копий](docs/BACKUP_CAPACITY.md),
 [холодная загрузка](docs/COLD_LOAD.md) и

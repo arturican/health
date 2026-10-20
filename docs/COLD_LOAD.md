@@ -92,9 +92,9 @@ ScriptDuration1258.2ms; причину host/runtime variance не установ
 финальный запуск расширен до пяти точек с guards сетевых ошибок. Выброс не
 выдаётся за дефект приложения и не скрывается ради оценки.
 
-## Вывод и следующий шаг
+## Вывод эксперимента до доставки T260
 
-Read-only live проверка20.10.2026: JS текущего release792e0b0 передан identity,
+Read-only live проверка до T260, 20.10.2026: JS тогдашнего release792e0b0 передан identity,
 513682bytes при Accept-Encoding:gzip. nginx -T подтвердил global gzip on, но
 gzip_types для JS/CSS/TTF не настроены. Build gzip estimate не был live transfer.
 Это новое уточнение AUD-016 к AUD-015, а не доказательство live latency из
@@ -102,8 +102,9 @@ gzip_types для JS/CSS/TTF не настроены. Build gzip estimate не �
 
 Конкретный первый шаг — T258a: сжимать только публичные assets в Nginx,
 явно gzip off для API, сохранить CSP/cache/маршрутизацию и проверить negotiated
-encoding+декодированные bytes на native Nginx. Изменения пока не внедрены.
-T259 остаётся решением по необходимости lazy routes после этого малого шага:
+encoding+декодированные bytes на native Nginx. Тогда изменения ещё не были
+внедрены; actual delivery/proof T260 приведены ниже.
+T259 фиксирует решение по необходимости lazy routes после этого малого шага:
 один warning размера не оправдывает новые chunk/error/old-tab пути.
 
 Источники смысла CDP параметров:
@@ -125,3 +126,13 @@ IMP-028 остаётся условным предложением. Вернут
 варианты тем же benchmark, затем покрыть все8routes, keyboard/fallback/retry,
 chunk failure и старую вкладку после release. Warning threshold не менялся.
 T259 done означает документированное решение, не внедрение lazy loading.
+
+## Live proof T260
+
+20.10.2026 config установлен; код b58094a, native и HTTPS gzip/identity gates PASS.
+JS521845→149835, CSS35035→7416, TTF488584→282464 wire bytes;
+decoded bytes/SHA совпали, Vary/cache/security headers сохранены, API identity.
+Это измерение передачи файлов, не повтор FCP/ready benchmark на production.
+Отличие от gzip размера локальной модели ожидаемо для другого HTTP/zlib pipeline;
+сравниваются исходные байты, а production latency/p95 не заявляется.
+Приёмка/ограничения — [DEPLOYMENT](DEPLOYMENT.md#приёмка-t260-20102026).
