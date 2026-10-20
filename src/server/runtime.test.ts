@@ -5,6 +5,8 @@ import { createServer } from 'node:net'
 import { promisify } from 'node:util'
 import { readFile, readdir } from 'node:fs/promises'
 import { beforeAll, expect, it } from 'vitest'
+import { testDatabase } from '../../tests/serverDatabase'
+import { migrate, readMigrations } from './migrations'
 
 beforeAll(async () => {
   await promisify(execFile)(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.server.json'])
@@ -46,6 +48,9 @@ it.each(['SIGTERM', 'SIGINT'] as const)('production API отвечает по HT
     expect(response.status).toBe(200)
     expect(response.headers.get('cache-control')).toBe('no-store')
     expect(await response.json()).toEqual({ status: 'ok' })
+    const readiness = await fetch(`http://127.0.0.1:${String(reserved.port)}/api/v1/readiness`)
+    expect(readiness.status).toBe(503)
+    expect(await readiness.json()).toEqual({ status: 'unavailable' })
     child.kill(signal)
     expect(await exited).toEqual([0, null])
   } finally {
@@ -60,6 +65,33 @@ it('занятый порт завершает процесс с безопас�
       env: { ...process.env, API_PORT: String(reserved.port), API_HOST: '127.0.0.1' },
     })).rejects.toMatchObject({ code: 1, stdout: '', stderr: 'Не удалось запустить API: проверьте серверные настройки и доступность порта\n' })
   } finally { await reserved.close() }
+})
+
+it('собранный production runtime подключает readiness к настоящему runtime pool', async () => {
+  const database = await testDatabase()
+  try {
+    await migrate(database.pool, await readMigrations())
+    const reserved = await reservePort()
+    await reserved.close()
+    const child = spawn(process.execPath, ['build-api/main.js'], {
+      env: { ...process.env, NODE_ENV: 'production', DATABASE_URL: database.runtime.options.connectionString,
+        APP_ORIGIN: 'https://health.example.test', API_HOST: '127.0.0.1', API_PORT: String(reserved.port),
+        MAIL_ENABLED: 'false', MIGRATION_DATABASE_URL: undefined, ADMIN_PASSWORD: undefined },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    const exited = once(child, 'exit')
+    try {
+      await once(child.stdout, 'data')
+      const response = await fetch(`http://127.0.0.1:${String(reserved.port)}/api/v1/readiness`)
+      expect(response.status).toBe(200)
+      expect(response.headers.get('cache-control')).toBe('no-store')
+      expect(await response.json()).toEqual({ status: 'ready' })
+      child.kill('SIGTERM')
+      expect(await exited).toEqual([0, null])
+    } finally {
+      if (child.exitCode === null) { child.kill('SIGKILL'); await exited }
+    }
+  } finally { await database.close() }
 })
 
 it('неверные настройки не открывают listener и не попадают в stderr', async () => {

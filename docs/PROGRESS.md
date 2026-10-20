@@ -1,5 +1,41 @@
 # Прогресс
 
+## T213 — Readiness API с runtime SQL-пробой
+
+Добавлен server/readiness.ts, runtime регистрирует маршрут перед listen
+и в режиме без БД. GET /api/v1/readiness: 200 ready после SELECT 1,
+503 unavailable при отсутствии/ошибке pool. Health остаётся liveness.
+Используется существующий pool с acquire timeout 5 секунд, query_timeout
+1 секунда; finally release(false) при успехе, release(true) при ошибке.
+Нет новых подключений-конфигураций, DDL, чтения личных таблиц или SMTP;
+ответы по JSON schema/no-store/nosniff, ошибки и реквизиты не выводятся.
+
+Пять тестов проверяют реальный runtime pool, отсутствие БД, release/recovery,
+управляемую ошибку connect/query/read timeout и отсутствие деталей в ответах.
+В process runtime-тестах также проверен readiness 503 при liveness 200
+для режима без БД (SIGTERM/SIGINT). Первый целевой прогон выявил отсутствие
+query_timeout в QueryConfig типах, хотя установленный pg его поддерживает;
+конфигурация пробы вынесена в переменную без casts/изменения типов зависимостей.
+Повтор: 11 целевых тестов, ESLint и build:api PASS. Первый полный check обнаружил
+overload-ошибку mockResolvedValueOnce для pool.connect; успешное получение
+соединения больше не подменяется, проверяются реальные totalCount/idleCount.
+После исправления полный check повторён. Дополнительный GET через E2E fixture
+вернул 404: этот сервер собирается отдельно от runtime и не подключает readiness.
+Добавлен отдельный process-тест собранного production runtime с настоящим
+синтетическим runtime pool, миграциями и MAIL_ENABLED=false: он проверяет
+положительный readiness через HTTP и SIGTERM. Итог: 12 целевых тестов PASS.
+Полный npm run check PASS: docs/lint/types/coverage, 1626 unit/API,
+91 Browser, build и 80 E2E. Дополнительно 38 Python deploy-тестов,
+verify_build и systemd-analyze verify PASS. Итоговые docs/diff checks PASS.
+
+DEPLOYMENT/PRIVACY_SECURITY/PROJECT_MAP обновлены по локальному дополнению.
+На VPS новый маршрут не установлен; readiness проверяет SQL, а schema/SMTP
+и внешние копии требуют своих проверок. Проверка: локальный GET /readiness
+и npm test -- src/server/readiness.test.ts src/server/runtime.test.ts.
+Работающий процесс и доступная БД — разные условия. Освобождение соединения
+после неуспешной пробы важно для следующего запроса.
+Следующий этап T214 — актуальный контракт и итоговая приёмка текущего backend.
+
 ## T212 — Детерминированный лимит параллельных проверок пароля
 
 registerAuthentication принимает необязательный verifier и передаёт его

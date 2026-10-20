@@ -19,6 +19,7 @@ import { registerSettings } from './settingsRoutes.js'
 import { registerBackups } from './backupRoutes.js'
 import { registerClear } from './clearRoutes.js'
 import { createAccountMailer } from './accountMail.js'
+import { registerReadiness } from './readiness.js'
 
 export async function startApi(environment: Record<string, string | undefined>) {
   const { trustLocalProxy, ...config } = readServerConfig(environment)
@@ -48,7 +49,8 @@ export async function startApi(environment: Record<string, string | undefined>) 
       registerSettings(app, pool, authorize)
       registerBackups(app, pool, authorize)
       registerClear(app, pool, authorize)
-    }
+      registerReadiness(app, pool)
+    } else registerReadiness(app, null)
     await app.listen(config)
     return await app
   } catch {

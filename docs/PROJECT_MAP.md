@@ -13,7 +13,7 @@ CRUD, графики, фото/документы, ручные показате
 | Данные UI | [dataAccess.ts](../src/dataAccess.ts) экспортирует API-репозитории из [src/client](../src/client); формы/локальное состояние — React, загрузка — useDiaryQuery, инвалидация — queries, сессия в памяти — session, повторы команд — commands, транспорт — http |
 | Авторизация | client/AuthBoundary, auth, emailRecovery и формы; server/auth, sessions, registration, emailAuth, emailBinding, accountMail, authRateLimit; граница — Zod-схемы в domain |
 | Вычисления и валидация | [src/domain](../src/domain): чистые функции и Zod-схемы; [src/media](../src/media): подготовка файлов/копий до отправки |
-| HTTP API | [server/main.ts](../src/server/main.ts) → runtime (конфигурация, pool, регистрация маршрутов); app — Fastify factory/liveness/ошибки; тематические *Routes/*Records; базовый путь /api/v1 |
+| HTTP API | [server/main.ts](../src/server/main.ts) → runtime (конфигурация, pool, регистрация маршрутов); app — Fastify factory/liveness/ошибки, [readiness](../src/server/readiness.ts) — SQL-проба; тематические *Routes/*Records; базовый путь /api/v1 |
 | PostgreSQL | [migrations](../migrations), server/migrations и migrate; database — pool, userTransaction — транзакция владельца/RLS, writeCommand — защита повторов, revision/generation — согласованность; файлы также в БД |
 | Прежний браузерный дневник | [src/legacy](../src/legacy), [src/data](../src/data) (Dexie); явный экспорт через BrowserDiaryExport. Это не рабочий слой данных восьми экранов; тесты переключают слой явно |
 | Тесты | *.test.ts(x) рядом с кодом; *.browser.test.tsx — настоящий Chromium; [tests](../tests) — setup/фикстуры, e2e — локальный API + PostgreSQL, deployed — отдельные проверки HTTPS |
