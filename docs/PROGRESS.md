@@ -1,5 +1,49 @@
 # Прогресс
 
+## T230 — Push и фактическое ускорение GitHub Actions
+
+По явному разрешению пользователя dev отправлен до
+b6d36a034e3757c5641a07cdb288cd29298d208d. Новый
+[CI 39430816710](https://github.com/arturican/health/actions/runs/39430816710)
+полностью success, включая check/deploy. Сравнение с
+[CI 39429052467](https://github.com/arturican/health/actions/runs/39429052467)
+на dd7feba: приложение, тесты и lock одинаковы, оба push dev, attempt 1.
+
+Полное время от created_at до последнего completed_at jobs, включая deploy:
+**9:21 → 3:42**, экономия **5:39 (60,4%)**, ускорение в 2,53 раза.
+Начальное ожидание runner: 4 → 3 секунды. Новый критический путь —
+coverage → check → deploy; desktop/mobile E2E завершились раньше coverage.
+
+| Job нового CI | Время с подготовкой |
+|---|---|
+| static | 0:49 |
+| coverage/API | 3:16 |
+| build/deploy gates | 0:13 |
+| Native Browser | 1:23 |
+| E2E desktop | 2:37 |
+| E2E mobile | 2:24 |
+| check | 0:03 |
+| deploy | 0:11 |
+
+Это параллельные jobs: их длительности не складываются в elapsed пользователя.
+Сумма фактического времени runner выросла с 9:12 до 10:56 (+18,8%);
+это время исполнения jobs, не расчёт выставленных минут.
+
+В удалённых логах подтверждены 1633 unit/API, 91 Browser и 44+44 E2E,
+38 Python deploy-тестов; три скачивания (оба E2E и deploy) использовали
+единственный build artifact ID 12268291104. Перед push дополнительно прошёл
+build:api; неизменённые успешные фазы T229 не повторялись.
+
+HTTPS release.txt совпал с полным b6d36a0 SHA, JS/CSS имена и SHA256 совпали
+с предыдущим релизом. Health/readiness 200, profile без сессии 401.
+Штатные deployed release/registration smoke: 4/4 desktop/mobile PASS,
+HTTPS/редирект/CSP/404 и формы без POST, входа и настоящих писем.
+API/БД/SMTP не развёртывались, дневник не читался и не изменялся.
+Логи и обезличенные тайминги вне Git: /tmp/health-T230-*.
+
+Docs/diff/staged review выполняются перед этим docs-коммитом. После его push
+проверяются финальные CI и опубликованный SHA; код и workflow остаются T229.
+
 ## T229 — Параллельные проверки GitHub Actions
 
 Вместо последовательного npm run check CI выполняет независимые static,
