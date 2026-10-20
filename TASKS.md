@@ -160,7 +160,7 @@ push и frontend-релиз в него не входят.
 | T254b | done | [IMP-023: синтетическое восстановление](docs/tasks/T254b.md) | T254a |
 | T254b1 | done | [Уточнить aggregate cleanup proof](docs/tasks/T254b1.md) | T254b |
 | T254c | blocked | [Активация offsite alerts](docs/tasks/T254c.md) | T254b, T252a |
-| T255 | todo | IMP-024: проверка anchors и design docs | T254b |
+| T255 | done | [IMP-024: проверка anchors и design docs](docs/tasks/T255.md) | T254b |
 | T256 | todo | IMP-025: Mermaid validation по выбранному tooling | T255 |
 | T257 | todo | IMP-026: cleanup частичного SQL fixture setup | T256 |
 | T258 | todo | IMP-027: замер cold load | T257 |

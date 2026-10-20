@@ -22,7 +22,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "check:docs": "node scripts/check-docs.mjs",
+    "check:docs": "node --test scripts/check-docs.test.mjs && node scripts/check-docs.mjs",
     "check": "npm run check:docs && npm run lint && npm run typecheck && npm run test:coverage && npm run test:browser:run && npm run build && npm run test:e2e",
     "lint": "eslint . --max-warnings 0",
     "test:coverage": "vitest run --coverage",

@@ -287,3 +287,15 @@ Build также запускает `python3 -B -m unittest discover -s deploy -
 или ручной workflow в dev публикует тот же dist по ID артефакта через deploy job;
 PR и master не публикуются. Настройки окружения, проверка версии и откат описаны
 в [DEPLOYMENT.md](DEPLOYMENT.md). Локальный npm run check остаётся последовательным.
+
+## Проверка документации
+
+npm run check:docs запускает семь synthetic node:test cases и локальный обход
+всего собственного Markdown, включая design. Проверяются пути и fragments
+Markdown: заголовки, кириллица/URL encoding, суффиксы повторов и HTML anchors.
+Fenced примеры исключены; зависимости, Git и generated outputs не обходятся.
+Реализовано используемое проектом подмножество ссылок/заголовков, включая явные
+reference links; это не полный CommonMark parser и не проверка внешних URL.
+Правила anchors сверены с
+[GitHub section links](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#section-links).
+Mermaid требует отдельной проверки синтаксиса, один docs links gate её не заменяет.

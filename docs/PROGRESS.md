@@ -3878,3 +3878,15 @@ Metadata единственной оставшейся synthetic БД: directory
 Тест успешно выполнил свои finally/DROP, но пустой общий inventory не доказан.
 Неидентифицированный старый ресурс не удалялся. Только docs; check:docs/diff
 прошли. История коммитов не переписывалась.
+
+## T255 — Anchors и весь собственный Markdown
+
+check:docs теперь включает node:test и обход design/остального собственного
+Markdown без generated/dependencies. Проверяет локальные пути, decoded
+fragments, Unicode/дубли/explicit anchors/reference links; fenced code исключён.
+Семь synthetic cases проходят, 341 Markdown/1532 local links — OK; полный lint
+до последних изменений и targeted ESLint после них прошли, diff --check чистый.
+Review нашёл ложный slug code identifiers с несколькими underscores и ошибку
+angle+title; исправлены и покрыты регрессиями. HTML anchors не сдвигают
+автоматические суффиксы заголовков; positive checked counts защищают от пропуска.
+Итоговый review блокеров не нашёл. Без новых зависимостей и внешнего link checker.
