@@ -3725,3 +3725,15 @@ SQL regressionFAIL2→4stateGET до изменения; после21unit/SQL PA
 20→12. Budget23/13 закреплён повторными2E2E. Dates/null/zero/sort/directions
 не менялись. Read-only review без замечаний. Types/lint/build/docs/diff/staged
 PASS. Логи /tmp/health-T249a-*.log. Дублиfood/status ещё есть, T250следом.
+
+## T250 — Общий snapshot дня
+
+getTodaySummary возвращает7ресурсов под одной парой stateGET, paged calls
+используют scope. Provider содержит толькоquery data/current в памяти и день
+в identity, без сумм/cache/persistence. Legacy testadapter объединяет данные
+однойreadonlytransaction; рабочийclient по-прежнему API.3appfiles в бюджете.
+НовыйgetTodaySummary regressionFAILдо реализации;23SQL/core PASS, включая
+1GET/resource+2state, zero/null/day и mutation междуfood/steps→весьsnapshotretry.
+Types/lint/docs/diff/staged PASS. UIпока не подключён, budget улучшение ещё
+не заявляется. T250a4UIкомпонента подключает provider следующим коммитом.
+Логи /tmp/health-T250-*.log.

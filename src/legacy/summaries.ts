@@ -20,3 +20,8 @@ export const getActivityOverview = (day: string) => db.transaction('r', db.steps
   const dates = activityDates(day)
   return { day, value: activityOverview(day, await db.steps.where('date').between(dates[0] ?? day, day, true, true).toArray(), await listWorkouts(day)) }
 })
+
+// Только test adapter: один readonly snapshot, не рабочее хранилище.
+export const getTodaySummary = (day: string) => db.transaction('r',
+  [db.profiles, db.weights, db.foodEntries, db.nutritionDays, db.energyPlans, db.steps, db.workouts],
+  async () => ({ ...await getWeightOverview(day), ...await getEnergySummary(day), ...await getActivitySummary(day) }))

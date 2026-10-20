@@ -16,3 +16,9 @@ export const getActivityOverview = (day: string) => consistentRead(async scope =
   const dates = activityDates(day)
   return { day, value: activityOverview(day, await listSteps(dates[0] ?? day, day, scope), await listWorkouts(day, scope)) }
 })
+
+export const getTodaySummary = (day: string) => consistentRead(async scope => ({
+  day, profile: await getProfile(), weights: await listWeights(day, scope),
+  entries: await listFood(day, scope), status: await getNutritionDay(day), plan: await getEnergyPlan(day),
+  steps: await getSteps(day), workouts: await listWorkouts(day, scope),
+}))
