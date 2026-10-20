@@ -29,6 +29,7 @@ test('PDF скачивается без изменения байтов, пок�
   await expect(documents.getByRole('heading', { level: 3, name: originalTitle, exact: true })).toBeVisible()
   await expect(addDocument.getByLabel('Название документа', { exact: true })).toBeFocused()
   const downloadReady = page.waitForEvent('download')
+  await documents.getByRole('button', { name: `Открыть вложение: ${originalTitle}`, exact: true }).click()
   await documents.getByRole('button', { name: `Скачать оригинал: ${originalTitle}`, exact: true }).click()
   const originalDownload = await downloadReady
   const safeFilename = originalDownload.suggestedFilename()
@@ -121,6 +122,7 @@ test('PDF скачивается без изменения байтов, пок�
   await source.selectOption({ label: `2026-10-13 — ${editedTitle}` })
   await expect(editedNumericRow).toContainText('Результат: ≥ -0,0000001')
   const editedDownloadReady = page.waitForEvent('download')
+  await documents.getByRole('button', { name: `Открыть вложение: ${editedTitle}`, exact: true }).click()
   await documents.getByRole('button', { name: `Скачать оригинал: ${editedTitle}`, exact: true }).click()
   const editedDownload = await editedDownloadReady
   expect(editedDownload.suggestedFilename()).toBe(safeFilename)

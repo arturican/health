@@ -74,6 +74,7 @@ test('PDF скачивается явной кнопкой как локальн
   document.addEventListener('click', observer, true)
   const { create, revoke } = observeUrls()
   const view = await render(<main><h1>Документы</h1><DocumentFile fileId={entry.fileId} title={entry.title} /></main>)
+  await openAttachment(entry.title)
   await expect.element(page.getByText('PDF доступен для скачивания. Откройте его в своей программе просмотра.', { exact: true })).toBeVisible()
   expect(view.container.querySelector('iframe, object, embed')).toBeNull()
   await expect.element(page.getByRole('img')).not.toBeInTheDocument()
@@ -106,6 +107,7 @@ test('PNG документа декодируется, смена fileId скр�
   await savePreparedFile(photoFile)
   const { create, revoke } = observeUrls()
   const view = await render(<main><h1>Документы</h1><DocumentFile fileId={entry.fileId} title={entry.title} /></main>)
+  await openAttachment(entry.title)
   const locator = page.getByRole('img', { name: `Документ: ${entry.title}`, exact: true })
   await expect.element(locator).toBeVisible()
   const image = locator.element()
@@ -124,18 +126,24 @@ test('PNG документа декодируется, смена fileId скр�
   expect(original.type).toBe('image/png')
   expect(new Uint8Array(await original.arrayBuffer())).toEqual(new Uint8Array(await source.arrayBuffer()))
   expect(create).toHaveBeenCalledTimes(1)
-  const privateText = 'Синтетическое приватное имя файла'
-  await view.rerender(<main><h1>Документы</h1><DocumentFile fileId="00000000-0000-4000-8000-000000000099" title={privateText} /></main>)
+  await view.rerender(<main><h1>Документы</h1><DocumentFile fileId="00000000-0000-4000-8000-000000000099" title="Другой документ" /></main>)
+  await openAttachment('Другой документ')
   await expect.element(page.getByRole('alert')).toHaveTextContent(/^Не удалось открыть вложение документа\.$/)
   await expect.element(locator).not.toBeInTheDocument()
-  expect(view.container.textContent).not.toContain(privateText)
   expect(revoke).toHaveBeenCalledExactlyOnceWith(url)
   await expect(fetch(url)).rejects.toThrow()
-  await view.rerender(<main><h1>Документы</h1><DocumentFile fileId={photoFile.id} title={privateText} /></main>)
+  await view.rerender(<main><h1>Документы</h1><DocumentFile fileId={photoFile.id} title="Другой документ" /></main>)
+  await openAttachment('Другой документ')
   await expect.element(page.getByRole('alert')).toHaveTextContent(/^Не удалось открыть вложение документа\.$/)
   await expect.element(page.getByRole('img')).not.toBeInTheDocument()
-  await expect.element(page.getByRole('button')).not.toBeInTheDocument()
-  expect(view.container.textContent).not.toContain(privateText)
+  await expect.element(page.getByRole('button', { name: /Скачать оригинал/ })).not.toBeInTheDocument()
   expect(create).toHaveBeenCalledTimes(1)
   expect(view.container.querySelector('iframe, object, embed')).toBeNull()
 })
+
+async function openAttachment(title: string) {
+  const label = 'Открыть вложение: ' + title
+  if (!Array.from(document.querySelectorAll('button')).some(button => button.getAttribute('aria-label') === 'Закрыть вложение: ' + title)) {
+    await page.getByRole('button', { name: label, exact: true }).click()
+  }
+}

@@ -372,7 +372,7 @@ DocumentForm → `media/prepareDocument` проверяет тип/размер 
 сохраняются оригинальными, до 20 MiB; фото проходят отдельную JPEG-подготовку
 со снятием EXIF и пределом 10 MiB.
 
-DocumentFile → fileRepository → авторизованный GET files с проверкой владельца,
+Кнопка «Открыть вложение» → DocumentFile → fileRepository → авторизованный GET files с проверкой владельца,
 MIME/purpose и bytes → скачивание с UUID-именем. LabForm пишет результат только
 в доступный документ. Перед удалением UI читает results-count и его revision;
 DELETE требует исходную ревизию и точное подтверждённое число результатов.
@@ -529,3 +529,7 @@ runbooks. API не логирует тела/SQL/реквизиты; диагн�
 owner transaction очищает commands/меняет generation и возвращает409.
 Сохранённые записи и revisions не меняются; старые формы/контексты нужно
 загрузить заново. Реализация — commands и writeCommand, новый сервис не добавлен.
+
+После T246 вложения не читаются до открытия. Превью и download используют один
+проверенный Blob (BlobImage); закрытие освобождает URL. Pending read одного
+mounted FileState переиспользуется, settled bytes отдельно не кешируются.

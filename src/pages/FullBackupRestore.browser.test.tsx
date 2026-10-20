@@ -186,11 +186,13 @@ test('полное восстановление требует согласия,
   context.drawImage(image, 32, 16, 1, 1, 0, 0, 1, 1)
   expect(context.getImageData(0, 0, 1, 1).data[1]).toBeGreaterThan(240)
   await page.getByRole('link', { name: 'Документы', exact: true }).click()
+  await openAttachment(documentRecord.title)
   await expect.element(page.getByRole('button', { name: `Скачать оригинал: ${documentRecord.title}`, exact: true })).toBeVisible()
   await page.getByLabelText('Бланк для показателей', { exact: true }).selectOptions(documentRecord.id)
   await expect.element(page.getByRole('list', { name: 'Показатели выбранного документа', exact: true })).toHaveTextContent(lab.name)
   await view.unmount()
   view = await render(<App />)
+  await openAttachment(documentRecord.title)
   await expect.element(page.getByRole('button', { name: `Скачать оригинал: ${documentRecord.title}`, exact: true })).toBeVisible()
   await expectDatabase(imported)
   for (const result of decode.mock.results) {
@@ -201,3 +203,10 @@ test('полное восстановление требует согласия,
   expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
   expect((await axe.run(view.container)).violations).toEqual([])
 }, 15000)
+
+async function openAttachment(title: string) {
+  const label = 'Открыть вложение: ' + title
+  if (!Array.from(document.querySelectorAll('button')).some(button => button.getAttribute('aria-label') === 'Закрыть вложение: ' + title)) {
+    await page.getByRole('button', { name: label, exact: true }).click()
+  }
+}

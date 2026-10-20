@@ -167,6 +167,7 @@ test('сохранённые флаги управляют меню и прям�
   await expect.element(documents).toBeChecked()
   await expectNavigation(true, true)
   await page.getByRole('link', { name: 'Документы', exact: true }).click()
+  await openAttachment(documentRecord.title)
   await expect.element(page.getByRole('button', { name: `Скачать оригинал: ${documentRecord.title}`, exact: true })).toBeVisible()
   await page.getByLabelText('Бланк для показателей', { exact: true }).selectOptions(documentRecord.id)
   await expect.element(page.getByRole('list', { name: 'Показатели выбранного документа', exact: true })).toHaveTextContent(lab.name)
@@ -223,3 +224,10 @@ test('отказ записи сохраняет черновик, ошибка 
   expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
   expect((await axe.run(view.container)).violations).toEqual([])
 }, 15000)
+
+async function openAttachment(title: string) {
+  const label = 'Открыть вложение: ' + title
+  if (!Array.from(document.querySelectorAll('button')).some(button => button.getAttribute('aria-label') === 'Закрыть вложение: ' + title)) {
+    await page.getByRole('button', { name: label, exact: true }).click()
+  }
+}

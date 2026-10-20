@@ -58,6 +58,7 @@ async function syntheticPng() {
   return new File([blob], 'synthetic-image.png', { type: 'image/png' })
 }
 async function expectOriginalImage(title: string, source: Blob) {
+  await openAttachment(title)
   const locator = page.getByRole('img', { name: `Документ: ${title}`, exact: true })
   await expect.element(locator).toBeVisible()
   const image = locator.element()
@@ -155,6 +156,7 @@ test('документы загружаются через форму, ищут�
   }
   clickObservers.push(observer)
   document.addEventListener('click', observer, true)
+  await openAttachment(pdfTitle)
   await list.getByRole('button', { name: `Скачать оригинал: ${pdfTitle}`, exact: true }).click()
   await expect.element(page.getByRole('status').filter({ hasText: 'Скачивание оригинала начато' })).toHaveTextContent('Скачивание оригинала начато')
   const download = downloads[0]
@@ -194,6 +196,7 @@ test('каскадное удаление подтверждает актуал�
   let view = await render(<App />)
   await page.getByRole('link', { name: 'Документы', exact: true }).click()
   await expectOriginalImage(original.title, png)
+  await openAttachment(original.title)
   const image = page.getByRole('img', { name: `Документ: ${original.title}`, exact: true }).element()
   if (!(image instanceof HTMLImageElement)) throw new Error('Нужно настоящее изображение перед каскадным удалением')
   const originalUrl = image.src
@@ -268,6 +271,7 @@ test('каскадное удаление подтверждает актуал�
   view = await render(<App />)
   await source.selectOptions(neighbour.id)
   await expect.element(results).toHaveTextContent(neighbourResult.name)
+  await openAttachment(neighbour.title)
   await expect.element(page.getByRole('button', { name: `Скачать оригинал: ${neighbour.title}`, exact: true })).toBeVisible()
   expect(await db.documents.toArray()).toEqual([neighbour])
   expect(await db.labResults.toArray()).toEqual([neighbourResult])
@@ -377,6 +381,7 @@ test('правка документа сохраняет оригинал, а п
   expect(decode).not.toHaveBeenCalled()
   await view.unmount()
   view = await render(<App />)
+  await openAttachment(neighbour.title)
   await expect.element(list.getByRole('button', { name: `Скачать оригинал: ${neighbour.title}`, exact: true })).toBeVisible()
   await expect.element(list.getByRole('heading', { level: 3, name: edited.title, exact: true })).not.toBeInTheDocument()
   expect(await db.documents.toArray()).toEqual([neighbour])
@@ -389,3 +394,10 @@ test('правка документа сохраняет оригинал, а п
   )
   expect(externalRequests).toEqual([])
 }, 15000)
+
+async function openAttachment(title: string) {
+  const label = 'Открыть вложение: ' + title
+  if (!Array.from(document.querySelectorAll('button')).some(button => button.getAttribute('aria-label') === 'Закрыть вложение: ' + title)) {
+    await page.getByRole('button', { name: label, exact: true }).click()
+  }
+}

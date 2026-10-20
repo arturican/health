@@ -47,6 +47,7 @@ test('лимит вложений сохраняет документы, бай�
     await title.fill(name)
     await file.upload(syntheticPdf(index))
     await save.click()
+    await openAttachment(name)
     await expect.element(page.getByRole('button', { name: `Скачать оригинал: ${name}`, exact: true })).toBeVisible()
     await expect.element(title).toHaveValue('')
   }
@@ -88,6 +89,7 @@ test('лимит вложений сохраняет документы, бай�
   expect(await db.documents.get(deleted.id)).toBeUndefined()
   expect(await db.files.get(deleted.fileId)).toBeUndefined()
   await save.click()
+  await openAttachment('Синтетический PDF 4')
   await expect.element(page.getByRole('button', { name: 'Скачать оригинал: Синтетический PDF 4', exact: true })).toBeVisible()
   await expect.element(title).toHaveValue('')
   await expect.element(page.getByRole('alert')).not.toBeInTheDocument()
@@ -103,3 +105,10 @@ test('лимит вложений сохраняет документы, бай�
   expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
   expect((await axe.run(view.container)).violations).toEqual([])
 }, 15000)
+
+async function openAttachment(title: string) {
+  const label = 'Открыть вложение: ' + title
+  if (!Array.from(document.querySelectorAll('button')).some(button => button.getAttribute('aria-label') === 'Закрыть вложение: ' + title)) {
+    await page.getByRole('button', { name: label, exact: true }).click()
+  }
+}

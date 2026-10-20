@@ -3658,3 +3658,21 @@ Count — unit fixture getFile, не сетевой benchmark. Read-only review 
 замечаний. Lint поймал избыточный nullableguard, types — exact optional width/
 height; исправлено, повторtypes/lint PASS. Docs/diff/staged PASS.
 Логи /tmp/health-T245-*.log; live ещё прежнийT231.
+
+## T246 — Явное открытие документа
+
+DocumentFile откладывает file query до Open, Close unmount освобождает URL,
+Retry после безопасного отказа remount content и фокусирует стабильную кнопку.
+Keyed FileState закрывает A→B→A; pending Promise разделяется при Close/Open
+внутри mounted state и очищается finally. Settled cache/HTTP cancel нет.
+AuthBoundary epoch remount и request checks сохраняют owner isolation.
+
+Regression no-open FAIL до изменения; review обнаружил два edge и они закрыты
+realclienthook test. Legacy Dexie hook с shared deferred Promise зависал —
+перенос edge regression на production hook, adapter поведение не выдаётся за
+app bug. Первый Browser прогон7FAIL из-за прежних auto-preview ожиданий и
+helper до DTO; обновлён явный open/wait. Второй8PASS1FAIL — ещё одно прежнее
+ожиданиеDownload после remount. Финальный9Browser PASS,17unit PASS,4E2E
+desktop/mobile PASS (настоящие API/PG, sourcebytes/restore/cascade/privacy).
+Types/lint/build/docs/diff/staged PASS, read-only review без оставшихся багов.
+Логи /tmp/health-T246-*.log. One appfile34 additions в пределах бюджета.

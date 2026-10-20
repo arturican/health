@@ -189,6 +189,7 @@ test('полная копия восстанавливает все таблиц
   await page.getByLabel('Бланк для показателей').selectOption(savedDocument.id)
   await expect(page.getByRole('list', { name: 'Показатели выбранного документа' }).getByText('Результат: 0', { exact: true })).toBeVisible()
   const downloadingPdf = page.waitForEvent('download')
+  await page.getByRole('button', { name: `Открыть вложение: ${documentTitle}`, exact: true }).click()
   await page.getByRole('button', { name: `Скачать оригинал: ${documentTitle}`, exact: true }).click()
   const downloadedPdf = await downloadingPdf
   expect(downloadedPdf.suggestedFilename()).toBe(`health-document-${savedDocument.fileId}.pdf`)
