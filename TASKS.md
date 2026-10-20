@@ -168,6 +168,7 @@ push и frontend-релиз в него не входят.
 | T258a | done | [Сжатие публичной статики Nginx](docs/tasks/T258a.md) | T258 |
 | T259 | done | [IMP-028: решение о lazy routes](docs/tasks/T259.md) | T258a |
 | T260a | done | [Свести документы перед выпуском](docs/tasks/T260a.md) | T259 |
+| T260b | done | [Стабилизировать тестовые зависимости gate](docs/tasks/T260b.md) | T260a |
 | T260 | todo | Итоговая приёмка, push/CI и backend/frontend/ops delivery | T260a |
 
 ## Подготовка

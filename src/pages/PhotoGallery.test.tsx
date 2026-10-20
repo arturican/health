@@ -7,7 +7,9 @@ import { invalidateQueries } from '../client/queries'
 import type { Photo } from '../domain/photo'
 vi.unmock('../dataAccess')
 vi.mock('../client/photoRepository',()=>({listPhotos:vi.fn(),deletePhoto:vi.fn()}))
-vi.mock('../client/fileRepository',()=>({getFile:vi.fn()}))
+vi.mock('../client/fileRepository', async importOriginal => ({
+  ...await importOriginal<typeof import('../client/fileRepository')>(), getFile: vi.fn(),
+}))
 const photos:Photo[]=Array.from({length:50},(_,i)=>({id:'photo-'+String(i),fileId:'file-'+String(i),date:'2026-10-15',title:'Synthetic '+String(i),note:'',width:2,height:3}))
 const changed=vi.fn()
 beforeEach(()=>{

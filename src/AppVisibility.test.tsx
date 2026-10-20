@@ -48,6 +48,14 @@ it.each(media)('%s сохраняет черновик и файл при сбо
   window.history.replaceState(null, '', '/#' + route)
   render(<App />)
   const field = await screen.findByLabelText(title)
+  if (route === 'photos') {
+    await screen.findByText('Фотографий пока нет.')
+    await screen.findByText('Для сравнения добавьте минимум две фотографии.')
+  } else {
+    await screen.findByText('Документов пока нет.')
+    await screen.findByText('Сначала добавьте документ-источник.')
+    await screen.findByText('Показателей для графика пока нет. Загрузите бланк и внесите результаты ниже.')
+  }
   const fileField = screen.getByLabelText<HTMLInputElement>(fileLabel)
   const file = new File(['synthetic bytes'], 'synthetic.png', { type: 'image/png' })
   fireEvent.change(field, { target: { value: 'Учебный несохранённый ввод' } })
@@ -62,6 +70,8 @@ it.each(media)('%s сохраняет черновик и файл при сбо
   let release: () => void = () => { throw new Error('Нет ожидания') }
   paused = new Promise<void>(resolve => { release = resolve })
   fireEvent.click(screen.getByRole('button', { name: 'Повторить загрузку видимости' }))
+  await screen.findByText('Обновляем настройки видимости…')
+  expect(screen.getByRole('button', { name: 'Повторить загрузку видимости' })).toBeDisabled()
   expect(screen.getByLabelText(title)).toBe(field)
   expect(fileField.files?.[0]).toBe(file)
   await act(async () => { release(); await paused })

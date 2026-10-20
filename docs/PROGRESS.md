@@ -3979,3 +3979,13 @@ Read-only review API/UI/ops завершён; замечания по факта
 check:docs: 350 Markdown, 1564 links, 11 Mermaid, 11 node tests PASS.
 Все 11 схем отрисованы локально без внешних запросов/page errors;
 изменённые component/food/backup просмотрены. diff --check PASS, только docs.
+
+## T260b — Исправление тестов, найденных release gate
+
+Первый T260 check остановился на coverage: 1724 PASS, 2 FAIL и 6 uncaught
+errors. PhotoGallery mock не включал subscribeFileDeletion после T251b;
+теперь partial mock заменяет только getFile, подписка остаётся реальной.
+AppVisibility проверяла background failure до завершения начальных чтений;
+добавлены условия loaded empty states и pending retry до release promise.
+Проверки DOM/draft/File/focus сохранены, таймауты и приложение не менялись.
+Targeted 9/9, ESLint и typecheck PASS; полный gate повторяется в T260.
