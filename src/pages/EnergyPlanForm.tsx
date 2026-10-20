@@ -6,23 +6,25 @@ import { validate } from '../domain/schema'
 import { Field, SelectField } from '../ui/Field'
 import { Feedback, readField, useAction } from '../ui/actions'
 
-export function EnergyPlanForm({ latest = null }: { latest?: EnergyPlan | null } = {}) {
+export function EnergyPlanForm({ latest = null, disabled = false }: { latest?: EnergyPlan | null; disabled?: boolean } = {}) {
   const draft = useRef<EnergyPlan | null | undefined>(undefined)
   const action = useAction()
+  const busy = action.pending || disabled
   const [method, setMethod] = useState<EnergyPlanInput['method']>('none')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [revision, setRevision] = useState(0)
   const formRef = useRef<HTMLFormElement>(null)
   const focusAfterSave = useRef(false)
   useEffect(() => {
-    if (focusAfterSave.current && !action.pending) {
+    if (focusAfterSave.current && !busy) {
       focusAfterSave.current = false
       formRef.current?.querySelector<HTMLInputElement>('[name="effectiveFrom"]')?.focus()
     }
-  }, [revision, action.pending])
+  }, [revision, busy])
 
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (disabled) return
     const form = new FormData(event.currentTarget)
     const fieldErrors: Record<string, string> = {}
     const effectiveFrom = readField(form, 'effectiveFrom', text => {
@@ -54,7 +56,7 @@ export function EnergyPlanForm({ latest = null }: { latest?: EnergyPlan | null }
 
   return <>
     <form ref={formRef} key={revision} className="form-grid" aria-label="Новая версия энергетического плана" onSubmit={submit} onChange={() => { if (draft.current === undefined) draft.current = latest }} noValidate>
-      <fieldset disabled={action.pending}>
+      <fieldset disabled={busy}>
         <legend>Новая версия плана</legend>
         <Field label="Дата начала действия плана" name="effectiveFrom" type="date" required min={localDate()} defaultValue={localDate()} error={errors['effectiveFrom']} />
         <Field label="Калорийная цель, ккал/сутки (необязательно)" name="goalKcal" inputMode="decimal" maxLength={12} error={errors['goalKcal']} />
@@ -68,7 +70,7 @@ export function EnergyPlanForm({ latest = null }: { latest?: EnergyPlan | null }
         {method === 'factor' && <Field label="Ваш коэффициент активности" name="factor" inputMode="decimal" maxLength={12} required error={errors['factor']} />}
         <Field label="Источник оценки расхода (необязательно)" name="source" maxLength={160} error={errors['source']} />
       </fieldset>
-      <button type="submit" disabled={action.pending}>{action.pending ? 'Сохраняем…' : 'Сохранить новую версию'}</button>
+      <button type="submit" disabled={busy}>{action.pending ? 'Сохраняем…' : 'Сохранить новую версию'}</button>
     </form>
     <Feedback error={action.error} message={action.message} />
   </>

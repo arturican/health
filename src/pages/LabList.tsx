@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { useDiaryQuery, deleteLabResult, listLabResults } from '../dataAccess'
+import { useDiaryQueryState, deleteLabResult, listLabResults } from '../dataAccess'
 import { formatLabValue, type LabResult } from '../domain/labResult'
 import { Confirmation } from '../ui/Confirmation'
 import { Feedback, useAction } from '../ui/actions'
 
 interface LabListProps { documentId: string; blocked: boolean; onEdit: (result: LabResult) => void; onBusyChange: (busy: boolean) => void }
 export function LabList({ documentId, blocked, onEdit, onBusyChange }: LabListProps) {
-  const data = useDiaryQuery(async () => ({ documentId, results: await listLabResults(documentId) }), [documentId])
+  const { data, current } = useDiaryQueryState(async () => ({ documentId, results: await listLabResults(documentId) }), [documentId])
   const results = data?.documentId === documentId ? data.results : undefined
   const [deleting, setDeleting] = useState<LabResult | null>(null)
   const action = useAction()
@@ -31,12 +31,12 @@ export function LabList({ documentId, blocked, onEdit, onBusyChange }: LabListPr
         <p>Референс на бланке: {result.reference || 'не указан'}</p>
         {result.note && <p>{result.note}</p>}
         <div className="actions">
-          <button type="button" disabled={blocked || action.pending || deleting !== null} aria-label={`Изменить показатель ${String(index + 1)}: ${result.name}`} onClick={() => { action.reset(); onEdit(result) }}>Изменить</button>
-          <button type="button" disabled={blocked || action.pending || deleting !== null} aria-label={`Удалить показатель ${String(index + 1)}: ${result.name}`} onClick={() => { action.reset(); setDeleting(result) }}>Удалить</button>
+          <button type="button" disabled={!current || blocked || action.pending || deleting !== null} aria-label={`Изменить показатель ${String(index + 1)}: ${result.name}`} onClick={() => { action.reset(); onEdit(result) }}>Изменить</button>
+          <button type="button" disabled={!current || blocked || action.pending || deleting !== null} aria-label={`Удалить показатель ${String(index + 1)}: ${result.name}`} onClick={() => { action.reset(); setDeleting(result) }}>Удалить</button>
         </div>
       </article></li>)}
     </ul>}
-    {deleting && <Confirmation question={`Удалить показатель «${deleting.name}» за ${deleting.date}?`} pending={action.pending} onCancel={() => { setDeleting(null) }} onConfirm={() => {
+    {deleting && <Confirmation question={`Удалить показатель «${deleting.name}» за ${deleting.date}?`} pending={action.pending} confirmDisabled={!current} onCancel={() => { setDeleting(null) }} onConfirm={() => {
       action.run(async () => {
         try { await deleteLabResult(deleting) }
         catch (reason: unknown) { focusAfterAttempt.current = 'cancel'; throw reason }

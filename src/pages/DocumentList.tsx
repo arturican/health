@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useDiaryQuery, countDocumentResults, deleteDocument, deleteDocumentWithResults, listDocuments } from '../dataAccess'
+import { useDiaryQueryState, countDocumentResults, deleteDocument, deleteDocumentWithResults, listDocuments } from '../dataAccess'
 import { documentKinds, type DiaryDocument } from '../domain/document'
 import { Field } from '../ui/Field'
 import { DocumentFile } from './DocumentFile'
@@ -9,10 +9,10 @@ import { Icon } from '../ui/Icon'
 
 interface DocumentListProps { onEdit: (document: DiaryDocument) => void; blocked: boolean; onBusyChange: (busy: boolean) => void }
 export function DocumentList({ onEdit, blocked, onBusyChange }: DocumentListProps) {
-  const documents = useDiaryQuery(() => listDocuments())
+  const { data: documents, current } = useDiaryQueryState(() => listDocuments())
   const [query, setQuery] = useState('')
   const [deleting, setDeleting] = useState<DiaryDocument | null>(null)
-  const linked = useDiaryQuery(async () => deleting ? { id: deleting.id, count: await countDocumentResults(deleting) } : null, [deleting?.id])
+  const { data: linked, current: linkedCurrent } = useDiaryQueryState(async () => deleting ? { id: deleting.id, count: await countDocumentResults(deleting) } : null, [deleting?.id])
   const count = linked?.id === deleting?.id ? linked?.count : undefined
   const action = useAction()
   const heading = useRef<HTMLHeadingElement>(null)
@@ -22,7 +22,7 @@ export function DocumentList({ onEdit, blocked, onBusyChange }: DocumentListProp
   useEffect(() => {
     if (!action.pending && focusAfterAttempt.current) {
       if (focusAfterAttempt.current === 'cancel') heading.current?.parentElement?.querySelector<HTMLElement>('[role="alertdialog"] button')?.focus()
-      else if (focusAfterAttempt.current === 'opener' && opener.current?.isConnected) opener.current.focus()
+      else if (focusAfterAttempt.current === 'opener' && opener.current?.isConnected && !opener.current.disabled) opener.current.focus()
       else heading.current?.focus()
       focusAfterAttempt.current = null
     }
@@ -41,14 +41,14 @@ export function DocumentList({ onEdit, blocked, onBusyChange }: DocumentListProp
           {document.note && <p>{document.note}</p>}
           <DocumentFile key={document.fileId} fileId={document.fileId} title={document.title} />
           <div className="actions">
-            <button type="button" disabled={blocked || action.pending || deleting !== null} aria-label={`Изменить документ ${String(index + 1)}: ${document.title}`} onClick={() => { action.reset(); onEdit(document) }}>Изменить</button>
-            <button type="button" disabled={blocked || action.pending || deleting !== null} aria-label={`Удалить документ ${String(index + 1)}: ${document.title}`} onClick={event => { opener.current = event.currentTarget; action.reset(); setDeleting(document) }}>Удалить</button>
+            <button type="button" disabled={!current || blocked || action.pending || deleting !== null} aria-label={`Изменить документ ${String(index + 1)}: ${document.title}`} onClick={() => { action.reset(); onEdit(document) }}>Изменить</button>
+            <button type="button" disabled={!current || blocked || action.pending || deleting !== null} aria-label={`Удалить документ ${String(index + 1)}: ${document.title}`} onClick={event => { opener.current = event.currentTarget; action.reset(); setDeleting(document) }}>Удалить</button>
           </div>
         </article>
       </li>)}
     </ul>}
     {deleting && count === undefined && <p role="status">Проверяем связанные показатели…</p>}
-    {deleting && count !== undefined && <Confirmation question={count > 0 ? `Удалить документ «${deleting.title}» за ${deleting.date}, его файл и показатели (${String(count)})?` : `Удалить документ «${deleting.title}» за ${deleting.date} и его файл?`} pending={action.pending} onCancel={() => { focusAfterAttempt.current = 'opener'; setDeleting(null) }} onConfirm={() => {
+    {deleting && count !== undefined && <Confirmation question={count > 0 ? `Удалить документ «${deleting.title}» за ${deleting.date}, его файл и показатели (${String(count)})?` : `Удалить документ «${deleting.title}» за ${deleting.date} и его файл?`} pending={action.pending} confirmDisabled={!current || !linkedCurrent} onCancel={() => { focusAfterAttempt.current = 'opener'; setDeleting(null) }} onConfirm={() => {
       action.run(async () => {
         try {
           if (count > 0) await deleteDocumentWithResults(deleting, count)

@@ -1,17 +1,6 @@
-import { expect, test, type Page, type Locator } from './fixtures'
+import { expect, test } from './fixtures'
+import { verifyRefresh } from '../queryRefresh'
 
-async function verifyRefresh(page: Page, path: string, save: Locator, action: Locator) {
-  let release = () => {}, entered = () => {}
-  const gate = new Promise<void>(resolve => { release = resolve })
-  const started = new Promise<void>(resolve => { entered = resolve })
-  await page.route(path, async route => {
-    if (route.request().method() === 'GET') { entered(); await gate }
-    await route.continue()
-  })
-  try { await save.click(); await started; await expect(action).toBeDisabled() }
-  finally { release(); await page.unrouteAll({ behavior: 'wait' }) }
-  await expect(action).toBeEnabled()
-}
 
 test('профиль, вес, шаги, каталог и еда ждут свежих ревизий после сохранения', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-10-14T12:00:00Z'))

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useDiaryQuery } from '../dataAccess'
+import { useDiaryQueryState } from '../dataAccess'
 import { deletePhoto, listPhotos } from '../dataAccess'
 import { type Photo } from '../domain/photo'
 import { FileImage } from '../ui/FileImage'
@@ -8,7 +8,7 @@ import { Feedback, useAction } from '../ui/actions'
 
 interface PhotoGalleryProps { onEdit: (photo: Photo) => void; blocked: boolean; onBusyChange: (busy: boolean) => void }
 export function PhotoGallery({ onEdit, blocked, onBusyChange }: PhotoGalleryProps) {
-  const photos = useDiaryQuery(() => listPhotos())
+  const { data: photos, current } = useDiaryQueryState(() => listPhotos())
   const [deleting, setDeleting] = useState<Photo | null>(null)
   const action = useAction()
   const heading = useRef<HTMLHeadingElement>(null)
@@ -31,13 +31,13 @@ export function PhotoGallery({ onEdit, blocked, onBusyChange }: PhotoGalleryProp
           <FileImage fileId={photo.fileId} alt={photo.title} width={photo.width} height={photo.height} />
           {photo.note && <p>{photo.note}</p>}
           <div className="actions">
-            <button type="button" disabled={blocked || action.pending || deleting !== null} aria-label={`Изменить фото ${String(index + 1)}: ${photo.title}`} onClick={() => { action.reset(); onEdit(photo) }}>Изменить</button>
-            <button type="button" disabled={blocked || action.pending || deleting !== null} aria-label={`Удалить фото ${String(index + 1)}: ${photo.title}`} onClick={() => { action.reset(); setDeleting(photo) }}>Удалить</button>
+            <button type="button" disabled={!current || blocked || action.pending || deleting !== null} aria-label={`Изменить фото ${String(index + 1)}: ${photo.title}`} onClick={() => { action.reset(); onEdit(photo) }}>Изменить</button>
+            <button type="button" disabled={!current || blocked || action.pending || deleting !== null} aria-label={`Удалить фото ${String(index + 1)}: ${photo.title}`} onClick={() => { action.reset(); setDeleting(photo) }}>Удалить</button>
           </div>
         </article>
       </li>)}
     </ul>}
-    {deleting && <Confirmation question={`Удалить фото «${deleting.title}» за ${deleting.date} и его файл?`} pending={action.pending} onCancel={() => { setDeleting(null) }} onConfirm={() => {
+    {deleting && <Confirmation question={`Удалить фото «${deleting.title}» за ${deleting.date} и его файл?`} pending={action.pending} confirmDisabled={!current} onCancel={() => { setDeleting(null) }} onConfirm={() => {
       action.run(async () => { await deletePhoto(deleting); focusAfterDelete.current = true; setDeleting(null) }, 'Фото удалено')
     }} />}
   </section>

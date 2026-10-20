@@ -1,5 +1,19 @@
 # Прогресс
 
+## T225 — Свежесть вложений, показателей и плана
+
+PhotoGallery/DocumentList/LabList блокируют действия над устаревшими строками;
+DocumentList также учитывает current запроса количества связанных показателей.
+EnergyPlanSettings передаёт disabled в форму, сохраняющую draft/latest snapshot;
+фокус даты ждёт busy=false. Неизменённые исходные ревизии защищают конфликты.
+6 unit плана, 8 Browser четырёх областей, build/types/целевой lint,
+4 Desktop/mobile stale-media/stale-records E2E PASS; один helper GET-gate
+переиспользован вместо копирования. count подтверждения проверен при повторном
+фоновом чтении. Review: исправлен disabled-opener fallback документа;
+повторные 3 Documents Browser PASS. Общий fallback Confirmation при Cancel
+для остальных разделов выделен в T225a, чтобы сохранить бюджет пяти файлов.
+docs/diff PASS. Далее T225a, затем T226 и новая полная приёмка T222.
+
 ## T224 — Свежие ревизии основных форм
 
 Weight/Profile/FoodJournal/ProductCatalog/Steps используют current,
