@@ -6,6 +6,21 @@ export class DataError extends Error {
   }
 }
 
+function assertDatabaseText(value: unknown): void {
+  // PostgreSQL text/JSONB cannot store U+0000. Check decoded input before writes.
+  if (typeof value === 'string') {
+    if (value.includes('\u0000')) throw new DataError(400)
+  } else if (Array.isArray(value)) {
+    for (const item of value) assertDatabaseText(item)
+  } else if (value !== null && typeof value === 'object') {
+    for (const item of Object.values(value)) assertDatabaseText(item)
+  }
+}
+
 export function inputValue<T>(read: () => T): T {
-  try { return read() } catch { throw new DataError(400) }
+  try {
+    const value = read()
+    assertDatabaseText(value)
+    return value
+  } catch { throw new DataError(400) }
 }
