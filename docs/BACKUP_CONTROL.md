@@ -154,3 +154,26 @@ Healthy подтверждает все найденные архивы (1–14)
 без отдельного доверенного исторического ledger. Программа не заявляет, что
 сохранились ровно 14 ожидаемых копий. Причины corrupt/invalid_manifest/
 invalid_archive различаются внутри check_archive; CLI агрегирует их в failed.
+
+## Восстановление T254b
+
+20.10.2026 выполнено:
+
+    TEST_DATABASE_URL=postgresql://postgres:synthetic-local-only@127.0.0.1:55432/health_test npx --no-install vitest run src/server/backupRestore.test.ts
+    python3 -B -m unittest discover -s deploy -p 'test_*.py'
+
+Один synthetic restore test прошёл (около 3.55 s внутри теста), 72 Python
+deploy tests прошли. PostgreSQL 18.3 — отдельный контейнер
+health-diary-test-db, docker --pull=never; Node 24.22.0. Созданы случайные
+source/restore БД и временная GPG-пара. Реальный custom dump зашифрован,
+расшифрован и восстановлен одной транзакцией; fingerprints всех 20 таблиц,
+файлы, миграции, ACL/RLS и изоляция владельцев совпали. Повреждённый ciphertext
+и неверный dump отклонены. Сессии/ссылки в restore отозваны, остальные данные
+не изменились; source не изменён. После успешного cleanup временных БД нет.
+
+Это доказательство синтетического пути восстановления текущей схемы, включая
+миграцию 016. Оно не доказывает расшифровку каждого реального архива или
+доставку независимого alert. Private key восстановления не использовался и
+не устанавливался на VPS. Повторять drill после существенных изменений схемы
+или backup/restore; фактическое восстановление реальных данных выполняется
+оператором вне AI по BACKUPS, без вывода plaintext в Git/логи/чат.

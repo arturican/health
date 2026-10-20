@@ -157,7 +157,7 @@ push и frontend-релиз в него не входят.
 | T253a | blocked | [Активация watchdog и доставка](docs/tasks/T253a.md) | T253b, T252a |
 | T254 | done | [IMP-023: сохранять подтверждённый SHA копии](docs/tasks/T254.md) | T253 |
 | T254a | done | [IMP-023: независимая проверка offsite](docs/tasks/T254a.md) | T254 |
-| T254b | todo | IMP-023: синтетическое восстановление и runbook | T254a |
+| T254b | done | [IMP-023: синтетическое восстановление](docs/tasks/T254b.md) | T254a |
 | T254c | blocked | [Активация offsite alerts](docs/tasks/T254c.md) | T254b, T252a |
 | T255 | todo | IMP-024: проверка anchors и design docs | T254b |
 | T256 | todo | IMP-025: Mermaid validation по выбранному tooling | T255 |

@@ -3857,3 +3857,13 @@ review блокеров не нашёл, check:docs/diff прошли. Внут�
 Read-only in-memory live frontend run: fresh, 0 verified/14 unattested/0 failed.
 Manifest отсутствуют у старого receiver; файлы/конфигурация VPS не менялись.
 Доставка T254c blocked до T252a, backfill/installation остаются T260.
+
+## T254b — Synthetic restore текущей схемы
+
+Без изменения реализации запущен штатный backupRestore.test.ts: 1 passed,
+20 таблиц/файлы/миграции/ACL/RLS/изолированные владельцы, corrupt ciphertext и
+invalid dump, отзыв restore auth, source unchanged. Временные UUID БД/роли и
+GPG-пара очищены; aggregate query показал 0 временных БД после успешного теста.
+Все 72 deploy Python tests прошли. BACKUP_CONTROL содержит команды и границы
+доказательства: не real-archive decrypt и не независимая доставка.
+check:docs/diff прошли; production данные и ключи не использовались.
