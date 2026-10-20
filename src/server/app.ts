@@ -1,7 +1,8 @@
 import Fastify from 'fastify'
+import { createDiagnostics, type Diagnostics } from './diagnostics.js'
 import { CommandCapacityError, CommandRotationError, DataError } from './httpErrors.js'
 
-export function createApi(trustLocalProxy = false) {
+export function createApi(trustLocalProxy = false, diagnostics: Diagnostics = createDiagnostics()) {
   const app = Fastify({
     logger: false,
     trustProxy: trustLocalProxy ? (address, hop) => hop === 0
@@ -11,6 +12,7 @@ export function createApi(trustLocalProxy = false) {
     requestTimeout: 120000,
   })
 
+  app.decorate('healthDiagnostics', diagnostics)
   app.addHook('onSend', (_request, reply, payload, done) => {
     reply.header('Cache-Control', 'no-store')
     reply.header('X-Content-Type-Options', 'nosniff')
@@ -30,6 +32,7 @@ export function createApi(trustLocalProxy = false) {
     const supplied = error instanceof Error && 'statusCode' in error ? error.statusCode : undefined
     const status = supplied === 400 || supplied === 413 || supplied === 415 ? supplied : 500
     const code = status === 413 ? 'payload_too_large' : status === 415 ? 'unsupported_media_type' : status === 400 ? 'invalid_request' : 'internal_error'
+    if (status === 500) diagnostics('api_internal_error')
     const message = status === 500 ? 'Не удалось выполнить запрос' : 'Проверьте формат и размер запроса'
     return reply.code(status).send({ error: { code, message } })
   })

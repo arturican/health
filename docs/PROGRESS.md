@@ -3558,3 +3558,25 @@ trace содержал409/не содержал body. Сценарий пров�
 как клиент; JSON/code отдельно подтверждены SQL/API tests. Утечка ресурсов из
 этого наблюдения не утверждается. Read-only review не выявил privacy/session
 ошибок. Логи /tmp/health-T240a-*.log; выпуск ещё не выполнен.
+
+## T241 — Allowlisted диагностика
+
+API500 и catches регистрации/reset/binding передают только фиксированный event
+общему Fastify decorator. Diagnostics factory пишет локальный stderr:
+version/time/randomUUID/event/suppressed, до256bytes,30/type/60s, fixedMap3keys,
+насыщаемый счётчик. Writer failure проглатывается без рекурсии; внешних отправок
+нет. Raw Fastify/SMTP logger не включался. Public accepted/500 JSON прежние,
+обычные4xx и успех не создают ложных событий. App4files в пределах бюджета.
+Политика хранения/namespace service отдельно T241a до выпуска.
+
+Regression3FAIL до изменения; пять API/SMTP/diagnostics файлов71PASS:
+fixed events без sentinel/inputdetails, exactwindow/suppressed/backwardsclock,
+writerfailure и local synthetic SMTP success/fail/timeout. Build:api/lint/
+docs/diff/staged review пройдены, логи /tmp/health-T241-*.log.
+Ни медицинских данных, ни внешних писем/analytics для проверки не использовано.
+
+Дополнение T241 перед коммитом: review выявил async EPIPE у исходного stderr
+writer. Child IPC regression сначала завершался exit1; default sink заменён
+коротким writeSync(fd2) под try/catch. Child с закрытым stderr/env{} достигает
+alive и exit0, без произвольных задержек/глобального error handler.
+После исправления повторные71tests/build:api/lint PASS.

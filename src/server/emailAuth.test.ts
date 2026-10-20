@@ -10,12 +10,13 @@ import { tokenHash } from './sessions'
 let db: Awaited<ReturnType<typeof testDatabase>>, app: ReturnType<typeof createApi>
 let now: Date
 let messages: { to: string; subject: string; text: string }[]
+const diagnostics = vi.fn<(event: string) => void>()
 const send = vi.fn<(input: unknown) => Promise<void>>()
 const origin = 'https://synthetic.example.test', email = 'Synthetic.User@example.test'
 const password = ' synthetic-password-only '
 beforeEach(async () => {
   db = await testDatabase(); await migrate(db.pool, await readMigrations())
-  app = createApi(); messages = []; now = new Date('2026-10-16T10:00:00Z')
+  diagnostics.mockClear(); app = createApi(false, diagnostics); messages = []; now = new Date('2026-10-16T10:00:00Z')
   send.mockImplementation(input => {
     if (!input || typeof input !== 'object' || !('text' in input) || typeof input.text !== 'string') throw new Error('Нет письма')
     messages.push({ to: email, subject: '', text: input.text }); return Promise.resolve()
@@ -46,6 +47,7 @@ it('выдаёт секрет только письмом, хранит SHA-256,
   const completed = await finish(token)
   expect(completed.statusCode).toBe(200); expect(completed.headers['set-cookie']).toContain('Max-Age=0')
   expect((await finish(token)).statusCode).toBe(400)
+  expect(diagnostics).not.toHaveBeenCalled()
   expect((await db.pool.query('SELECT email_verified_at FROM health.users')).rows).toEqual([{ email_verified_at: now }])
 })
 
@@ -84,6 +86,7 @@ it('не раскрывает SMTP-ошибку и не ждёт подтвер�
   now = new Date('2026-10-16T10:01:00Z')
   const response = await signup()
   expect(response.statusCode).toBe(202); release()
+  expect(diagnostics).toHaveBeenCalledExactlyOnceWith('email_delivery_failed')
 })
 
 it('ограничивает выдачу и погашение, не раскрывая существование email', async () => {

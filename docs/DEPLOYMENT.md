@@ -226,6 +226,27 @@ assets; нет symlink/path traversal/перезаписи релиза иным
 Roboto-LICENSE.txt находится внутри assets. current переключается атомарно;
 предыдущие релизы и assets не удаляются автоматически, следите за диском.
 
+### Безопасные события API
+
+T241: приложение пишет в локальный stderr JSON строки не более256bytes:
+version1, UTC time, случайный id события, event и suppressed count.
+Разрешены только api_internal_error, email_delivery_failed,
+email_binding_failed. Это сигнал отказа, не SMTP delivery receipt:
+успешный accepted по-прежнему не подтверждает доставку письма.
+Нет request/URL/IP/account/email/body/token/SQL/raw error/stack.
+Fastify/Nodemailer verbose logging остаётся отключённым.
+
+Лимит —30 строк каждого типа за60s на instance (до90/min всего).
+Подавленные события суммируются в первой строке следующего окна;
+если новых событий нет, отдельный summary не создаётся. Default sink делает короткий writeSync(fd2), чтобы EPIPE/другие ошибки
+попали в try/catch. Writer failure не меняет публичный ответ и не создаёт рекурсивного логирования.
+ID случайный, не связан с user/session и не добавлен в публичный JSON.
+Искать нужно всплеск event и время; точную причину воспроизводить только
+на синтетических данных, не включать подробные production логи.
+
+Хранение и команды namespace будут зафиксированы T241a до выпуска;
+один этот коммит не подтверждает ограничение retention на действующем VPS.
+
 Диагностика (на соответствующем VPS):
 
     systemctl status health-api health-backup.timer

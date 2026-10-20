@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { verify } from 'argon2'
-import { afterEach, beforeEach, expect, it } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { createApi } from './app'
 import { registerAuthentication } from './auth'
@@ -11,6 +11,7 @@ import { testDatabase } from '../../tests/serverDatabase'
 
 let db: Awaited<ReturnType<typeof testDatabase>>, app: ReturnType<typeof createApi>, sessions: Sessions
 let session: NonNullable<Awaited<ReturnType<Sessions['login']>>>
+const diagnostics = vi.fn<(event: string) => void>()
 let messages: string[]
 const now = new Date('2026-10-16T10:00:00Z'), origin = 'https://synthetic.example.test'
 const email = 'Synthetic.User@example.test', password = 'synthetic-old-password', replacement = 'synthetic-new-password'
@@ -21,7 +22,7 @@ beforeEach(async () => {
   sessions = await createSessions(db.runtime)
   const value = await sessions.login({ login: 'legacy-user', password }, null, now)
   if (!value) throw new Error('Нет прежней сессии')
-  session = value; messages = []; app = createApi()
+  session = value; messages = []; diagnostics.mockClear(); app = createApi(false, diagnostics)
   app.decorate('accountMail', {
     send: (input: unknown) => { messages.push(z.object({ text: z.string() }).parse(input).text); return Promise.resolve() },
     close: () => Promise.resolve(),
@@ -116,4 +117,14 @@ it('показывает email только текущему аккаунту и
   expect(result.json<unknown>()).toEqual({ email: null, verified: false })
   for (let index = 0; index < 5; index++) expect((await bind({ email, password: replacement })).statusCode).toBe(400)
   expect((await bind()).statusCode).toBe(429)
+})
+
+it('отказ SMTP binding даёт один безопасный сигнал при прежнем accepted', async () => {
+  const mail = app.accountMail
+  if (!mail) throw new Error('Нет синтетического mailer')
+  vi.spyOn(mail, 'send').mockRejectedValueOnce(new Error('synthetic-private-SMTP ' + email))
+  const result = await bind()
+  expect(result.statusCode).toBe(202)
+  expect(result.json<unknown>()).toEqual({ accepted: true })
+  expect(diagnostics).toHaveBeenCalledExactlyOnceWith('email_binding_failed')
 })

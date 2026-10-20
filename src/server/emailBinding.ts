@@ -41,7 +41,7 @@ export function registerEmailBinding(app: FastifyInstance, pool: Pool,
       if (destination) {
         const delivery = mail.send({ to: destination, subject: 'Подтвердите почту дневника',
           text: `Для привязки почты задайте пароль по ссылке:\n${origin}/#auth=verify_email&token=${token}\n\nСсылка действует 1 час. После подтверждения все устройства выйдут из аккаунта. Если вы не запрашивали привязку, ничего делать не нужно.`,
-        }).catch(() => { /* No recipient or SMTP details in API/logs. */ })
+        }).catch(() => { app.healthDiagnostics('email_binding_failed') })
         deliveries.add(delivery); void delivery.finally(() => { deliveries.delete(delivery) })
       }
       return await reply.code(202).send({ accepted: true })

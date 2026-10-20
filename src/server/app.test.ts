@@ -1,9 +1,10 @@
 // @vitest-environment node
-import { afterEach, beforeEach, expect, it } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createApi } from './app'
 
+const diagnostics = vi.fn<(event: string) => void>()
 let app: ReturnType<typeof createApi>
-beforeEach(() => { app = createApi() })
+beforeEach(() => { diagnostics.mockClear(); app = createApi(false, diagnostics) })
 afterEach(async () => { await app.close() })
 
 it('возвращает только liveness без кеширования или cookie', async () => {
@@ -14,6 +15,7 @@ it('возвращает только liveness без кеширования и�
   expect(response.headers['cache-control']).toBe('no-store')
   expect(response.headers['x-content-type-options']).toBe('nosniff')
   expect(response.headers['set-cookie']).toBeUndefined()
+  expect(diagnostics).not.toHaveBeenCalled()
 })
 
 it.each(['GET', 'POST'] as const)('не открывает несуществующий API дневника и не отражает URL: %s', async method => {
@@ -45,6 +47,7 @@ it('скрывает неожиданные ошибки и stack trace', async 
   expect(response.statusCode).toBe(500)
   expect(response.json<unknown>()).toEqual({ error: { code: 'internal_error', message: 'Не удалось выполнить запрос' } })
   expect(response.headers['cache-control']).toBe('no-store')
+  expect(diagnostics).toHaveBeenCalledExactlyOnceWith('api_internal_error')
   for (const text of ['synthetic-private-text', 'synthetic-token', 'synthetic=session', 'stack']) expect(response.body).not.toContain(text)
 })
 

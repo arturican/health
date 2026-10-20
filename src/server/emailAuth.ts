@@ -25,7 +25,7 @@ export async function registerEmailAuth(app: FastifyInstance, pool: Pool, origin
     const delivery = mail.send({ to: address,
       subject: purpose === 'verify_email' ? 'Завершите регистрацию в дневнике' : 'Восстановление доступа к дневнику',
       text: `Чтобы задать пароль, откройте ссылку:\n${link}\n\nСсылка одноразовая и действует ${purpose === 'verify_email' ? '1 час' : '15 минут'}.\nЕсли вы не запрашивали это письмо, ничего делать не нужно.`,
-    }).catch(() => { /* Same public response for every recipient and delivery outcome. */ })
+    }).catch(() => { app.healthDiagnostics('email_delivery_failed') })
     deliveries.add(delivery)
     void delivery.finally(() => { deliveries.delete(delivery) })
   }
