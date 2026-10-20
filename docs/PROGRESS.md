@@ -3676,3 +3676,14 @@ helper до DTO; обновлён явный open/wait. Второй8PASS1FAIL �
 desktop/mobile PASS (настоящие API/PG, sourcebytes/restore/cascade/privacy).
 Types/lint/build/docs/diff/staged PASS, read-only review без оставшихся багов.
 Логи /tmp/health-T246-*.log. One appfile34 additions в пределах бюджета.
+
+## T247 — Ограниченная галерея
+
+PhotoGallery показывает6карточек и диапазон, nav переводит focus в heading;
+после shrink page clamp закрепляется guarded state update, grow не прыгает.
+Удаление/confirmation блокируют nav; selected comparison не размонтируется.
+Один appfile22additions. Data100MiB logicalmodel50×2MiB, initial6getFile,
+last2, next/prev/delete/shrink→grow проверены; не network/heap benchmark.
+Red1FAIL→5unit PASS.4Browser PASS, включая nativeJPEG/keyboard/narrow/axe.
+Types сначала выявили unknownid вmock, guard исправлен; types/lint/docs/diff/
+staged PASS. Read-only review edge shrink→grow учтён. Логи /tmp/health-T247-*.
