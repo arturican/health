@@ -3915,3 +3915,14 @@ Browser Chromium отдельно локально отрендерил все11
 pageerrors0; изображения осмотрены, читаемы. Bundle521.84kB/gzip149.41,
 Mermaid не включён в frontend. Read-only review блокеров не нашёл.
 Это local12.2renderer, не проверка rendererGitHub; syntax gate не layout review.
+
+## T257 — Cleanup частичного SQL setup
+
+tests/serverDatabase.ts отслеживает acquired role/DB/pools, чистит каждый
+ресурс независимо, сохраняет primary error или AggregateError с cleanup errors.
+Повтор close идемпотентен. Без FORCE и удаления неподтверждённых имён.
+Регрессии: до исправления 4 failed/3 passed; после 7 passed. Моки отказов
+не являются реальным SQL. Дополнительно реальные readiness+backupRestore:
+6 passed, inventory UUID DB/roles до/после побайтно совпал. Старый остаток
+сохранён. Typecheck и targeted ESLint прошли после правок тестового стиля;
+check:docs/diff прошли. Read-only review блокеров не нашёл.

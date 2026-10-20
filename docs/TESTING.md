@@ -302,3 +302,9 @@ Mermaid проверяется отдельным этапом того же che
 существующий jsdom, без внешней сети. Есть valid/invalid flowchart/ER/sequence,
 fences/empty/unclosed fixtures. Parse не заменяет визуальную проверку схем.
 См. [MERMAID_TOOLING](MERMAID_TOOLING.md).
+
+SQL fixture tests/serverDatabase.ts отслеживает подтверждённо созданные UUID
+ресурсы. Setup/teardown пытаются закрыть каждый pool и удалить только свои
+DB/role независимо от предыдущей ошибки; AggregateError сохраняет причины.
+Повтор close использует один promise. Старые неизвестные остатки автоматически
+не удаляются: отсутствие новых утечек проверяют сравнением inventory до/после.
