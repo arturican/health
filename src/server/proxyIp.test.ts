@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { expect, it } from 'vitest'
 import { createApi } from './app'
-import { createLoginLimit } from './loginLimit'
+import { createAuthRateLimit } from './authRateLimit'
+import { migrate, readMigrations } from './migrations'
+import { testDatabase } from '../../tests/serverDatabase'
 
 it.each([
   { enabled: false, remote: '127.0.0.1', forwarded: '192.0.2.1', expected: '127.0.0.1' },
@@ -20,16 +22,18 @@ it.each([
 })
 
 it('исчерпание IP-бюджета не блокирует другой адрес и не обходится левым префиксом цепочки', async () => {
-  const app = createApi(true), allowed = createLoginLimit()
+  const database = await testDatabase()
+  const app = createApi(true), allowed = createAuthRateLimit(database.runtime, 'login')
   let attempt = 0
-  app.post('/limited', (request, reply) => {
-    if (!allowed(request.ip, `synthetic-${String(attempt++)}`, 0)) return reply.code(429).send()
+  app.post('/limited', async (request, reply) => {
+    if (!await allowed(request.ip, `synthetic-${String(attempt++)}`, new Date('2026-10-16T12:00:00Z'))) return reply.code(429).send()
     return { ok: true }
   })
   const send = (forwarded: string) => app.inject({ method: 'POST', url: '/limited', remoteAddress: '127.0.0.1', headers: { 'x-forwarded-for': forwarded } })
   try {
+    await migrate(database.pool, await readMigrations())
     for (let i = 0; i < 30; i++) expect((await send('192.0.2.1')).statusCode).toBe(200)
     expect((await send('192.0.2.99, 192.0.2.1')).statusCode).toBe(429)
     expect((await send('192.0.2.2')).statusCode).toBe(200)
-  } finally { await app.close() }
+  } finally { await app.close(); await database.close() }
 })

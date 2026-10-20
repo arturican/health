@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { afterEach, beforeEach, expect, it } from 'vitest'
 import { verify } from 'argon2'
-import { registerAccount } from './registration'
+import { registrationSchema } from '../domain/registration'
+import { accountSchema, hashPassword } from './accounts'
 import { migrate, readMigrations } from './migrations'
 import { testDatabase } from '../../tests/serverDatabase'
 
@@ -10,8 +11,17 @@ const input = { login: ' New-user ', password: 'synthetic-register-password', ti
 beforeEach(async () => { database = await testDatabase(); await migrate(database.pool, await readMigrations()) })
 afterEach(async () => { await database.close() })
 
+// Preserve checks of the immutable SQL contract after retiring its HTTP wrapper.
+async function registerAccount(input: unknown) {
+  const values = registrationSchema.parse(input)
+  const encoded = await hashPassword(values.password)
+  const result = await database.runtime.query<Record<string, unknown>>(
+    'SELECT * FROM health.register_account($1, $2, $3)', [values.login, encoded, values.timezone])
+  return result.rows[0] ? accountSchema.parse(result.rows[0]) : null
+}
+
 it('создаёт аккаунт ограниченной ролью, сохраняет Argon2id и публичные поля', async () => {
-  const account = await registerAccount(database.runtime, input)
+  const account = await registerAccount(input)
   if (!account) throw new Error('Нет аккаунта')
   expect(account.id).toMatch(/^[a-f0-9-]{36}$/)
   expect(account).toEqual({ id: account.id, login: 'new-user', timezone: input.timezone })
@@ -26,16 +36,16 @@ it('создаёт аккаунт ограниченной ролью, сохр�
 })
 
 it('конкурентный повтор нормализованного логина не меняет пароль или часовой пояс', async () => {
-  const results = await Promise.all([registerAccount(database.runtime, input), registerAccount(database.runtime, input)])
+  const results = await Promise.all([registerAccount(input), registerAccount(input)])
   expect(results.filter(Boolean)).toHaveLength(1)
   const before = (await database.pool.query('SELECT * FROM health.users')).rows
-  expect(await registerAccount(database.runtime, { ...input, password: 'another-synthetic-password', timezone: 'UTC' })).toBeNull()
+  expect(await registerAccount({ ...input, password: 'another-synthetic-password', timezone: 'UTC' })).toBeNull()
   expect((await database.pool.query('SELECT * FROM health.users')).rows).toEqual(before)
 })
 
 it.each([null, {}, { ...input, login: 'bad login' }, { ...input, password: 'short' },
   { ...input, password: 'x'.repeat(1025) }, { ...input, timezone: 'Mars/Base' }, { ...input, id: 'injected' }])('не создаёт аккаунт при неверном вводе', async value => {
-  await expect(registerAccount(database.runtime, value)).rejects.toThrow()
+  await expect(registerAccount(value)).rejects.toThrow()
   expect((await database.pool.query('SELECT id FROM health.users')).rowCount).toBe(0)
 })
 

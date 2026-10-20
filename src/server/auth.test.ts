@@ -8,7 +8,6 @@ import { createAccount } from './accounts'
 import { migrate, readMigrations } from './migrations'
 import { testDatabase } from '../../tests/serverDatabase'
 import { readCookie } from './httpSecurity'
-import { createLoginLimit } from './loginLimit'
 
 let database: Awaited<ReturnType<typeof testDatabase>>
 let app: ReturnType<typeof createApi>
@@ -98,14 +97,10 @@ it('ограничивает попытки независимо от подде
   await login()
 })
 
-it('не принимает дублирующиеся cookie и проверяет общий лимит IP', () => {
+it('не принимает дублирующиеся и неверные cookie', () => {
   const token = 'a'.repeat(64)
   expect(readCookie(`__Host-health_session=${token}; __Host-health_session=${token}`)).toBeNull()
   expect(readCookie('__Host-health_session=invalid')).toBeNull()
-  const limit = createLoginLimit()
-  for (let i = 0; i < 30; i++) expect(limit('127.0.0.1', `login${String(i)}`, 0)).toBe(true)
-  expect(limit('127.0.0.1', 'next', 59999)).toBe(false)
-  expect(limit('127.0.0.1', 'next', 60000)).toBe(true)
 })
 
 it('отвергает подключение API с административной ролью', async () => {

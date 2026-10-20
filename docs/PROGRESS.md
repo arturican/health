@@ -1,5 +1,20 @@
 # Прогресс
 
+## T219 — Одна действующая реализация лимитов авторизации
+
+Удалены test-only production loginLimit/registration: runtime использует
+authRateLimit/emailAuth. SQL register_account и неизменяемые миграции сохранены,
+их ограничения/конкурентность/ACL продолжает проверять локальный test adapter.
+Proxy-тест теперь использует настоящий PostgreSQL-лимитер; obsolete Map-тест
+удалён, реальные границы времени/ёмкости/перезапуска остаются в authRateLimit.
+Закрытый HTTP register и проверки cookie сохранены.
+Поиск production/test/config/dynamic entrypoints и независимый review PASS.
+58 целевых auth/email/SQL/proxy тестов, lint/types/build:api PASS; docs/diff PASS.
+
+Проверка: authRateLimit/proxyIp tests; поведение UI не меняется.
+Тест старого helper не доказывает защиту рабочего маршрута.
+Следующий согласованный этап T220 — расширения скачиваемого документа.
+
 ## T218 — Недопустимый текст отклоняется до PostgreSQL
 
 inputValue проверяет декодированные строки/вложенные значения на U+0000:

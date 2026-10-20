@@ -3,7 +3,6 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import * as accounts from './accounts'
 import { createApi } from './app'
 import { registerAuthentication } from './auth'
-import { createRegistrationLimit } from './registration'
 import { migrate, readMigrations } from './migrations'
 import { testDatabase } from '../../tests/serverDatabase'
 
@@ -50,12 +49,3 @@ it('ограничивает четыре общих слота погашени
   expect((await database.pool.query('SELECT * FROM health.sessions')).rowCount).toBe(0)
 })
 
-it('лимит погашения имеет границу времени и ограниченную память', () => {
-  const allow = createRegistrationLimit()
-  for (let index = 0; index < 10; index++) expect(allow('same', 0)).toBe(true)
-  expect(allow('same', 899999)).toBe(false)
-  expect(allow('same', 900000)).toBe(true)
-  for (let index = 0; index < 9999; index++) expect(allow(String(index), 900000)).toBe(true)
-  expect(allow('overflow', 900000)).toBe(false)
-  expect(allow('overflow', 1800000)).toBe(true)
-})
