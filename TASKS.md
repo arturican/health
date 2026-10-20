@@ -63,6 +63,7 @@ push и frontend-релиз в него не входят.
 | [T212](docs/tasks/T212.md) | done | Детерминированный тест лимита одновременных паролей | T211 |
 | [T213](docs/tasks/T213.md) | done | Readiness API с проверкой runtime БД | T212 |
 | [T214](docs/tasks/T214.md) | done | Контракт API и итоговая приёмка backend | T213 |
+| [T215](docs/tasks/T215.md) | done | Push и выпуск завершённого backend | T214 |
 
 ## Подготовка
 

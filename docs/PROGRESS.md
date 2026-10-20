@@ -1,5 +1,48 @@
 # Прогресс
 
+## T215 — Push и выпуск завершённого backend
+
+20.10.2026 пользователь явно разрешил push/деплой. Исходное дерево чистое,
+HEAD 2b719b5, dev впереди origin/dev на 9 коммитов; fetch не выявил расхождения.
+Действуют успешные полные gates T213 для неизменённого кода: 1626 unit/API,
+91 Browser, 80 E2E, 38 Python deploy, verify_build и systemd verify.
+Свежий build:api PASS. Создана карточка до операционных изменений.
+
+SSH с закреплёнными host keys. Штатный GPG backup выполнен успешно,
+внешняя копия сверена SHA256 напрямую; 7 локальных/14 внешних копий.
+Monitor dry-run healthy/fresh/success без письма/изменения state.
+Новый /opt/health-api/releases/T215-2b719b599141 содержит артефакт
+из 2b719b59914136dca1fb8ec95e2317fa0814fca0. SHA256 архива и 27 файлов
+сверены до/после npm ci --omit=dev, runtime/native imports PASS;
+релиз root-owned, приложению недоступна запись. 15 миграций совпали с прежними,
+DDL/seed/роли/секреты/SMTP/Nginx/retention не менялись.
+current переключён атомарно с автоматическим возвратом при ошибке HTTP;
+перезапущен только health-api, прежний T205-5af8a91 сохранён.
+
+Health/readiness: локально и HTTPS 200 ok/ready, no-store/nosniff;
+profile/diary-state без cookie 401, тестовые маршруты отсутствуют.
+API/backup timer/monitor timer/tunnel/Nginx активны, monitor enabled.
+nginx -t PASS; два предупреждения устаревших http2-директив относятся
+к другому существующему virtual host, его настройки не менялись.
+Deployed Playwright: 6 desktop/mobile PASS на синтетическом health-demo,
+восемь экранов/вложения/CRUD/выход/CSRF/a11y, исходные записи сохранены.
+В этом прогоне frontend ещё имел прежний SHA 57d981c, API уже новый;
+frontend текущего релиза проверяется отдельно по release.txt после CI.
+Настоящих писем, личных записей или сбоев рабочей БД тесты не создавали.
+
+Push dev до 2b719b5 выполнен. GitHub run 39410436182 завершён success:
+check и deploy PASS, HTTPS release.txt точно совпал с полным 2b719b5 SHA.
+Один запрос статуса GitHub получил TLS timeout; повтор подтвердил результат,
+workflow не перезапускался. Итоговые check:docs/diff check PASS.
+Итоговый docs-коммит отправляется тем же разрешённым push; его новый
+CI/deploy и окончательный frontend SHA проверяются после отправки.
+
+Проверка: HTTPS /api/v1/readiness и восемь экранов после входа;
+версия frontend — release.txt, backend — current/хеш артефакта.
+Наличие опубликованного frontend не подтверждает обновление API:
+это отдельные конвейеры. Откат ссылки сохраняет совместимую схему и копии.
+Следующий возможный этап — отдельное наблюдение эксплуатации; не начинается.
+
 ## T214 — Контракт и итоговая приёмка backend
 
 Добавлен API_REFERENCE: все 62 явные пары метод/путь текущего runtime,
