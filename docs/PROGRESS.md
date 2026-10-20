@@ -3698,3 +3698,20 @@ Playwright check требовал моментальную controlledcheckbox с
 click+awaitchecked как реальный async сценарий. Финальный1E2E PASS,
 build/lint/docs/diff/staged PASS. Логи /tmp/health-T248-*.
 T249 разбита до реализации на coreprotocol и T249a4repos+summaries (≤5files).
+
+## T249 — ReadScope protocol
+
+Branded ReadScope выдаётся callback одной попытки consistentRead и становится
+недействителен в finally до after fence. ReadPages с явнымscope проверяет его
+и sessioncontext по каждой странице, не делает свою пару stateGET. Default
+поведение прежнее; ambient/global depth отсутствует.2appfiles в бюджете.
+Три регрессии FAIL до изменения; после19unit PASS: pagination/direction/loop,
+3retry/409,generation,expired/error scope, независимое defaultread и параллельные
+scopes. Types/lint/docs/diff/staged PASS, логи /tmp/health-T249-*.
+При подсчёте вызовов target T249a уточнён23/13:4innerfences =8GET экономии.
+Productioncallers пока не передают scope; UI budget не выдаётся за улучшенный.
+
+Дополнение T249: по review добавлены deferred escaped final/nonfinal page и
+owner/generation change во время запроса.19tests PASS; expiredscope даёт409,
+смена epoch сохраняет прежнюю безопасную ошибку «прежний вход», не выдуманный
+ApiError409. Следующая страница/новыйowner не читаются. Code review одобряет.

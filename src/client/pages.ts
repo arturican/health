@@ -1,12 +1,13 @@
 import { z } from 'zod'
 import { BACKUP_MAX_RECORDS } from '../domain/backup'
 import { requestJSON } from './http'
-import { consistentRead } from './readState'
+import { consistentRead, type ReadScope } from './readState'
 import { assertContext, captureContext } from './records'
 
 const cursorSchema = z.union([z.string().min(1).max(80), z.number().int().positive().max(Number.MAX_SAFE_INTEGER)]).nullable()
-export function readPages<T>(path: string, item: z.ZodType<T>, direction: 'after' | 'before' = 'after'): Promise<T[]> {
-  return consistentRead(async () => {
+export function readPages<T>(path: string, item: z.ZodType<T>, direction: 'after' | 'before' = 'after', scope?: ReadScope): Promise<T[]> {
+  const read = async () => {
+    scope?.assertCurrent()
     const context = captureContext(), items: T[] = [], seen = new Set<string>()
     const url = new URL(path, 'https://health.invalid')
     if (!path.startsWith('/api/v1/')) throw new Error('Недопустимый адрес API')
@@ -15,8 +16,10 @@ export function readPages<T>(path: string, item: z.ZodType<T>, direction: 'after
       z.strictObject({ items: z.array(item).max(100), nextBefore: cursorSchema })])
     for (;;) {
       assertContext(context)
+      scope?.assertCurrent()
       const page = await requestJSON(url.pathname + url.search, schema)
       assertContext(context)
+      scope?.assertCurrent()
       if ((direction === 'after') !== ('nextAfter' in page)) throw new Error('Некорректная страница API')
       const next = 'nextAfter' in page ? page.nextAfter : page.nextBefore
       items.push(...page.items)
@@ -29,5 +32,6 @@ export function readPages<T>(path: string, item: z.ZodType<T>, direction: 'after
       seen.add(cursor)
       url.searchParams.set(direction, cursor)
     }
-  })
+  }
+  return scope ? read() : consistentRead(read)
 }

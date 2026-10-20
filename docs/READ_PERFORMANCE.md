@@ -27,14 +27,16 @@ Mutation duration включает POST; count table — толькоGET.
 
 Постоянный test ограничивает baseline≤31GET/≤21state в каждой фазе.
 T249/T249a: сохранить внешнюю before/after пару snapshot, убрать вложенные
-fences у4paged repositories внутри summaries; ожидаемый budget≤19GET/≤9state.
+fences у4paged repositories внутри summaries; ожидаемый budget≤23GET/≤13state.
 ReadScope передаётся явно, прекращает действие по выходу callback; параллельные
 scopes изолированы, никакого global async depth. Три retry/owner/generation/
 cursorloop проверки остаются обязательными. Это сначала coreprotocol (T249),
 затем4repositories+summaries (T249a), чтобы каждый коммит укладывался в5appfiles.
 
 T250: shared food/nutrition-days между TodayMeals/NutritionSummary/EnergySummary
-в одном view. Целевой≤12GET/≤5state, точный бюджет уточнить по замеру после
+в одном view. Целевой≤16GET/≤9state для общего питания; объединение остальных карточек
+в один согласованный snapshot может довести до≤12GET/≤5state отдельным шагом.
+Точный бюджет уточнить по замеру после
 T249a. Независимые экраны сохраняют самостоятельные reads. Day/owner changes,
 incomplete/null значения и запрет stale writes не ослабляются.
 Файловый cache T251 выбирается отдельно после повторного замера bytes.

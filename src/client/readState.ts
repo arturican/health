@@ -10,13 +10,23 @@ export async function refreshDiaryState() {
   return state
 }
 
-export async function consistentRead<T>(work: () => Promise<T>): Promise<T> {
+const scopeBrand = Symbol('read-scope')
+export interface ReadScope { readonly [scopeBrand]: true; assertCurrent: () => void }
+
+export async function consistentRead<T>(work: (scope: ReadScope) => Promise<T>): Promise<T> {
   const context = captureContext()
   for (let attempt = 0; attempt < 3; attempt++) {
     assertContext(context)
     const before = await refreshDiaryState()
     assertContext(context)
-    const value = await work()
+    let active = true
+    const scope: ReadScope = { [scopeBrand]: true, assertCurrent: () => {
+      if (!active) throw new ApiError(409)
+      assertContext(context)
+    } }
+    let value: T
+    try { value = await work(scope) }
+    finally { active = false }
     assertContext(context)
     const after = await refreshDiaryState()
     assertContext(context)
