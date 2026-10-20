@@ -153,8 +153,8 @@ push и frontend-релиз в него не входят.
 | T252 | done | [IMP-021: независимый контроль резервирования](docs/tasks/T252.md) | T251b |
 | T252a | blocked | [Независимый канал оповещений](docs/tasks/T252a.md) | T252 |
 | T253 | done | [IMP-022: независимый availability probe](docs/tasks/T253.md) | T252 |
-| T253b | todo | IMP-022: state/delivery policy и timer artifact | T253 |
-| T253a | todo | Активация внешнего watchdog и проверка доставки | T253b, T252a |
+| T253b | done | [IMP-022: состояние и доставка watchdog](docs/tasks/T253b.md) | T253 |
+| T253a | blocked | [Активация watchdog и доставка](docs/tasks/T253a.md) | T253b, T252a |
 | T254 | todo | IMP-023: независимая offsite проверка | T253 |
 | T255 | todo | IMP-024: проверка anchors и design docs | T254 |
 | T256 | todo | IMP-025: Mermaid validation по выбранному tooling | T255 |

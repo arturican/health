@@ -3822,3 +3822,15 @@ frontend VPS: exit 0, healthy / ok / ready. Ничего не установле
 и email не создавались. Read-only review уточнил строгую проверку body при 503;
 регрессия добавлена и пройдена. check:docs и diff --check прошли.
 Доставка и state — T253b, активация — T253a после выбора канала T252a.
+
+## T253b — Артефакт состояния и доставки watchdog
+
+Добавлены watchdog_monitor.py и service/timer: два одинаковых наблюдения,
+дедупликация, recovery, приватные atomic state и flock, localhost-only SMTP.
+Четырнадцать watchdog unittest прошли, systemd-analyze verify обоих units
+завершился без замечаний, check:docs и diff --check прошли.
+Review обнаружил поглощение общего deadline; исправлено отдельным probe-процессом
+(15 s, ожидание 17 s). Общий deadline 45 s выходит с redacted exit 2 без
+notify/state, отдельная регрессия это проверяет. Итоговый review блокеров не нашёл.
+SMTP acceptance и получение писем не проверялись; ничего не установлено на VPS.
+T253a blocked до T252a: отсутствует выбранный независимый транспорт.

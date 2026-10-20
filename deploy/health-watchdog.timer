@@ -1,0 +1,11 @@
+[Unit]
+Description=Health Diary availability every five minutes
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=5m
+RandomizedDelaySec=30s
+Unit=health-watchdog.service
+
+[Install]
+WantedBy=timers.target
