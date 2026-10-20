@@ -87,3 +87,13 @@ describe('Confirmation: клавиатурный фокус', () => {
     await waitFor(() => { expect(screen.getByRole('button', { name: 'Отмена' })).toHaveFocus() })
   })
 })
+it('при обновлении данных блокирует подтверждение, сохраняя доступную отмену', () => {
+  const cancel = vi.fn(), confirm = vi.fn()
+  render(<Confirmation question="Удалить учебную запись?" pending={false} confirmDisabled onConfirm={confirm} onCancel={cancel} />)
+  expect(screen.getByRole('button', { name: 'Подтвердить удаление' })).toBeDisabled()
+  const button = screen.getByRole('button', { name: 'Отмена' })
+  expect(button).toBeEnabled()
+  fireEvent.click(button)
+  expect(cancel).toHaveBeenCalledOnce()
+  expect(confirm).not.toHaveBeenCalled()
+})

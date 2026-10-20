@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useDiaryQuery, deleteWorkout, listWorkouts } from '../dataAccess'
+import { useDiaryQueryState, deleteWorkout, listWorkouts } from '../dataAccess'
 import type { Workout } from '../domain/activity'
 import { useDay } from '../ui/DayContext'
 import { WorkoutForm } from './WorkoutForm'
@@ -9,14 +9,14 @@ import { exactNumber } from '../ui/exactNumber'
 
 export function WorkoutJournal() {
   const { day } = useDay()
-  const workouts = useDiaryQuery(() => listWorkouts(day), [day])
+  const { data: workouts, current } = useDiaryQueryState(() => listWorkouts(day), [day])
   const [editing, setEditing] = useState<Workout | null>(null)
   const [deleting, setDeleting] = useState<Workout | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [formPending, setFormPending] = useState(false)
   const action = useAction()
   const busy = action.pending || formPending
-  const formProps = { disabled: action.pending, onPendingChange: setFormPending }
+  const formProps = { disabled: action.pending || (!current && editing !== null), onPendingChange: setFormPending }
   const section = useRef<HTMLElement>(null)
   const focusAfterChange = useRef(false)
   useEffect(() => {
@@ -41,12 +41,12 @@ export function WorkoutJournal() {
         {workout.source && <p>Источник: {workout.source}</p>}
         {workout.note && <p>{workout.note}</p>}
         <div className="actions">
-          <button type="button" disabled={busy || editing !== null || deleting !== null} aria-label={`Изменить тренировку ${String(index + 1)}: ${workout.kind}`} onClick={() => { action.reset(); setNotice(null); setEditing(workout) }}>Изменить</button>
-          <button type="button" disabled={busy || editing !== null || deleting !== null} aria-label={`Удалить тренировку ${String(index + 1)}: ${workout.kind}`} onClick={() => { action.reset(); setNotice(null); setDeleting(workout) }}>Удалить</button>
+          <button type="button" disabled={busy || !current || editing !== null || deleting !== null} aria-label={`Изменить тренировку ${String(index + 1)}: ${workout.kind}`} onClick={() => { action.reset(); setNotice(null); setEditing(workout) }}>Изменить</button>
+          <button type="button" disabled={busy || !current || editing !== null || deleting !== null} aria-label={`Удалить тренировку ${String(index + 1)}: ${workout.kind}`} onClick={() => { action.reset(); setNotice(null); setDeleting(workout) }}>Удалить</button>
         </div>
       </li>)}
     </ul>}
-    {deleting && <Confirmation question={`Удалить тренировку «${deleting.kind}» за ${deleting.date}?`} pending={busy} onCancel={() => { setDeleting(null) }} onConfirm={() => {
+    {deleting && <Confirmation question={`Удалить тренировку «${deleting.kind}» за ${deleting.date}?`} pending={busy} confirmDisabled={!current} onCancel={() => { setDeleting(null) }} onConfirm={() => {
       action.run(async () => {
         await deleteWorkout(deleting)
         focusAfterChange.current = true

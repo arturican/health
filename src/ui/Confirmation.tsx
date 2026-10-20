@@ -3,11 +3,12 @@ import { useEffect, useId, useRef } from 'react'
 interface ConfirmationProps {
   question: string
   pending: boolean
+  confirmDisabled?: boolean
   onConfirm: () => void
   onCancel: () => void
 }
 
-export function Confirmation({ question, pending, onConfirm, onCancel }: ConfirmationProps) {
+export function Confirmation({ question, pending, confirmDisabled = false, onConfirm, onCancel }: ConfirmationProps) {
   const id = useId()
   const dialog = useRef<HTMLDivElement>(null)
   const cancel = useRef<HTMLButtonElement>(null)
@@ -28,7 +29,7 @@ export function Confirmation({ question, pending, onConfirm, onCancel }: Confirm
       <p id={id}>{question}</p>
       <div className="actions">
         <button ref={cancel} type="button" className="secondary" disabled={pending} onClick={onCancel}>Отмена</button>
-        <button type="button" disabled={pending} onClick={() => { returnAfterConfirm.current = true; onConfirm() }}>Подтвердить удаление</button>
+        <button type="button" disabled={pending || confirmDisabled} onClick={() => { returnAfterConfirm.current = true; onConfirm() }}>Подтвердить удаление</button>
       </div>
     </div>
   )

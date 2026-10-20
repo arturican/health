@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { useDiaryQuery as ApiQuery } from '../client/useDiaryQuery'
+import type { useDiaryQueryState as ApiQueryState } from '../client/useDiaryQuery'
 import type * as Backup from '../client/backupRepository'
 import type { prepareDiaryChange as ApiConfirmation } from '../client/confirmations'
 import * as backup from '../data/backupRepository'
@@ -38,6 +39,10 @@ import type * as visibilityApi from '../client/visibilityRepository'
 
 // Временный адаптер для последовательного переноса UI; затем остаётся только в тестах.
 export const useDiaryQuery: typeof ApiQuery = (read, dependencies) => useLiveQuery(read, [...(dependencies ?? [])])
+export const useDiaryQueryState: typeof ApiQueryState = (read, dependencies) => {
+  const data = useDiaryQuery(read, dependencies)
+  return { data, current: data !== undefined }
+}
 export const getProfile: typeof profileApi.getProfile = () => profile.getProfile()
 export const createProfile: typeof profileApi.createProfile = (input, weight) => profile.createProfile(input, weight)
 export const updateProfile: typeof profileApi.updateProfile = input => profile.updateProfile(input)

@@ -2,11 +2,15 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { getClientSession, subscribeSession } from './session'
 import { getQueryRevision, reportQueryError, subscribeQueries } from './queries'
 
-type Result<T> = { identity: string, kind: 'ready', value: T } | { identity: string, kind: 'error', error: Error }
+type Result<T> = { identity: string, revision: number, kind: 'ready', value: T } | { identity: string, kind: 'error', error: Error }
 type Dependency = string | number | boolean | null | undefined
 const getEpoch = () => getClientSession().epoch
 
 export function useDiaryQuery<T>(read: () => Promise<T>, dependencies: readonly Dependency[] = []): T | undefined {
+  return useDiaryQueryState(read, dependencies).data
+}
+
+export function useDiaryQueryState<T>(read: () => Promise<T>, dependencies: readonly Dependency[] = []): { data: T | undefined; current: boolean } {
   const epoch = useSyncExternalStore(subscribeSession, getEpoch)
   const revision = useSyncExternalStore(subscribeQueries, getQueryRevision)
   const identity = JSON.stringify([epoch, dependencies.map(value => [typeof value, value])])
@@ -23,7 +27,7 @@ export function useDiaryQuery<T>(read: () => Promise<T>, dependencies: readonly 
       if (!isActive()) return
       loaded.current = identity
       reportQueryError(id, false)
-      setResult({ identity, kind: 'ready', value })
+      setResult({ identity, revision, kind: 'ready', value })
     }).catch((reason: unknown) => {
       if (!active) return
       reportQueryError(id, loaded.current === identity)
@@ -32,7 +36,7 @@ export function useDiaryQuery<T>(read: () => Promise<T>, dependencies: readonly 
     })
     return () => { active = false; reportQueryError(id, false) }
   }, [identity, revision])
-  if (result?.identity !== identity) return undefined
+  if (result?.identity !== identity) return { data: undefined, current: false }
   if (result.kind === 'error') throw result.error
-  return result.value
+  return { data: result.value, current: result.revision === revision }
 }

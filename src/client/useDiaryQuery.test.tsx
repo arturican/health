@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { useDiaryQuery } from './useDiaryQuery'
+import { useDiaryQueryState } from './useDiaryQuery'
 import { QueryFeedback } from './QueryFeedback'
 import { getQueryErrorCount, getQueryRevision, invalidateQueries } from './queries'
 import { setClientSession } from './session'
@@ -10,9 +10,9 @@ import { StorageBoundary } from '../ui/StorageBoundary'
 
 const read = vi.fn<(day: string) => Promise<string[]>>()
 function View({ day = 'one' }: { day?: string }) {
-  const data = useDiaryQuery(() => read(day), [day])
+  const { data, current } = useDiaryQueryState(() => read(day), [day])
   if (data === undefined) return <p role="status">Загрузка</p>
-  return <><p>{data.length ? data.join(', ') : 'Нет записей'}</p><input aria-label="Черновик" defaultValue="" /></>
+  return <><p>{data.length ? data.join(', ') : 'Нет записей'}</p><input aria-label="Черновик" defaultValue="" /><button disabled={!current}>Изменить запись</button></>
 }
 function Harness({ day = 'one' }: { day?: string }) {
   return <><QueryFeedback /><StorageBoundary><View day={day} /></StorageBoundary></>
@@ -55,14 +55,18 @@ it('сохраняет форму при фоновом сбое и обновл
   render(<Harness />)
   await screen.findByText('Первая учебная запись')
   const field = screen.getByLabelText('Черновик')
+  expect(screen.getByRole('button', { name: 'Изменить запись' })).toBeEnabled()
   fireEvent.change(field, { target: { value: 'Несохранённый учебный ввод' } })
   act(() => { invalidateQueries() })
+  expect(screen.getByRole('button', { name: 'Изменить запись' })).toBeDisabled()
   expect(await screen.findByRole('alert')).toHaveTextContent('ваш ввод сохранён')
   expect(screen.getByLabelText('Черновик')).toBe(field)
   expect(field).toHaveValue('Несохранённый учебный ввод')
+  expect(screen.getByRole('button', { name: 'Изменить запись' })).toBeDisabled()
   expect(screen.queryByText('synthetic-private-error')).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Повторить загрузку' }))
   expect(await screen.findByText('Обновлённая учебная запись')).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Изменить запись' })).toBeEnabled()
   expect(field).toHaveValue('Несохранённый учебный ввод')
   expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 })

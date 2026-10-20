@@ -60,8 +60,19 @@ export async function verifyWorkoutSmoke(page: Page, context: BrowserContext, he
     await page.getByRole('button', { name: new RegExp('^Изменить тренировку [0-9]+: ' + second + '$') }).click()
     const editor = page.getByRole('form', { name: 'Редактирование тренировки' })
     await editor.getByLabel('Длительность, мин', { exact: true }).fill('18,5')
-    await editor.getByRole('button', { name: 'Сохранить тренировку', exact: true }).click()
-    await expect(editor).toHaveCount(0)
+    let releaseRefresh = () => {}, refreshStarted = () => {}
+    const refreshGate = new Promise<void>(resolve => { releaseRefresh = resolve })
+    const refreshing = new Promise<void>(resolve => { refreshStarted = resolve })
+    const listPath = '**/api/v1/workouts?**'
+    await page.route(listPath, async route => { refreshStarted(); await refreshGate; await route.continue() })
+    const deleteSecond = page.getByRole('button', { name: new RegExp('^Удалить тренировку [0-9]+: ' + second + '$') })
+    try {
+      await editor.getByRole('button', { name: 'Сохранить тренировку', exact: true }).click()
+      await refreshing
+      await expect(editor).toHaveCount(0)
+      await expect(deleteSecond).toBeDisabled()
+    } finally { releaseRefresh(); await page.unrouteAll({ behavior: 'wait' }) }
+    await expect(deleteSecond).toBeEnabled()
     expect((await read()).find(row => row.value.kind === second)?.value.minutes).toBe(18.5)
     for (const kind of [second, first]) {
       await page.getByRole('button', { name: new RegExp('^Удалить тренировку [0-9]+: ' + kind + '$') }).click()
