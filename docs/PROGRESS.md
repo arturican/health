@@ -1,5 +1,20 @@
 # Прогресс
 
+## T232 — Изоляция runtime smoke
+
+Разрешена очередь исправлений T232–T260 по аудиту T231, с отдельными коммитами,
+push и штатной доставкой. Все дочерние процессы runtime.test получают очищенное
+прикладное окружение с явными overrides; системные PATH/library env сохраняются.
+Startup ожидает stdout либо ранний exit/error и освобождает слушатели.
+
+Регрессия с poisoned parent до исправления FAIL («API завершился до запуска»).
+После исправления все9runtime tests PASS на выделенной health_test; typecheck
+и targeted ESLint PASS. Initial lint отклонил dynamic delete, заменён filter,
+gates не ослаблялись. Независимый read-only review без обязательных замечаний.
+check:docs/diff/staged/secret review перед коммитом; полный check/build:api
+выполняются после последних изменений очереди перед разрешённым push.
+Логи /tmp/health-T232-{before,after,types,lint}.log. Рабочая БД/SMTP не вызываются.
+
 ## T231 — Технический аудит и документация
 
 20.10.2026. По прямому запросу выполнен документационный аудит всего собственного
