@@ -3811,3 +3811,14 @@ oldunattestedarchives/неравенствоhashиrestoreproof. IndependentSMTP 
 вопросыprovider/channel отправлены, ответа пока нет. T252a blocked(channel),
 T253artifact доступен, T253aactivationзависитотответа. НеобъявлятьAUD011закрытым.
 Docs/diff/staged PASS. SSHключи/globalconfig не менялись.
+
+## T253 — Probe доступности API
+
+Добавлен GET-only watchdog_probe.py: фиксированный localhost:53101, health и
+readiness, точные ограниченные JSON, socket timeout 5 s, общий CLI deadline 15 s.
+Шесть синтетических unittest прошли; ошибки/redirect/oversize/503/deadline
+различаются без вывода body или исключений. Read-only запуск по stdin на
+frontend VPS: exit 0, healthy / ok / ready. Ничего не установлено, состояние
+и email не создавались. Read-only review уточнил строгую проверку body при 503;
+регрессия добавлена и пройдена. check:docs и diff --check прошли.
+Доставка и state — T253b, активация — T253a после выбора канала T252a.
