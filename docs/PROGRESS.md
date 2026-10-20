@@ -3634,3 +3634,15 @@ BACKUP_CAPACITY содержит полный воспроизводимый tem
 ёмкость не заявляется, streaming формат требует отдельного решения, admin
 encrypted DB backup — путь при full413. Browser max import не измерен.
 Docs/diff/staged PASS; логи /tmp/health-T243-*.log, benchmark удалён из source.
+
+## T244 — Понятные пределы export
+
+Client export413 даёт fixed format-specific messages: text20MiB предлагает
+явно full200MiB; full413 — оператор проверяет server backup и безопасное сохранение данных. Другие ошибки,
+401/session и отсутствие чтения rawerrorbody сохраняются. UI показывает пределы
+и отсутствие гарантии произвольного объёма. Автоматического full/retry нет.
+3appfiles в бюджете. Новые realHTTP→client/UI regressions2FAIL до изменения,
+после9tests PASS (4files), types/lint/docs/diff/staged PASS.
+Full413 не вызывает download, повтор200 скачивает единственный валидный JSON.
+Границы/сохранность данных подтверждены T243, универсальная ёмкость остаётся
+ограничением BACKUP_CAPACITY. Логи /tmp/health-T244-*.log.

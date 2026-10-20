@@ -8,7 +8,7 @@ export function FullBackupExport() {
   const action = useAction()
   return <section className="card" aria-labelledby="full-export-title">
     <h2 id="full-export-title">Полная резервная копия</h2>
-    <p>Содержит все записи, фотографии, оригиналы документов, ручные показатели и настройки. Копия до 200 MiB; общий размер вложений до 100 MiB.</p>
+    <p>Содержит все записи, фотографии, оригиналы документов, ручные показатели и настройки. Копия до 200 MiB; общий размер вложений до 100 MiB. Большой дневник может не поместиться в JSON даже при соблюдении лимита вложений.</p>
     <p>Копия не зашифрована. Храните скачанный файл в безопасном месте.</p>
     <div className="actions">
       <button type="button" disabled={action.pending} onClick={() => {
