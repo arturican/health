@@ -71,7 +71,9 @@ Vite направляет /api на loopback 3001; нестандартный а
 с его портом в APP_ORIGIN. На HTTP используй loopback 127.0.0.1; для внешнего
 адреса нужен HTTPS. Модель — [SERVER_STORAGE.md](docs/SERVER_STORAGE.md).
 
-1. Войди с выданными логином и паролем. Заполни профиль и первое измерение веса.
+1. При включённой почте зарегистрируй email, подтверди ссылку и войди.
+   Локально без SMTP используй созданный CLI аккаунт; прежние логины также
+   поддерживаются. Заполни профиль и первое измерение веса.
 2. В питании добавь собственный продукт или явно загрузи учебные примеры,
    затем внеси порцию. Отметка полноты дня нужна для оценки суточного баланса.
 3. Добавь шаги, тренировки и при необходимости цель/оценку расхода в настройках.
@@ -90,16 +92,21 @@ Secure/HttpOnly cookie. Скрытие разделов — только нас�
 браузер и тот же адрес сайта. Для переноса выберите копию в полном восстановлении,
 проверьте предпросмотр и подтвердите замену серверного дневника.
 
-## Проверки в браузере
+## Аккаунты и синтетическая демонстрация
 
-Аккаунты создаёт администратор: `npm run account:create` с серверными
+При MAIL_ENABLED=true доступна email-регистрация с подтверждением, вход
+и восстановление. Служебный SMTP настраивается по [MAIL_DNS](docs/MAIL_DNS.md);
+локально без SMTP можно создать синтетический аккаунт CLI. Никакие настоящие
+письма для автоматических тестов не нужны.
+
+Административное создание отдельного аккаунта: `npm run account:create` с серверными
 MIGRATION_DATABASE_URL, ADMIN_LOGIN, ADMIN_PASSWORD, ADMIN_TIMEZONE.
 Для закрытого файла: `npm run build:api`, затем
 `node --env-file=/закрытый/путь/account.env build-api/createAccount.js`.
 Файл должен иметь права 600; не храните его в Git и не включайте в окружение
 обычного API. Пароль 15–1024 символа, пробелы сохраняются; timezone, например,
 Europe/Moscow. Команда не печатает пароль или хеш. Повторный логин отклоняется
-без смены прежнего пароля. Публичной регистрации пока нет.
+без смены прежнего пароля. CLI не заменяет обычную email-регистрацию.
 
 Демонстрация: после миграций `npm run db:seed` читает настройки из закрытого
 `.env`; для отдельного файла выполните `npm run build:api`, затем
@@ -113,119 +120,21 @@ ADMIN_TIMEZONE и ADMIN_PASSWORD (пароль обязателен только
 существовать, но частичные записи откатываются; ту же команду можно повторить.
 Период определяется днём первого успешного запуска в часовом поясе аккаунта.
 
-Для маршрутов авторизации задайте DATABASE_URL ограниченной роли и APP_ORIGIN
-(точный origin frontend, без завершающего `/`). Production требует HTTPS origin
-и отклоняет административные переменные MIGRATION_DATABASE_URL/ADMIN_PASSWORD.
-Маршруты: POST `/api/v1/auth/login`, GET `/api/v1/auth/session`, POST
-`/api/v1/auth/logout`. Вход получает JSON login/password и правильный Origin;
-ответ возвращает аккаунт и CSRF, cookie — Secure/HttpOnly/SameSite=Lax.
-Для последующих изменений нужны Origin и X-CSRF-Token из ответа сессии.
-Успешные защищённые ответы содержат X-Account-Id; клиент сверяет его до чтения
-тела, чтобы смена общей cookie в другой вкладке не смешивала аккаунты.
-BroadcastChannel передаёт вкладкам только сигнал смены входа, без записей и токенов.
-Срок сессии 7 суток, idle 24 часа. Вход доступен до загрузки дневника;
-выход — в блоке хранения рядом с резервной копией.
-Лимит попыток находится в памяти одного API и сбрасывается при перезапуске;
-X-Forwarded-For не доверяется, поэтому за proxy лимит IP общий.
+## Контракт и границы API
 
-Экспорт: GET `/api/v1/backup/text` скачивает текстовую v1-копию владельца,
-GET `/api/v1/backup/full` — полную, с исходными вложениями и метаданными,
-включая скрытые разделы. Один согласованный снимок PostgreSQL, без generation
-и данных авторизации. Лимиты 20/200 MiB соответственно; превышение — 413,
-вторая параллельная операция копии — 429. Ответы имеют no-store/attachment.
-Восстановление: POST `/api/v1/backup/text`, Content-Type
-`application/vnd.health-diary+json`, тело — UTF-8 JSON v1 до 20 MiB. Обязательны
-Idempotency-Key, X-Diary-Generation и X-Diary-Revision из актуального GET
-/diary-state. X-Import-Mode: empty по умолчанию; replace используется только
-после подтверждения замены. Текстовое восстановление сохраняет вложения и
-видимость, меняет generation; повтор использует прежние заголовки и тело.
-POST `/api/v1/backup/full` принимает полную v1-копию до 200 MiB с теми же
-заголовками. Перед транзакцией проверяются файлы; подтверждённая замена меняет
-все разделы/вложения и метаданные. Учётные данные и сессии не импортируются.
+Для авторизации нужны DATABASE_URL ограниченной роли и точный APP_ORIGIN.
+Production требует HTTPS и отдельный административный env. Сессия — защищённая
+cookie, изменяющие запросы — Origin/CSRF; клиент сверяет владельца ответа.
+Лимиты входа/email хранятся в PostgreSQL и переживают перезапуск; исходному IP
+доверяют только через настроенный loopback proxy по DEPLOYMENT.
+Рабочий API не имеет тестовых mailbox/clock-маршрутов.
 
-Настройки: GET `/api/v1/diary-state` возвращает generation, value (видимость),
-revision, changeRevision и catalogSeeded. Первое чтение создаёт начальные настройки аккаунта.
-PUT `/api/v1/settings` принимает `{ value, revision }` с защитой от конфликтов.
-Все изменяющие запросы дневника, включая загрузки файлов,
-требуют X-Diary-Generation из GET. Необязательный
-Idempotency-Key (новый UUID для каждого действия, тот же для повтора) сохраняет
-ответ атомарно; другое тело с тем же ключом возвращает 409. Для файлов ключ
-учитывает метаданные и SHA256 содержимого. Ключ действия должен отличаться
-от UUID сущности и вложенной команды копирования еды.
-changeRevision — общий счётчик успешных изменений дневника. X-Diary-Revision
-позволяет требовать совпадения этого счётчика перед командой; конфликт — 409.
-Повтор с тем же ключом не увеличивает счётчик повторно.
+Методы, DTO, ошибки, пагинация, generation/revision/idempotency, файлы и копии —
+в едином [API_REFERENCE](docs/API_REFERENCE.md). Liveness /api/v1/health проверяет
+процесс, readiness /api/v1/readiness — подключение runtime-БД.
+Схема и роли — [DATABASE](docs/DATABASE.md), текущие точки входа — PROJECT_MAP.
 
-Очистка: DELETE `/api/v1/diary` с JSON `{ "confirm": "delete-diary" }`
-требует Idempotency-Key, X-Diary-Generation и X-Diary-Revision, полученные
-для подтверждаемого состояния. Удаляет все записи и вложения владельца,
-сбрасывает настройки и возвращает новую generation; аккаунт/сессии сохраняются.
-Новая запись после открытия подтверждения приводит к 409 вместо удаления.
-
-Показатели: GET `/api/v1/lab-results` принимает documentId/after/limit и возвращает
-историю с документами-источниками. POST принимает `{ value, revision: null }`,
-PUT/DELETE `/:id` требуют revision. Значение — число с оператором либо текст;
-источник неизменяемый. Изменение показателя повышает также revision документа.
-
-Документы: POST `/api/v1/documents` использует тот же бинарный транспорт и
-X-Record `id, fileId, date, title, kind, note, mime`. GET поддерживает список
-after/limit, `/:id` и `/:id/results-count`. PUT `/:id` принимает изменяемые поля
-и revision; DELETE — `{ revision, expectedResults }`, где null разрешён лишь
-без показателей, иначе требуется их текущее количество.
-
-Файлы: GET `/api/v1/files/:id` возвращает исходные байты только владельцу сессии,
-с no-store/nosniff, attachment и sandbox CSP. Для бинарных загрузок подготовлен
-транспорт application/octet-stream: X-Record содержит UTF-8 JSON в base64url
-без padding, до 4096 символов. Сессия проверяется до тела, одновременно до двух
-загрузок. POST `/api/v1/photos` принимает подготовленный JPEG и X-Record с
-`id, fileId, date, title, note, mime`. Размеры определяет сервер. GET `/photos`
-использует after/limit; PUT `/:id` принимает `{ value: { date, title, note }, revision }`,
-DELETE `/:id` — `{ revision }`. Карточка и файл создаются/удаляются атомарно.
-
-Планы: GET `/api/v1/energy-plans?before=REVISION&limit=100` возвращает страницы
-по убыванию revision; GET `/effective/:date` — действующую версию либо null.
-POST принимает `{ id, value: EnergyPlanInput, expectedRevision }` (null для первой).
-Снимок и номер версии создаёт сервер. Повтор id возвращает прежний результат,
-другие параметры того же id или устаревшая expectedRevision дают 409.
-
-Тренировки: GET `/api/v1/workouts?date=YYYY-MM-DD&after=UUID&limit=100`
-возвращает `{ items, nextAfter }`. POST принимает `{ value: Workout, revision: null }`,
-PUT `/:id` — полный Workout и текущую revision; DELETE `/:id` — `{ revision }`.
-
-Шаги: GET `/api/v1/steps?from=YYYY-MM-DD&to=YYYY-MM-DD&before=YYYY-MM-DD&limit=100`
-возвращает `{ items, nextBefore }`. GET `/:date` возвращает null либо запись;
-PUT `/:date` принимает `{ value: { date, count }, revision }` (null при создании),
-DELETE `/:date` — `{ revision }`.
-
-Полнота: GET `/api/v1/nutrition-days/:date` возвращает null либо запись с revision;
-PUT принимает `{ value: { date, complete }, revision }` (null при создании).
-POST `/api/v1/food/copy` принимает `{ commandId, source, meal, target }`,
-возвращает `{ count }`. Повтор commandId с теми же параметрами не создаёт копии;
-смена параметров даёт 409. Команды хранятся в БД, лимит 100000 на аккаунт.
-
-Питание: GET `/api/v1/food?date=YYYY-MM-DD&after=UUID&limit=100` возвращает
-`{ items, nextAfter }`. POST принимает `{ value: { id, date, meal, productId,
-grams, note }, revision: null }`; снимок формирует сервер. PUT `/:id` принимает
-текущую revision и value без productId; DELETE `/:id` — `{ revision }`.
-
-Каталог: GET `/api/v1/products?archived=true&after=UUID&limit=100` возвращает
-страницы каталога. POST `/api/v1/products/seed` с пустым JSON добавляет только
-отсутствующие начальные примеры; маркер демонстрации исключает их добавление.
-Обычный GET возвращает
-`{ items, nextAfter }`; без archived показывает активные продукты. GET `/:id`
-возвращает `{ value, revision }`. POST принимает полный продукт с revision=null,
-PUT `/:id` — полный продукт и текущую revision, включая флаг archived.
-
-Вес: GET `/api/v1/weights?asOf=YYYY-MM-DD&before=YYYY-MM-DD&limit=100`
-возвращает `{ items: [{ value, revision }], nextBefore }`; параметры необязательны.
-POST принимает `{ value: { id, date, kg }, revision: null }`, PUT `/:id` —
-тот же value с текущей revision, DELETE `/:id` — `{ revision }`.
-Конфликт даты/ревизии возвращает 409; чужая запись недоступна.
-
-Профиль: GET `/api/v1/profile` возвращает null либо `{ value, revision }`.
-POST принимает `{ profile, weight }` и атомарно создаёт профиль с первым весом;
-PUT принимает `{ value, revision }`. Устаревшая правка возвращает 409, неверный
-ввод — 400. Владельца определяет сессия, поле user_id в запросе не принимается.
+## Проверки в браузере и с БД
 
 SQL-тестам нужна отдельная локальная PostgreSQL 18.3:
 

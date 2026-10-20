@@ -19,6 +19,7 @@ async function markdownFiles(directory, recursive) {
 const files = [
   ...await markdownFiles(root, false),
   ...await markdownFiles(resolve(root, 'docs'), true),
+  ...await markdownFiles(resolve(root, 'src'), true),
 ]
 const failures = []
 let checked = 0

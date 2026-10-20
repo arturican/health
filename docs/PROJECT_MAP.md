@@ -11,7 +11,7 @@ CRUD, графики, фото/документы, ручные показате
 | Запуск и навигация | [main.tsx](../src/main.tsx) → AuthBoundary → [App.tsx](../src/App.tsx); hash-маршруты — [Navigation.tsx](../src/ui/Navigation.tsx), выбранный день — DayContext |
 | Экраны и оформление | [src/pages](../src/pages), общие компоненты [src/ui](../src/ui); CSS в src, общие styles.css/shell.css; локальные эталоны — [design/desktop](../design/desktop/README.md), ресурсы — public/assets |
 | Данные UI | [dataAccess.ts](../src/dataAccess.ts) экспортирует API-репозитории из [src/client](../src/client); формы/локальное состояние — React, загрузка — useDiaryQuery, инвалидация — queries, сессия в памяти — session, повторы команд — commands, транспорт — http |
-| Авторизация | client/AuthBoundary, auth, emailRecovery и формы; server/auth, sessions, registration, emailAuth, emailBinding, accountMail, authRateLimit; граница — Zod-схемы в domain |
+| Авторизация | client/AuthBoundary, auth, emailRecovery и формы; server/auth, sessions, emailAuth, emailBinding, accountMail, authRateLimit; граница — Zod-схемы в domain |
 | Вычисления и валидация | [src/domain](../src/domain): чистые функции и Zod-схемы; [src/media](../src/media): подготовка файлов/копий до отправки |
 | HTTP API | [server/main.ts](../src/server/main.ts) → runtime (конфигурация, pool, регистрация маршрутов); app — Fastify factory/liveness/ошибки, [readiness](../src/server/readiness.ts) — SQL-проба; тематические *Routes/*Records; базовый путь /api/v1 |
 | PostgreSQL | [migrations](../migrations), server/migrations и migrate; database — pool, userTransaction — транзакция владельца/RLS, writeCommand — защита повторов, revision/generation — согласованность; файлы также в БД |
@@ -30,7 +30,7 @@ node подключи nvm в Linux shell (`. ~/.nvm/nvm.sh`), затем `nvm us
 |---|---|
 | Разработка UI/API | `npm run dev` и в другом терминале `npm run dev:api`; Vite проксирует /api/ на 127.0.0.1:3001. БД/роли/миграции/аккаунт — раздел «Первое использование» README |
 | Только документация | `npm run check:docs` + `git diff --check`; тесты приложения не нужны |
-| Изменение приложения | `npm run check`: docs → lint → typecheck → coverage → browser → build → E2E. Нужны выделенная TEST_DATABASE_URL и Chromium; подробности — TESTING |
+| Перед push после изменений приложения | `npm run check`: docs → lint → typecheck → coverage → browser → build → E2E. Нужны выделенная TEST_DATABASE_URL и Chromium; подробности — TESTING |
 | Целевая проверка в ходе работы | `npm test -- src/domain/bmi.test.ts`; `npm run test:browser:run -- src/App.browser.test.tsx`; `npm run build` и `npm run test:e2e -- profile-weight.spec.ts`. Не заменяют обязательный check |
 | Сборки | `npm run build` → dist; `npm run build:api` → build-api (проверка серверных типов и сборка API); `npm run preview` — просмотр frontend |
 | Deploy/упаковка | `python3 -B -m unittest discover -s deploy -p 'test_*.py' -v`; после актуального build — `python3 -B deploy/verify_build.py dist` |
@@ -63,12 +63,12 @@ CI выполняет полный check, Python deploy-тесты, verify_build
 
 ## Codex и инструменты
 
-На момент T197 проектных .codex/config.toml, skills и MCP-конфигураций нет;
-действует один корневой AGENTS.md. Области не требуют вложенных инструкций.
-Проверен установленный Windows CLI `0.162.0-alpha.17.2`; параметры конфигурации
-не добавлялись. При появлении проектной конфигурации сверяй её с установленной
-версией и [официальным справочником](https://developers.openai.com/codex/config-reference).
-Механизм инструкций — [AGENTS.md](https://developers.openai.com/codex/guides/agents-md).
+Общие правила — [корневой AGENTS](../AGENTS.md), особенности экранов —
+[src/pages/AGENTS](../src/pages/AGENTS.md), API —
+[src/server/AGENTS](../src/server/AGENTS.md). Проектных .codex/config.toml,
+профилей агентов и MCP-конфигураций нет; личные настройки не изменяются.
+Сверяйте появляющуюся конфигурацию с установленной версией CLI
+и официальной документацией, а инструкции — с актуальным кодом.
 
 Для обычных задач достаточно локального shell/Git. Доступные в сессии Figma нужны
 для явной работы с макетом, Sites — для отдельного сайта/хостинга, Pages — для
