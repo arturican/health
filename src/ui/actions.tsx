@@ -52,3 +52,9 @@ export function Feedback({ error, message }: Pick<ActionStatus, 'error' | 'messa
   if (message) return <p role="status">{message}</p>
   return null
 }
+
+/** Отмена не пишет данные; main остаётся доступен, пока свежая форма заблокирована. */
+export function cancelEdit(onCancel?: () => void) {
+  onCancel?.()
+  document.querySelector<HTMLElement>('main')?.focus()
+}

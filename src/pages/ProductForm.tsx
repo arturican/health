@@ -4,7 +4,7 @@ import { snapshotSchema, type Product } from '../domain/nutrition'
 import { parseNumber } from '../domain/input'
 import { validate } from '../domain/schema'
 import { Field } from '../ui/Field'
-import { Feedback, readField, useAction } from '../ui/actions'
+import { cancelEdit, Feedback, readField, useAction } from '../ui/actions'
 
 const macros = { protein: 'Белки на 100 г, г (необязательно)', fat: 'Жиры на 100 г, г (необязательно)', carbs: 'Углеводы на 100 г, г (необязательно)' }
 
@@ -61,7 +61,7 @@ export function ProductForm({ product, onSaved, onCancel, disabled = false, onPe
         <p>Перенесите данные с этикетки. Пустое поле БЖУ означает «неизвестно», а 0 — известный ноль.</p>
         {Object.keys(errors).length > 0 && <p role="alert">Проверьте отмеченные поля.</p>}
         <button type="submit" disabled={busy}>{action.pending ? 'Сохраняем…' : 'Сохранить продукт'}</button>
-        {onCancel && <button type="button" className="secondary" disabled={busy} onClick={onCancel}>Отменить правку продукта</button>}
+        {onCancel && <button type="button" className="secondary" disabled={action.pending} onClick={() => { cancelEdit(onCancel) }}>Отменить правку продукта</button>}
       </form>
       <Feedback error={Object.keys(errors).length > 0 ? null : action.error} message={Object.keys(errors).length > 0 ? null : action.message} />
     </>

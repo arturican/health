@@ -172,3 +172,30 @@ it('ошибка архивирования другой строки видна
   await waitFor(async () => { expect(await db.products.get(secondProduct.id)).toEqual({ ...secondProduct, archived: true }) })
   expect(within(form).getByLabelText('Калории на 100 г, ккал')).toHaveValue('125,5')
 })
+
+it.each(['food', 'product'] as const)('отмена %s во время чужой операции сохраняет её pending и результат', async kind => {
+  const entry = await foodRepository.addFood({ date: '2026-10-14', productId: firstProduct.id, meal: 'breakfast', grams: 100, note: '' })
+  const other = await foodRepository.addFood({ date: '2026-10-14', productId: secondProduct.id, meal: 'breakfast', grams: 200, note: '' })
+  render(<main tabIndex={-1}><DayProvider>{kind === 'food' ? <FoodJournal /> : <ProductCatalog />}</DayProvider></main>)
+  fireEvent.click(await screen.findByRole('button', { name: kind === 'food' ? /^Изменить запись еды 1:/ : 'Править продукт ' + firstProduct.name }))
+  let release: () => void = () => { throw new Error('Операция не началась') }
+  const waiting = new Promise<void>(resolve => { release = resolve })
+  const removeFood = foodRepository.deleteFood
+  const archiveProduct = productRepository.archiveProduct
+  const operation = kind === 'food'
+    ? vi.spyOn(foodRepository, 'deleteFood').mockImplementationOnce(async record => { await waiting; await removeFood(record) })
+    : vi.spyOn(productRepository, 'archiveProduct').mockImplementationOnce(async (record, archived) => { await waiting; await archiveProduct(record, archived) })
+  fireEvent.click(screen.getByRole('button', { name: kind === 'food' ? /^Удалить запись еды 2:/ : 'Архивировать продукт ' + secondProduct.name }))
+  if (kind === 'food') fireEvent.click(screen.getByRole('button', { name: 'Подтвердить удаление' }))
+  await waitFor(() => { expect(operation).toHaveBeenCalledTimes(1) })
+  fireEvent.click(screen.getByRole('button', { name: kind === 'food' ? 'Отменить правку еды' : 'Отменить правку продукта' }))
+  const form = await screen.findByRole('form', { name: kind === 'food' ? 'Добавление еды' : 'Новый продукт' })
+  expect(within(form).getByRole('button', { name: kind === 'food' ? 'Добавить еду' : 'Сохранить продукт' })).toBeDisabled()
+  expect(screen.getByRole('main')).toHaveFocus()
+  release()
+  await screen.findByText(kind === 'food' ? 'Запись еды удалена' : 'Продукт перемещён в архив')
+  await waitFor(() => { expect(within(form).getByRole('button', { name: kind === 'food' ? 'Добавить еду' : 'Сохранить продукт' })).toBeEnabled() })
+  expect(await db.foodEntries.get(entry.id)).toEqual(entry)
+  if (kind === 'food') expect(await db.foodEntries.get(other.id)).toBeUndefined()
+  else expect(await db.products.get(secondProduct.id)).toMatchObject({ archived: true })
+})

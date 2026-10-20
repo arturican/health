@@ -4,7 +4,7 @@ import { labInputSchema, labOperatorSchema, labOperators, labValueSchema, type L
 import { localDate, parseNumber } from '../domain/input'
 import { validate } from '../domain/schema'
 import { Field, SelectField } from '../ui/Field'
-import { Feedback, readField, useAction } from '../ui/actions'
+import { cancelEdit, Feedback, readField, useAction } from '../ui/actions'
 
 interface LabFormProps { documentId: string; defaultDate: string; disabled: boolean; onBusyChange: (busy: boolean) => void; entry?: LabResult | null; onSaved?: () => void; onCancel?: () => void }
 export function LabForm({ documentId, defaultDate, disabled, onBusyChange, entry = null, onSaved, onCancel }: LabFormProps) {
@@ -68,7 +68,7 @@ export function LabForm({ documentId, defaultDate, disabled, onBusyChange, entry
       </fieldset>
       <div className="actions">
         <button type="submit" disabled={action.pending || disabled}>{action.pending ? 'Сохраняем…' : entry ? 'Сохранить показатель' : 'Добавить показатель'}</button>
-        {entry && <button type="button" disabled={action.pending || disabled} onClick={onCancel}>Отменить правку показателя</button>}
+        {entry && <button type="button" disabled={action.pending} onClick={() => { cancelEdit(onCancel) }}>Отменить правку показателя</button>}
       </div>
     </form>
     <Feedback error={action.error} message={action.message} />

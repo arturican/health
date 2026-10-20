@@ -5,7 +5,7 @@ import { localDate, parseNumber } from '../domain/input'
 import { validate } from '../domain/schema'
 import { useDay } from '../ui/DayContext'
 import { Field } from '../ui/Field'
-import { Feedback, readField, useAction } from '../ui/actions'
+import { cancelEdit, Feedback, readField, useAction } from '../ui/actions'
 
 interface WorkoutFormProps {
   entry?: Workout; onSaved?: () => void; onCancel?: () => void
@@ -72,7 +72,7 @@ export function WorkoutForm({ entry, onSaved, onCancel, disabled = false, onPend
       </fieldset>
       <div className="actions">
         <button type="submit" disabled={busy}>{action.pending ? 'Сохраняем…' : entry ? 'Сохранить тренировку' : 'Добавить тренировку'}</button>
-        {entry && <button type="button" disabled={busy} onClick={onCancel}>Отменить правку тренировки</button>}
+        {entry && <button type="button" disabled={action.pending} onClick={() => { cancelEdit(onCancel) }}>Отменить правку тренировки</button>}
       </div>
     </form>
     <Feedback error={action.error} message={action.message} />

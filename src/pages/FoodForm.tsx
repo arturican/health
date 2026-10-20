@@ -4,7 +4,7 @@ import { foodEntrySchema, gramsSchema, mealNames, mealSchema, type FoodEntry } f
 import { entityId, validate } from '../domain/schema'
 import { localDate, parseDate, parseNumber } from '../domain/input'
 import { Field, SelectField } from '../ui/Field'
-import { Feedback, readField, useAction } from '../ui/actions'
+import { cancelEdit, Feedback, readField, useAction } from '../ui/actions'
 import { useDay } from '../ui/DayContext'
 
 interface FoodFormProps {
@@ -85,7 +85,7 @@ export function FoodForm({ entry, onSaved, onCancel, focusVersion = 0, disabled 
               </fieldset>
               {Object.keys(errors).length > 0 && <p role="alert">Проверьте отмеченные поля.</p>}
               <button type="submit" disabled={busy}>{action.pending ? 'Сохраняем…' : entry ? 'Сохранить запись еды' : 'Добавить еду'}</button>
-              {onCancel && <button type="button" className="secondary" disabled={busy} onClick={onCancel}>Отменить правку еды</button>}
+              {onCancel && <button type="button" className="secondary" disabled={action.pending} onClick={() => { cancelEdit(onCancel) }}>Отменить правку еды</button>}
             </form>
           )}
         </>

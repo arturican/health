@@ -3410,3 +3410,20 @@ coverage, build). Python unittest — 5 PASS. verify_build на старом dis
 отказ; на новой сборке — PASS, 6 файлов. Git blob hash лицензии до/после совпадает.
 git diff --check — PASS. Push, CI/deploy и E2E опубликованной версии выполняются
 после этого коммита; их фактический результат будет сообщён отдельно.
+
+## T234 — Отмена устаревших редакторов
+
+Cancel отделён от read-current/внешнего disabled в Product/Food/Workout/Lab;
+собственное pending сохранение блокирует отмену. Общий cancelEdit переводит
+фокус в стабильный main; родитель может затем включить/сфокусировать новую форму.
+Save/поля и конфликтующее удаление защищены прежними условиями.
+Regression на настоящих API hooks: четыре failed reread, включая documents
+для Lab, FAIL4 до исправления; после исправления PASS4 при продолжающемся
+отказе. Новая FoodForm при недоступных products показывает штатный retry
+StorageBoundary после явного отбрасывания draft, фокус не теряется.
+Parent delete/archive после Cancel продолжаются; новая форма ждёт pending.
+
+Проверки: пять связанных unit-файлов27PASS, дополнительно outage4PASS;
+три Browser-файла6PASS, types/lint/docs/diff/staged review.
+Первый lint выявил async mock без await; mock исправлен без изменения проверок.
+Логи /tmp/health-T234-*.log. Полный check/build:api — перед push очереди.
