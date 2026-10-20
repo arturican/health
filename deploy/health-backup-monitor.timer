@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly Health Diary backup monitoring
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=5m
+Persistent=true
+Unit=health-backup-monitor.service
+
+[Install]
+WantedBy=timers.target

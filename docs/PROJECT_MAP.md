@@ -34,8 +34,10 @@ node подключи nvm в Linux shell (`. ~/.nvm/nvm.sh`), затем `nvm us
 | Целевая проверка в ходе работы | `npm test -- src/domain/bmi.test.ts`; `npm run test:browser:run -- src/App.browser.test.tsx`; `npm run build` и `npm run test:e2e -- profile-weight.spec.ts`. Не заменяют обязательный check |
 | Сборки | `npm run build` → dist; `npm run build:api` → build-api (проверка серверных типов и сборка API); `npm run preview` — просмотр frontend |
 | Deploy/упаковка | `python3 -B -m unittest discover -s deploy -p 'test_*.py' -v`; после актуального build — `python3 -B deploy/verify_build.py dist` |
+| Backup monitor units | `systemd-analyze verify deploy/health-backup-monitor.service deploy/health-backup-monitor.timer`; подготовка установки/отката — BACKUPS |
 
-CI выполняет полный check, Python deploy-тесты и verify_build для push/PR dev/master.
+CI выполняет полный check, Python deploy-тесты, verify_build и проверку monitor unit-файлов
+для push/PR dev/master.
 После успешного push или ручного workflow на dev отдельный job публикует frontend
 и проверяет release.txt; PR/master не публикуются. API/БД и SMTP обновляются
 отдельно по DEPLOYMENT. Локальный check не подтверждает удалённый CI или VPS.

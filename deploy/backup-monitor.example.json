@@ -1,0 +1,7 @@
+{
+  "directory": "/var/backups/health-diary",
+  "state_directory": "/var/lib/health-backup-monitor",
+  "max_age_hours": 30,
+  "recipient": "operator@example.test",
+  "smtp_port": 25
+}

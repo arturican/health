@@ -265,6 +265,8 @@ credential persistence отключён. Traces проваленных Playwrigh
 успех удалённого workflow: его состояние проверяется отдельно после push.
 
 CI также запускает `python3 -B -m unittest discover -s deploy -p 'test_*.py' -v`
-для установщика релизов. После успешных проверок push в dev публикует тот же dist
+для установщика/резервирования/мониторинга и `systemd-analyze verify`
+для deploy/health-backup-monitor.service и deploy/health-backup-monitor.timer.
+После успешных проверок push в dev публикует тот же dist
 через отдельный deploy job; PR и master не публикуются. Настройки окружения,
 проверка версии и откат описаны в [DEPLOYMENT.md](DEPLOYMENT.md).

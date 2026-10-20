@@ -99,6 +99,50 @@ SMTP socket timeout 10 секунд, общий CLI deadline 45 секунд. fl
 внешний watchdog и повторная независимая сверка offsite сюда не входят.
 Настоящие письма и установка в T208 не выполнялись; systemd-подготовка — T209.
 
+## Комплект внедрения мониторинга (T209, ещё не установлен)
+
+Подготовлены [service](../deploy/health-backup-monitor.service),
+[timer](../deploy/health-backup-monitor.timer) и
+[пример JSON](../deploy/backup-monitor.example.json). Проверка раз в час,
+задержка до 5 минут, Persistent. Service работает root для закрытых каталогов,
+ProtectSystem=strict/ProtectHome/NoNewPrivileges, запись состояния в
+StateDirectory=health-backup-monitor (0700). Адресные семейства AF_UNIX/AF_INET,
+IPAddressDeny=any + IPAddressAllow=localhost; SMTP также фиксирован кодом на loopback.
+Действие сетевого ограничения systemd на конкретном ядре проверяется при внедрении.
+
+Порядок после отдельного разрешения на VPS и реальные письма:
+
+1. На data VPS сверить прежние backup-файлы и сохранить их версии. Установить
+   backup_monitor.py/backup_check.py из проверенного коммита в /usr/local/libexec
+   (0644), сверить неизменённый backup_receive.py рядом. backup_send.py,
+   health-backup.service/timer и retention не менять.
+2. Создать root-owned /var/lib/health-backup-monitor (0700). По примеру
+   создать /etc/health-diary/backup-monitor.json (root:root 0600), заменить
+   operator@example.test на выбранный адрес, явно проверить допуск 30 часов.
+   Реальный адрес/приватный конфиг не коммитить и не выводить в чат/логи.
+3. Выполнить диагностический запуск из T208 без --send: JSON должен объяснять
+   состояние архива/сервиса, каталог state не должен меняться. Временные проблемы
+   и ошибки конфигурации устранить до включения таймера.
+4. Установить оба новых unit-файла в /etc/systemd/system (0644). Выполнить
+   systemd-analyze verify для установленных файлов, затем daemon-reload.
+   До enable провести разрешённую SMTP-проверку с отдельным синтетическим
+   каталогом и отдельным приватным state: первое unhealthy, повтор без письма,
+   затем healthy/recovery. Не портить настоящий архив и не сбрасывать его state.
+5. После проверки доставки включить только health-backup-monitor.timer.
+   Проверить list-timers, status и journalctl -u health-backup-monitor.service.
+   Код 1/failed unit при unhealthy ожидаем даже после успешного оповещения;
+   код 2 означает неисправность мониторинга/SMTP и требует проверки оператора.
+
+Откат: disable --now только health-backup-monitor.timer, остановить monitor.service,
+вернуть прежние версии его файлов/конфига при необходимости и daemon-reload.
+state.json сохранить: его удаление повторно отправит первое unhealthy.
+Основной backup.timer/архивы/7 локальных и 14 внешних копий не затрагивать.
+После обновления проверить возраст и копии на обоих VPS вручную.
+
+Локальные gates: systemd-analyze verify обоих новых файлов, Python deploy-тесты,
+синтетический CLI smoke, docs/diff check. CI проверяет те же unit-файлы;
+успех локальных gates не означает включённый timer или доставку писем на VPS.
+
 ## Ключ восстановления
 
 Локально в WSL: /home/artur/.config/health-diary/recovery-gnupg (0700),

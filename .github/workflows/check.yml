@@ -43,6 +43,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run check
       - run: python3 -B -m unittest discover -s deploy -p 'test_*.py' -v
+      - name: Verify backup monitor units
+        run: systemd-analyze verify deploy/health-backup-monitor.service deploy/health-backup-monitor.timer
       - name: Verify production archive with restricted receiver
         run: python3 -B deploy/verify_build.py dist
       - name: Save tested build
