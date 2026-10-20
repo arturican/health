@@ -4009,3 +4009,20 @@ data/auth/commands/access fingerprints равны при закрытом edge.
 Docs согласованы с live; последующая docs-only публикация использует тот же
 код через CI. Authenticated production CRUD/реальные письма/production restore
 не выполнялись; возврат к прежним bundle/config подготовлен, не упражнялся.
+
+## T261 — Повторные тесты после деплоя
+
+По явному запросу пользователя повторён полный gate на коде292e08a,
+с чистой исходной рабочей копией. WSL/Node24.22.0/npm11.19.1, affinity4CPU,
+PostgreSQL18.3 только loopback health_test/UUID fixtures; npm ci не требовался.
+С первого запуска PASS:1726 unit/SQL (185files),92browser (37files),100E2E
+desktop/mobile (4.4min), API build,72Pythondeploy, API units и frontend archive.
+Coverage95.36/93.11/97.03/97.44%; warning>500kB прежний, gates не ослаблялись.
+Read-only live helper проверил release292e08a/index/assets/health/readiness/401;
+release+registration tests4PASS (5.6s), POST0/pageerror0. Production CRUD,
+настоящая почта/restore рабочих архивов не тестировались. Изоляция тестов
+и границы review подтверждены; часть гонок — syntheticfetch, mobile — эмуляция.
+Полные логи внеGit /tmp/health-T261-*; подробности/ограничения в
+[карточке T261](tasks/T261.md). Только3docsфайла, API/infra не менялись.
+Протокол отправляется штатным docs-only commit/CI в разрешённой очереди;
+фактические hash/CI/live release сообщаются после выполнения.
