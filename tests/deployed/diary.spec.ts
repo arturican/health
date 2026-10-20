@@ -5,6 +5,7 @@ import { z } from 'zod'
 import axe from 'axe-core'
 import { weightSchema } from '../../src/domain/profile'
 import { sessionSchema } from '../../src/domain/session'
+import { verifyWorkoutSmoke } from '../workoutSmoke'
 
 const weightsSchema = z.object({ items: z.array(z.object({ value: weightSchema, revision: z.number() })) })
 const attachmentsSchema = z.object({ items: z.array(z.object({ value: z.object({ fileId: z.uuid() }) })) })
@@ -106,6 +107,9 @@ test('HTTPS дневник: вход, восемь экранов, вложен�
     }
   }
   expect(await readWeights()).toEqual(original)
+  await verifyWorkoutSmoke(page, context, headers)
+  await page.getByLabel('День дневника', { exact: true }).fill(today)
+  await page.getByRole('button', { name: 'Открыть день', exact: true }).click()
   const denied = await context.request.post('/api/v1/weights', { headers: { Origin: baseURL ?? '' }, data: {} })
   expect(denied.status()).toBe(403)
   await page.getByRole('link', { name: 'Сегодня', exact: true }).click()
