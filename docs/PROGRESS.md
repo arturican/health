@@ -3901,3 +3901,17 @@ flowchart/ER/sequence; старое issue не использовалось ка
 До установки создана отдельная T256a с exact dependency/lock/audit/grammargate.
 Проектные зависимости ещё не менялись, parse/render не заявлены.
 check:docs/diff прошли.
+
+## T256a — Offline Mermaid gate
+
+Добавлен exact mermaid12.2.0 dev dependency и lock, существующие package paths
+не меняют версии/не удалены. npm ci прошёл (прежнее предупреждение npm о
+неразрешённом install script argon2 сохранено, настройки не менялись).
+npm audit: 0 известных vulnerabilities, metadata632 dependencies,20.10.2026.
+check:docs теперь включает 11 node tests и Mermaid parser:344MD/1534links,
+11actualdiagrams syntax OK. Quoted labels требуют existingjsdom до dynamicimport;
+scripts/resources не включены. Targeted ESLint/build/diff прошли.
+Browser Chromium отдельно локально отрендерил все11схем, externalrequests0,
+pageerrors0; изображения осмотрены, читаемы. Bundle521.84kB/gzip149.41,
+Mermaid не включён в frontend. Read-only review блокеров не нашёл.
+Это local12.2renderer, не проверка rendererGitHub; syntax gate не layout review.

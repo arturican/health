@@ -162,7 +162,7 @@ push и frontend-релиз в него не входят.
 | T254c | blocked | [Активация offsite alerts](docs/tasks/T254c.md) | T254b, T252a |
 | T255 | done | [IMP-024: проверка anchors и design docs](docs/tasks/T255.md) | T254b |
 | T256 | done | [IMP-025: выбрать Mermaid tooling](docs/tasks/T256.md) | T255 |
-| T256a | todo | [IMP-025: pinned Mermaid syntax gate](docs/tasks/T256a.md) | T256 |
+| T256a | done | [IMP-025: pinned Mermaid syntax gate](docs/tasks/T256a.md) | T256 |
 | T257 | todo | IMP-026: cleanup частичного SQL fixture setup | T256a |
 | T258 | todo | IMP-027: замер cold load | T257 |
 | T259 | todo | IMP-028: решение о lazy routes по замеру | T258 |

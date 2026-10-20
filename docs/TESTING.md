@@ -13,7 +13,7 @@ unit/browser-компонентов; рабочая сборка использ�
 | Команда | Назначение |
 |---|---|
 | `npm ci` | Воспроизводимая установка по lock-файлу |
-| `npm run check:docs` | Существование локальных Markdown-ссылок |
+| `npm run check:docs` | Локальные пути/anchors собственного Markdown и offline Mermaid syntax |
 | `npm run lint` | ESLint с проверкой типов, React hooks и доступности JSX |
 | `npm run typecheck` | Строгая проверка TypeScript приложения, конфигурации и тестов |
 | `npm test` | Unit/компонентные тесты Vitest в jsdom, один прогон |
@@ -290,7 +290,7 @@ PR и master не публикуются. Настройки окружения,
 
 ## Проверка документации
 
-npm run check:docs запускает семь synthetic node:test cases и локальный обход
+npm run check:docs запускает synthetic node:test cases и локальный обход
 всего собственного Markdown, включая design. Проверяются пути и fragments
 Markdown: заголовки, кириллица/URL encoding, суффиксы повторов и HTML anchors.
 Fenced примеры исключены; зависимости, Git и generated outputs не обходятся.
@@ -298,4 +298,7 @@ Fenced примеры исключены; зависимости, Git и generat
 reference links; это не полный CommonMark parser и не проверка внешних URL.
 Правила anchors сверены с
 [GitHub section links](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#section-links).
-Mermaid требует отдельной проверки синтаксиса, один docs links gate её не заменяет.
+Mermaid проверяется отдельным этапом того же check:docs: mermaid12.2.0 и
+существующий jsdom, без внешней сети. Есть valid/invalid flowchart/ER/sequence,
+fences/empty/unclosed fixtures. Parse не заменяет визуальную проверку схем.
+См. [MERMAID_TOOLING](MERMAID_TOOLING.md).

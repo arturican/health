@@ -43,3 +43,30 @@ T256 пакет ещё не установлен и успешный Mermaid par
 [API parse](https://mermaid.js.org/config/setup/mermaid/interfaces/Mermaid.html#parse),
 [официальный parser package](https://github.com/mermaid-js/mermaid/tree/develop/packages/parser).
 Точные версии и engines сверены npm view и содержимым официального tarball.
+
+## Проверка T256a
+
+mermaid12.2.0 установлен exact dev-only; исходные прямые версии не изменены.
+Сравнение lock packages с предыдущим commit: ни одна версия существующего пути
+не изменилась, удалённых путей нет. npm ci успешно воспроизвёл lock; npm audit
+20.10.2026 сообщил 0 известных уязвимостей в metadata tree из 632 зависимостей
+(включая optional). Это результат registry audit на эту дату, не гарантия безопасности.
+
+Quoted labels потребовали DOMPurify DOM: перед dynamic import Mermaid
+создаётся JSDOM из существующего jsdom, без включения scripts/resources.
+Одиннадцать node tests (7 links и 4 Mermaid cases), 344 Markdown/1534 локальные
+ссылки и все 11 реальных Mermaid-блоков прошли после npm ci. Gate входит в
+check:docs, поэтому применяется текущим CI без ослабления проверок.
+
+Отдельный одноразовый browser render: Playwright Chromium, 1360×1000,
+mermaid12.2.0 browser dist с локального HTTP 127.0.0.1. Все внешние запросы
+блокировались; фактически external requests=0 и page errors=0. Получены и
+осмотрены 11 изображений в /tmp/health-T256a-render: подписи/стрелки читаемы,
+обрезаний или наложений, мешающих чтению, не обнаружено. Sequence имеют
+4 участника, flowcharts идут сверху вниз, ER разбиты на небольшие схемы.
+Это локальный renderer этой версии, не проверка рендера GitHub.
+
+Frontend build прошёл: chunk 521.84 kB / gzip149.41 kB, Mermaid не попал
+в приложение. Остался прежний warning >500 kB; его оценка — отдельная T258.
+Syntax gate не измеряет layout и не гарантирует соответствие схем коду:
+это остаётся обязанностью review при изменениях архитектуры.

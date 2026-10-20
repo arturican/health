@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 const ignored = new Set(['.git', 'node_modules', 'dist', 'build-api', 'coverage',
   'playwright-report', 'test-results', '.cache'])
 
-async function markdownFiles(directory) {
+export async function markdownFiles(directory) {
   const files = []
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const path = resolve(directory, entry.name)
