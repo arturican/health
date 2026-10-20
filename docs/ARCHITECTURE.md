@@ -1,7 +1,7 @@
 # Как устроен Health Diary
 
 Исходный срез 20.10.2026: `dev` @ `9718e60423c28bbc708db95bf045db6403575769`.
-Исправления T232–T240 учтены ниже; статусы и проверки — в TASKS/PROGRESS.
+Исправления T232–T240a учтены ниже; статусы и проверки — в TASKS/PROGRESS.
 Это описание существующего кода. Проверки и ограничения — [AUDIT](AUDIT.md),
 будущие изменения — [IMPROVEMENTS](IMPROVEMENTS.md), быстрый поиск файлов —
 [PROJECT_MAP](PROJECT_MAP.md).
@@ -186,7 +186,7 @@ generation, используют ревизию записи; клиент та�
 | Где | Что хранится / сколько живёт |
 |---|---|
 | React state/ref и DOM формы | маршрут/день/запись, errors/pending и исходная ревизия; большинство введённых значений — uncontrolled DOM-поля; до размонтирования |
-| client/session | account, csrf, diary generation/revisions, epoch; в памяти вкладки |
+| client/session | account, csrf, diary generation/revisions, epoch; в памяти вкладки; notices объясняет смену generation того же аккаунта |
 | client/commands | до 128 неподтверждённых команд, повтор с тем же ключом; не переживают reload |
 | client/queries | глобальная ревизия инвалидации и подписчики; полноценного общего кеша запросов нет |
 | cookie | `__Host-health_session`, Secure/HttpOnly/SameSite=Lax; хеш сессии в PostgreSQL |

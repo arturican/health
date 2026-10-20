@@ -1,8 +1,7 @@
 # Replay и ротация служебного журнала
 
-Решение T239 / IMP-008 / AUD-006. Серверная ротация реализована в T240;
-клиентское объяснение смены поколения — отдельная T240a. Выпуск требует обоих
-коммитов и общих gates. Сохранённые записи дневника отделены от служебных результатов команд.
+Решение T239 / IMP-008 / AUD-006. Серверная ротация T240 и клиентское объяснение T240a реализованы.
+Фактический выпуск требует общих gates и отдельной записи релиза в PROGRESS. Сохранённые записи дневника отделены от служебных результатов команд.
 
 ## Существующие гарантии
 
@@ -104,7 +103,7 @@ T240a добавляет заметное сообщение для смены g
 - **T240:** commands/writeCommand/httpErrors/app (4 файла): pre-work threshold signal,
   rollback, атомарная maintenance и409 header. Схема/SQL grants уже позволяют
   owner DELETE и UPDATE, новая migration не требуется.
-- **T240a:** client/http/notices (2 файла): exact allowlist command_rotation,
+- **T240a:** client/http/notices/QueryFeedback (3 файла): exact allowlist command_rotation,
   объяснение после generation/epoch remount, очистка при выходе/смене владельца.
 - Итоговый push/deploy — после обеих карточек и полного check/build:api.
   Старый frontend понимает status409 и refetch, но объяснение требует нового

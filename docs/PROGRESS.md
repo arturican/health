@@ -3533,3 +3533,28 @@ DELETE при fault UPDATE, invalid revision/no outer key, old generation reject
 response-loss replay при полной квоте тоже200. Нормальные команды/restore/clear
 регрессии сохранены. Build:api/lint/docs/diff/staged review пройдены.
 Read-only review существенных ошибок не нашёл; логи /tmp/health-T240-*.log.
+
+## T240a — Объяснение ротации в интерфейсе
+
+Exact409 command_rotation header даёт фиксированное сообщение без чтения
+error body. Generic409/неопределённый результат не обещают отсутствие записи.
+Same-owner generation change сохраняет объяснение после epoch/remount;
+новый owner/logout очищают notice, initial/revision-only не создают его.
+QueryFeedback фокусирует notice только при потерянном фокусе(body), не
+перехватывает доступное поле; закрытие возвращает main. На media готовая
+visibility может затем перевести фокус в main — обе позиции проверены.
+Три app-файла31 строки diff; расширение фокуса отражено в карточке до правок.
+
+Regressions4FAIL до изменения, отдельно focusFAIL до исправления; после:
+пять unit-файлов58PASS, backupRepository SQL4PASS, media final8PASS.
+Первый запуск SQL-файла без TEST_DATABASE_URL корректно заблокирован окружением;
+повтор с выделенной localhost health_test4PASS. Types/lint/build/docs/diff/
+staged review PASS. Два desktop/mobile E2E PASS с настоящими API/PG:
+90k rotation409, прежний план2000, сброс draft2100/visibility, notice,
+Tab/Enter→close/mainfocus, новая версия2200. Чужие console/pageerrors запрещены.
+
+Первый E2E ждал Playwright response.json30s на непрочитанном клиентом error body;
+trace содержал409/не содержал body. Сценарий проверяет status+allowlisted header,
+как клиент; JSON/code отдельно подтверждены SQL/API tests. Утечка ресурсов из
+этого наблюдения не утверждается. Read-only review не выявил privacy/session
+ошибок. Логи /tmp/health-T240a-*.log; выпуск ещё не выполнен.

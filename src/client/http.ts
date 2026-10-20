@@ -2,8 +2,10 @@ import type { z } from 'zod'
 import { beginRequest, getClientSession, setClientSession } from './session'
 
 export class ApiError extends Error {
-  constructor(readonly status: number, readonly code?: 'command_capacity') {
-    super(status === 409 && code === 'command_capacity'
+  constructor(readonly status: number, readonly code?: 'command_capacity' | 'command_rotation') {
+    super(status === 409 && code === 'command_rotation'
+      ? 'Журнал действий обновлён. Команда не сохранена. Перечитайте дневник и повторите ввод; сохранённые записи не изменены.'
+      : status === 409 && code === 'command_capacity'
       ? 'Достигнут предел журнала действий. Сохранение временно недоступно. Данные и создание копии доступны. Обратитесь к администратору.'
       : status === 401 ? 'Сессия завершилась. Войдите снова.' : status === 403 ? 'Действие не разрешено. Обновите страницу.'
       : status === 409 ? 'Данные изменились. Обновите запись и повторите действие.'
@@ -31,7 +33,8 @@ export async function requestApi<T>(path: string, read: (response: Response) => 
     request.assertCurrent()
     if (!response.ok) {
       if (response.status === 401 && !options.anonymous) setClientSession(null)
-      const code = response.status === 409 && response.headers.get('X-Health-Error-Code') === 'command_capacity' ? 'command_capacity' : undefined
+      const suppliedCode = response.headers.get('X-Health-Error-Code')
+      const code = response.status === 409 && (suppliedCode === 'command_capacity' || suppliedCode === 'command_rotation') ? suppliedCode : undefined
       throw new ApiError(response.status, code)
     }
     const owner = options.expectedAccountId ?? (options.anonymous ? null : session?.account.id)

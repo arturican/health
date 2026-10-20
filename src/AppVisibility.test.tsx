@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { AuthBoundary } from './client/AuthBoundary'
 import { App } from './App'
 import { invalidateQueries } from './client/queries'
 import { setClientSession } from './client/session'
@@ -111,4 +112,21 @@ it('fresh hide не отменяется поздним ответом преж�
   await screen.findByText('Не удалось загрузить настройки видимости.')
   expect(screen.queryByLabelText('Подпись фото')).not.toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'Раздел скрыт' })).toBeVisible()
+})
+
+it.each(media)('%s после нового generation перемонтирует форму и объясняет сброс ввода', async (route, title, fileLabel) => {
+  window.history.replaceState(null, '', '/#' + route)
+  render(<AuthBoundary><App /></AuthBoundary>)
+  fireEvent.change(await screen.findByLabelText(title), { target: { value: 'Учебный прежний ввод' } })
+  const fileField = screen.getByLabelText<HTMLInputElement>(fileLabel)
+  fireEvent.change(fileField, { target: { files: [new File(['synthetic'], 'synthetic.png', { type: 'image/png' })] } })
+  state = { ...clientDiary, generation: '30000000-0000-4000-8000-000000000001' }
+  act(() => { invalidateQueries() })
+  await screen.findByText('Дневник обновлён. Несохранённый ввод сброшен; проверьте записи перед повторным действием.')
+  await waitFor(() => { expect(screen.getByLabelText(title)).toHaveValue('') })
+  const freshFile = screen.getByLabelText<HTMLInputElement>(fileLabel)
+  expect(freshFile).not.toBe(fileField)
+  expect(freshFile.files).toHaveLength(0)
+  const focused = document.activeElement
+  expect(focused === screen.getByRole('main') || focused === screen.getByRole('complementary', { name: 'Обновление данных' })).toBe(true)
 })

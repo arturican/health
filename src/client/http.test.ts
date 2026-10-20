@@ -120,3 +120,18 @@ it.each([[400, 'command_capacity'], [500, 'command_capacity'], [409, 'synthetic-
   network.mockResolvedValue(new Response('synthetic-private-server-details', { status, headers: { 'X-Health-Error-Code': code } }))
   await expect(requestJSON('/api/v1/settings', z.unknown())).rejects.toMatchObject({ status, message: new ApiError(status).message })
 })
+
+it('объясняет command_rotation только по точному409 header и не читает body', async () => {
+  const response = new Response('synthetic-private-details', { status: 409, headers: { 'X-Health-Error-Code': 'command_rotation' } })
+  const read = vi.spyOn(response, 'json')
+  network.mockResolvedValue(response)
+  const failure: unknown = await requestJSON('/api/v1/settings', z.unknown()).catch((error: unknown) => error)
+  expect(failure).toMatchObject({ status: 409, code: 'command_rotation' })
+  if (!(failure instanceof ApiError)) throw new Error('Ожидалась безопасная ошибка API')
+  expect(failure.message).toContain('Команда не сохранена')
+  expect(read).not.toHaveBeenCalled()
+})
+it.each([400, 500])('не объявляет ротацию по чужому status%s с header command_rotation', async status => {
+  network.mockResolvedValue(new Response('synthetic-private-details', { status, headers: { 'X-Health-Error-Code': 'command_rotation' } }))
+  await expect(requestJSON('/api/v1/settings', z.unknown())).rejects.toMatchObject({ status, message: new ApiError(status).message })
+})
