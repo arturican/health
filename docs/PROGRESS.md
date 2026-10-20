@@ -3687,3 +3687,14 @@ last2, next/prev/delete/shrink→grow проверены; не network/heap benc
 Red1FAIL→5unit PASS.4Browser PASS, включая nativeJPEG/keyboard/narrow/axe.
 Types сначала выявили unknownid вmock, guard исправлен; types/lint/docs/diff/
 staged PASS. Read-only review edge shrink→grow учтён. Логи /tmp/health-T247-*.
+
+## T248 — Waterfall baseline
+
+Постоянный E2E built UI/API/PG synthetic emptyowner: initial31GET/21state,
+focus30/20, fullnessmutation30/20. Food3/status2; networkfinish345/134/205ms
+loopback, не latency production. READ_PERFORMANCE задаёт budget и explicit
+scope подход. Baseline ожидание30/20 initial опровергнуто31/21 (bootstrap);
+Playwright check требовал моментальную controlledcheckbox смену, заменён
+click+awaitchecked как реальный async сценарий. Финальный1E2E PASS,
+build/lint/docs/diff/staged PASS. Логи /tmp/health-T248-*.
+T249 разбита до реализации на coreprotocol и T249a4repos+summaries (≤5files).
