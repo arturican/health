@@ -4118,3 +4118,28 @@ status=sent намеренно фильтруется; нужен receipt уни
 ослабления логов. Полные native probe scripts/before вне Git.
 Check:docs357 Markdown/1607 local links/11 Mermaid syntax PASS; rendering
 не повторялся для неизменённых схем. Diff/staged/secret checks PASS.
+
+## T262b — Отказ в PTR, фактическое уточнение для поддержки
+
+21.10.2026, dev6cceabd clean. Пользователь передал отказ поддержки Beget в PTR
+без поддерживаемого/посещаемого «живого» сайта на аккаунте. Ответ учтён как
+внешнее ограничение; сотрудник/полный тикет/данные пользователя не сохранялись.
+App/runtime/readiness/nginx подтверждают SPA с8 экранами и серверным auth/API/
+PostgreSQL: frontend+API proxy на159, backend/DB на2.26. Публичные release6cceabd,
+health/readiness/unauthorized/gzip checks PASS, без auth/private body/CRUD.
+Посещаемость, возраст проекта и соответствие внутренним условиям не доказаны.
+
+В MAIL_MONITOR подготовлен черновик повторного обращения с точным описанием
+обоих хостов и закрытых разделов; никаких внешних сообщений не отправлялось.
+Публичная Beget инструкция PTR не гарантирует выдачу и не отменяет отказ.
+Запасной вариант — существующий независимый authenticated SMTP submission
+relay вне data VPS после отдельного выбора/карточки/TLS/domain/privacy gates;
+сервис/тариф/credentials не выбраны, интеграция не выполнена.
+Текущий SMTP/ключи/DNS/таймеры не менялись, внешняя отправка остаётся deferred
+по T262a, общий AUD-011/T262/T253a/T254c открыт. Docs-only; неизменённые
+app/91 deploy gates ранее PASS, повтор не нужен. Сведения и варианты сверены
+read-only review без изменения кода или production.
+
+Native frontend --dns по-прежнему FAIL только PTR; обязательный gate не обойдён.
+Check:docs358 Markdown/1614 local links/11 Mermaid syntax PASS, rendering
+не повторялся для прежних схем. Diff/staged/secret checks PASS.
