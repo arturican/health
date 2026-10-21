@@ -10,7 +10,7 @@ test('SOPS: restore, refresh, errors, stale updates and key reuse preserve setti
   const remote = join(temp, 'remote.git')
   const work = join(temp, 'work')
   const key = join(temp, 'private/keys.txt')
-  const env = { ...process.env, SOPS_AGE_KEY_FILE: key }
+  const env = { ...process.env, SOPS_AGE_KEY_FILE: key, HEALTH_SECRETS_BACKEND: 'local' }
   function execute(command, args, cwd = work, extraEnv = {}) {
     return spawnSync(command, args, { cwd, env: { ...env, ...extraEnv }, encoding: 'utf8' })
   }

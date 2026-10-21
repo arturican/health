@@ -1,5 +1,28 @@
 # Прогресс
 
+## T264b — Одна команда setup, секреты по SSH
+
+secrets:restore/refresh/encrypt/reconcile теперь по умолчанию используют
+ограниченный VPS helper, pinned host key, BatchMode/no-forwarding/timeout.
+Значения только stdin/захваченный stdout; ключ на новый компьютер не передаётся.
+HEALTH_SECRETS_BACKEND=local сохраняет прежний offline SOPS вариант.
+Сохранены lock, атомарный .env600, dirty refresh и Git stale guards; ciphertext
+проверяется на отсутствие каждого plaintext password перед записью.
+
+npm run setup сверяет установленные packages с lock metadata и ставит только
+при несовпадении, получает env, скачивает отсутствующий postgres:18.3,
+применяет прежние migrations/seed. Изменённый в Git ciphertext вызывает safe
+refresh; локальные правки блокируют его, .env.local не меняется. Параллельный
+setup блокируется. secrets:grant принимает только явный public key и добавляет
+forced entry через operator SSH под flock; root-доступ новым ПК не выдаётся.
+
+Четыре default Node tests PASS: SSH без local key/CLI, partial failures/неверные
+поля/dirty и stale, отсутствие plaintext в ciphertext, grant misuse и setup
+dependency reuse/lock change/refresh failure. Отдельный offline SOPS integration
+PASS; lint/docs/diff PASS. Live refresh и повторный grant existing key PASS.
+Live setup сохранил .env/пароли/данные, пропустил npm ci для уже верных packages
+и применил 0 миграций; демонстрация уже существует. Полный clean clone — T264c.
+
 ## T264a — Development secrets через ограниченный SSH
 
 По уточнению пользователя создан отдельный health-dev-secrets на frontend VPS.

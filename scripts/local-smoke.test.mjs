@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { openSync, closeSync, readFileSync } from 'node:fs'
+import { openSync, closeSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs'
 import { spawn, spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -21,6 +21,7 @@ test('isolated local setup preserves tables and serves API/UI with synthetic aut
   await client.connect()
   const children = []
   const log = openSync(join(tmpdir(), `health-local-smoke-${process.pid}.log`), 'w', 0o600)
+  const sentinel = `node_modules/.health-setup-smoke-${process.pid}`
   async function snapshot() {
     const tables = await client.query("SELECT tablename FROM pg_tables WHERE schemaname='health' ORDER BY tablename")
     assert.ok(tables.rowCount >= 20)
@@ -33,7 +34,9 @@ test('isolated local setup preserves tables and serves API/UI with synthetic aut
   }
   try {
     const before = await snapshot()
-    assert.equal(spawnSync('npm', ['run', 'local:setup'], { stdio: ['ignore', log, log] }).status, 0, 'repeat setup failed; see private temp log')
+    writeFileSync(sentinel, 'synthetic marker', { flag: 'wx' })
+    assert.equal(spawnSync('npm', ['run', 'setup'], { stdio: ['ignore', log, log] }).status, 0, 'repeat setup failed; see private temp log')
+    assert.equal(existsSync(sentinel), true, 'unchanged dependencies must not be reinstalled')
     assert.deepEqual(await snapshot(), before)
     for (const command of ['local:api', 'local:ui']) {
       children.push(spawn('npm', ['run', command], { detached: true, stdio: ['ignore', log, log] }))
@@ -58,6 +61,7 @@ test('isolated local setup preserves tables and serves API/UI with synthetic aut
   } finally {
     for (const child of children) { try { process.kill(-child.pid, 'SIGTERM') } catch { /* Already exited. */ } }
     closeSync(log)
+    rmSync(sentinel, { force: true })
     await client.end()
   }
 })

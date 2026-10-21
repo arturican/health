@@ -21,7 +21,7 @@ function child(command, args, env = process.env) {
   })
 }
 function settings() {
-  if (!existsSync('.env')) fail('Нет .env: выполните npm run secrets:restore с доступом к age key.')
+  if (!existsSync('.env')) fail('Нет .env: выполните npm run setup с SSH-доступом к development secrets.')
   const secret = parseEnv(readFileSync('.env', 'utf8'))
   const keys = ['DEV_POSTGRES_PASSWORD', 'DEV_APP_PASSWORD', 'DEV_MIGRATOR_PASSWORD', 'DEV_DEMO_PASSWORD']
   if (Object.keys(secret).length !== keys.length || keys.some(key => !/^[A-Za-z0-9_-]{15,}$/.test(secret[key] ?? '') || secret[key].startsWith('REPLACE_'))) fail('Проверьте четыре DEV_* пароля в .env; шаблон не является настройкой.')
@@ -49,10 +49,11 @@ function doctor() {
   if (process.platform !== 'linux' || process.arch !== 'x64') fail('Поддерживается Linux x86_64 / WSL2 Ubuntu 24.04.')
   if (process.version.slice(1) !== readFileSync('.nvmrc', 'utf8').trim()) fail('Выполните source ~/.nvm/nvm.sh; nvm install; nvm use.')
   if (captured('npm', ['--version']).trim() !== '11.19.1') fail('Нужен npm 11.19.1 из закреплённого Node.')
-  for (const [tool, args] of [['git', ['--version']], ['sops', ['--version']], ['age-keygen', ['--version']], ['gpg', ['--version']], ['docker', ['info', '--format', '{{.ServerVersion}}']]]) captured(tool, args)
+  const crypto = process.env.HEALTH_SECRETS_BACKEND === 'local' ? [['sops', ['--version']], ['age-keygen', ['--version']]] : [['ssh', ['-V']]]
+  for (const [tool, args] of [...crypto, ['git', ['--version']], ['gpg', ['--version']], ['docker', ['info', '--format', '{{.ServerVersion}}']]]) captured(tool, args)
   captured('docker', ['image', 'inspect', 'postgres:18.3'])
   settings()
-  process.stdout.write('Node/npm, SOPS/age, Git/GPG, Docker/postgres:18.3 и конфигурация OK. Браузер: npx playwright install chromium.\n')
+  process.stdout.write('Node/npm, SSH (либо local SOPS), Git/GPG, Docker/postgres:18.3 и конфигурация OK. Браузер: npx playwright install chromium.\n')
 }
 async function withDatabase(url, work) {
   const client = new Client({ connectionString: url, connectionTimeoutMillis: 2000 })

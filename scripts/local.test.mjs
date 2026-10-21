@@ -15,7 +15,7 @@ test('local commands reject missing, placeholder and conflicting configuration b
     const run = () => spawnSync(process.execPath, ['scripts/local.mjs', 'api'], { cwd: temp, encoding: 'utf8' })
     let result = run()
     assert.equal(result.status, 1)
-    assert.match(result.stderr, /secrets:restore/)
+    assert.match(result.stderr, /npm run setup/)
     const example = readFileSync(new URL('../.env.example', import.meta.url), 'utf8')
     writeFileSync(join(temp, '.env'), example)
     result = run()

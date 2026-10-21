@@ -19,10 +19,27 @@ const fail = message => { throw new Error(message) }
 function run(command, args, input) {
   const result = spawnSync(command, args, {
     input, encoding: 'utf8', env: { ...process.env, SOPS_AGE_KEY_FILE: key },
-    maxBuffer: 1024 * 1024,
+    maxBuffer: 1024 * 1024, timeout: 45000,
   })
+  if (result.status !== 0 && command === 'ssh') fail('Нет SSH-доступа к development secrets: проверьте авторизацию ключа и host key. .env сохранён.')
   if (result.status !== 0) fail(`Ошибка ${command}: проверьте установку, ключ и входной файл; настройки сохранены.`)
   return result.stdout
+}
+
+function localBackend() {
+  const backend = process.env.HEALTH_SECRETS_BACKEND ?? 'ssh'
+  if (!['ssh', 'local'].includes(backend)) fail('HEALTH_SECRETS_BACKEND: ssh или local.')
+  return backend === 'local'
+}
+
+function remote(operation, input) {
+  const config = JSON.parse(read('config/development-secrets.json'))
+  if (!config || !/^health-dev-secrets@[a-zA-Z0-9.-]+$/.test(config.destination ?? '') || config.knownHostsFile !== 'config/development-secrets.known_hosts') fail('Некорректная конфигурация development SSH.')
+  const identity = process.env.HEALTH_SECRETS_IDENTITY
+  return run('ssh', ['-T', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes',
+    '-o', `UserKnownHostsFile=${resolve(config.knownHostsFile)}`, '-o', 'ForwardAgent=no',
+    '-o', 'ClearAllForwardings=yes', '-o', 'ConnectTimeout=10',
+    ...(identity ? ['-o', 'IdentitiesOnly=yes', '-i', resolve(identity)] : []), config.destination, operation], input)
 }
 
 function checkKeyLocation() {
@@ -59,6 +76,7 @@ function atomic(path, value, replace = true) {
 }
 
 function decrypt() {
+  if (!localBackend()) return validate(remote('decrypt-development', read(cipher)))
   requireKey()
   return validate(run('sops', ['--decrypt', '--input-type', 'dotenv', '--output-type', 'dotenv', cipher]))
 }
@@ -99,8 +117,11 @@ function encrypt(reconcile = false) {
     if (JSON.parse(read(stateFile)).cipher !== hash(read(cipher))) fail('Зашифрованный файл обновился. Объедините секреты, затем secrets:reconcile.')
   }
   const value = validate(read('.env'))
-  const encrypted = run('sops', ['encrypt', '--input-type', 'dotenv', '--output-type', 'dotenv', '--filename-override', cipher], value)
+  const encrypted = localBackend()
+    ? run('sops', ['encrypt', '--input-type', 'dotenv', '--output-type', 'dotenv', '--filename-override', cipher], value)
+    : remote('encrypt-development', value)
   if (!encrypted.includes('sops_mac=') || !encrypted.includes('ENC[AES256_GCM,')) fail('Не получен зашифрованный файл.')
+  if (Object.values(parseEnv(value)).some(password => encrypted.includes(password))) fail('Backend вернул открытое значение; encrypted файл сохранён.')
   atomic(cipher, encrypted)
   saveState()
   process.stdout.write('Зашифрованный файл обновлён; проверьте и закоммитьте только ciphertext.\n')
@@ -108,6 +129,7 @@ function encrypt(reconcile = false) {
 
 function init() {
   if (existsSync(cipher)) return restore()
+  if (!localBackend()) fail('Новый набор создаёт оператор с HEALTH_SECRETS_BACKEND=local; существующий набор получает secrets:restore.')
   if (existsSync('.env')) fail('Существующий .env сохранён. Первичная настройка требует отдельной проверки его назначения.')
   if (!existsSync(key)) {
     checkKeyLocation()
