@@ -28,8 +28,8 @@ node подключи nvm в Linux shell (`. ~/.nvm/nvm.sh`), затем `nvm us
 
 | Когда | Команда / условия |
 |---|---|
-| Разработка UI/API | После local:setup: `npm run local:ui` и в другом терминале `npm run local:api`. Ручные dev/dev:api требуют полного серверного env по README; Vite проксирует /api/ на 127.0.0.1:3001 |
-| Новый компьютер / локальная среда | [DEVELOPMENT](DEVELOPMENT.md): secrets:restore → local:doctor → local:setup; local:api/local:ui, local:check; скрипты scripts/secrets.mjs и scripts/local.mjs, SOPS ciphertext в secrets |
+| Разработка UI/API | После `npm run setup`: `npm run local:ui` и в другом терминале `npm run local:api`. Ручные dev/dev:api требуют полного серверного env по README; Vite проксирует /api/ на 127.0.0.1:3001 |
+| Новый компьютер / локальная среда | [DEVELOPMENT](DEVELOPMENT.md): SSH public key разрешается secrets:grant, затем npm run setup; local:api/local:ui, local:check. scripts/setup.mjs → secrets.mjs (ограниченный SSH/SOPS на VPS) → local.mjs; config/development-secrets.*, deploy/development_secrets.py |
 | Только документация | `npm run check:docs` + `git diff --check`; тесты приложения не нужны |
 | Перед push после изменений приложения | `npm run check`: docs → lint → typecheck → coverage → browser → build → E2E. Нужны выделенная TEST_DATABASE_URL и Chromium; подробности — TESTING |
 | Целевая проверка в ходе работы | `npm test -- src/domain/bmi.test.ts`; `npm run test:browser:run -- src/App.browser.test.tsx`; `npm run build` и `npm run test:e2e -- profile-weight.spec.ts`. Не заменяют обязательный check |

@@ -41,12 +41,13 @@
 
 Поддерживается Ubuntu 24.04 x86_64; на Windows нужен WSL2, проект храните
 в Linux home. Node 24.22.0, npm 11.19.1, PostgreSQL 18.3, Docker Engine,
-Git, GPG, SOPS 3.13.3 и age 1.3.2. Подготовка инструментов, перенос ключа,
+Git, GPG и OpenSSH. SOPS/age и development age key находятся на VPS и на новом
+компьютере не нужны. Подготовка инструментов, одноразовый SSH-доступ,
 обновления и данные — [DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Первый запуск на новом компьютере
 
-После установки инструментов и переноса age-ключа по DEVELOPMENT:
+После установки инструментов и разрешения SSH public key по DEVELOPMENT:
 
 ```bash
 git clone --branch chore/portable-development git@github.com:arturican/health.git
@@ -54,14 +55,7 @@ cd health
 source ~/.nvm/nvm.sh
 nvm install
 nvm use
-npm ci
-export PATH="$PATH:$HOME/.local/bin"
-npm run secrets:restore
-docker pull postgres:18.3
-npm run local:doctor
-npm run local:setup
-npx playwright install --with-deps chromium
-npm run local:check
+npm run setup
 npm run local:api
 # Во втором терминале, из той же папки после nvm use:
 npm run local:ui
@@ -73,7 +67,8 @@ npm — **11.19.1**. Если nvm отсутствует, установи эт�
 что сначала нужно переключить Node/npm и повторить `npm ci`; без успешной установки
 зависимостей команда запуска не найдёт Vite. Проверку engines отключать не нужно.
 
-Setup создаёт отдельный локальный контейнер/том, роли, БД health/health_test,
+Setup сам устанавливает зависимости по lockfile, получает секреты через SSH,
+создаёт отдельный локальный контейнер/том, роли, БД health/health_test,
 применяет миграции и заполняет синтетический local-demo; повтор сохраняет данные.
 Войти можно логином local-demo и значением DEV_DEMO_PASSWORD из приватного .env.
 Секреты не печатайте в терминал/чат. Открой
@@ -87,7 +82,7 @@ Setup создаёт отдельный локальный контейнер/т
 API после создания ролей/БД, миграций и аккаунта: `npm run dev:api`.
 Для production: `npm run build:api`, затем `npm run start:api`.
 Для нового компьютера используйте local:* выше. [.env.example](.env.example)
-описывает четыре общих DEV_* секрета; .env восстанавливается через SOPS.
+описывает четыре общих DEV_* секрета; .env восстанавливается через SSH/SOPS на VPS.
 [.env.local.example](.env.local.example) описывает необязательные машинные порты.
 Прямые dev:api/db:migrate/db:seed команды ниже — ручной серверный режим:
 они требуют полного закрытого env из DEPLOYMENT, не DEV_* шаблон.

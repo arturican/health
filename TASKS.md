@@ -26,6 +26,7 @@ production/VPS/deploy не входят в работу.
 | [T263c](docs/tasks/T263c.md) | done | Инструкция, чистая копия и безопасный push | T263b |
 | [T264a](docs/tasks/T264a.md) | done | Ограниченный SSH helper для development secrets | T263c |
 | [T264b](docs/tasks/T264b.md) | done | Автоматический setup и доступ к секретам через SSH | T264a |
+| [T264c](docs/tasks/T264c.md) | done | Упрощённая инструкция и чистый SSH setup | T264b |
 
 ## Настройка рабочего процесса Codex
 

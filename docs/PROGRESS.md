@@ -1,5 +1,34 @@
 # Прогресс
 
+## T264c — Чистый setup без локального SOPS и age key
+
+Чистый clone --no-local в /tmp/health-T264c-clean-* использовал только tracked
+code, свежую .env.local с DB55436/API23004/UI25175 и health-dev-smoke-ssh/новым
+томом. PATH явно без локальных SOPS/age, SOPS_AGE_KEY_FILE указывает на отсутствующий
+файл; предоставлен только существующий SSH identity. Ключ не скачивался.
+npm run setup сам выполнил npm ci, получил .env через реальный VPS helper,
+создал локальные сервисы/миграции/демонстрацию. Повторный setup/smoke сохранил
+все 20 таблиц и sentinel в node_modules (нет повторного ci); readiness/UI/login PASS.
+Default Node4 PASS; full local:check 1726 unit/API + 92 Browser + 100 E2E PASS,
+build:api и verify_build PASS. Chromium использовал ранее документированные
+временные Ubuntu libraries/LD_LIBRARY_PATH, без sudo/изменения ОС.
+Логи /tmp/health-T264c-*.log вне Git. Физический второй компьютер не проверялся.
+
+Дополнительно создан временный синтетический SSH test key вне проекта: настоящий
+secrets:grant разрешил его, dedicated decrypt совпал с прежним .env, shell denied.
+После проверки удалена только его forced entry и временный private/public key;
+обычный доступ проверен повторным live secrets:refresh. Постоянные ключи/пароли
+не генерировались заново и не менялись. Root/SSHD/production app config не менялись.
+
+README и DEVELOPMENT теперь ведут к одному public-key grant и npm run setup;
+SOPS/age и перенос age key исключены из требований нового ПК. Сохранены инструкции
+смены компьютера, secrets update, конфликтов и данных; local fallback явный.
+Agent review PASS; syntax всех6 Bash blocks PASS. Новая конфигурация только
+комментарии env templates; сохранность .env/.env.local и Git ciphertext проверена.
+Offline backup ключа не создан; текущий development key остаётся также на исходном
+ПК. Финальный docs/diff/staged/secret scan перед коммитом; затем разрешённый push
+chore/portable-development без force. Feature CI/deploy автоматически не запускается.
+
 ## T264b — Одна команда setup, секреты по SSH
 
 secrets:restore/refresh/encrypt/reconcile теперь по умолчанию используют

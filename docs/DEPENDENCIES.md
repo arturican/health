@@ -2,7 +2,9 @@
 
 ## Перенос разработки, T263a–T263c
 
-SOPS 3.13.3 и age 1.3.2 — пользовательские CLI, не npm dependencies.
+SOPS 3.13.3 и age 1.3.2 — CLI, не npm dependencies. После T264a/b SOPS работает
+на отдельном VPS helper; на новых ПК достаточно OpenSSH. Age 1.3.2 и SOPS
+локально нужны только оператору/offline fallback, обычный setup их не требует.
 21.10.2026 Linux amd64 release assets проверены по SHA256 release API:
 [SOPS](https://github.com/getsops/sops/releases/tag/v3.13.3),
 [age](https://github.com/FiloSottile/age/releases/tag/v1.3.2).
