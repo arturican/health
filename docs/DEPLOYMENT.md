@@ -3,7 +3,7 @@
 Адрес приложения: <https://dev.arturican.com>. Frontend/Nginx находятся на
 159.194.208.200; PostgreSQL 18.3 и API — на 2.26.54.81, Ubuntu 24.04.
 Email-регистрация и восстановление опубликованы в T196. Текущая приёмка
-кода/API/ops — [T260](#приёмка-t260-20102026); старые T222 и другие записи ниже —
+frontend — [T265](#приёмка-t265), API/ops — [T260](#приёмка-t260-20102026); старые T222 и другие записи ниже —
 история предыдущих выпусков. Точный frontend SHA проверяется по release.txt
 и успешному CI выбранного коммита, в том числе после docs-only публикации.
 
@@ -311,6 +311,25 @@ production Node path, namespace activation не запускалась (нет s
 Восстановление копии сначала выполняется в новой БД по BACKUPS.md.
 
 ## GitHub Actions
+
+## Приёмка T265
+
+21.10.2026 явно разрешены push/deploy. Frontend опубликован штатным fast-forward
+push dev на **93fa0d48799e0c9c859e3ed39b0c8d5291315f51**.
+[CI run 39600567471](https://github.com/arturican/health/actions/runs/39600567471)
+успешно завершил все static/coverage/build/browser/Desktop+mobile E2E/check/deploy
+gates. HTTPS release.txt возвращает этот точный SHA; главная, health и readiness
+дают200, profile без входа401. Deployed Playwright Desktop/Pixel7 — 6/6 PASS:
+вход/восемь экранов/вложения/CRUD/logout, email-формы без отправки писем и
+SHA/HTTPS/redirect. Исходный synthetic diary сохранён, временные записи удалены.
+
+Runtime API, схема/данные БД, SMTP и конфигурация работающих сервисов в этой
+очереди не менялись; отдельного API artifact/migrations deployment не было.
+Development secrets helper T264a/c уже установлен отдельно от приложения;
+перенос нового компьютера описан в [DEVELOPMENT](DEVELOPMENT.md).
+Docs checkpoint T265 отправляется в feature; опубликованный dev SHA остаётся93fa0d4.
+
+### Устройство workflow
 
 [check.yml](../.github/workflows/check.yml) проверяет проект и доставляет только dist
 в dev по ограниченному health-deploy ключу. Backend, SSH, Nginx и systemd

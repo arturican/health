@@ -1,5 +1,29 @@
 # Прогресс
 
+## T265 — Push dev, успешный CI/deploy и live-приёмка
+
+21.10.2026 пользователь явно разрешил push/deploy. Точный проверенный
+93fa0d48799e0c9c859e3ed39b0c8d5291315f51 доставлен fast-forward push
+из origin/dev66de366, без merge/rebase/force. Feature уже опубликована.
+[GitHub Actions 39600567471](https://github.com/arturican/health/actions/runs/39600567471):
+static, coverage, build, browser, e2e Desktop/mobile, check и deploy — success.
+Deploy использовал штатный CI artifact и ограниченный SSH installer.
+
+Публичный HTTPS release.txt совпал с ожидаемым полным SHA; главная/health/
+readiness200, profile без входа401. Deployed Playwright: 6/6 PASS (1.5m),
+Desktop/Pixel7 — вход, все8 экранов, вложения, synthetic CRUD, logout,
+email-формы без настоящих писем, точный SHA/HTTPS/HTTP redirect. Исходные31
+synthetic weights до/после совпадают; тест удаляет только созданные записи.
+Credentials читались локальным harness без вывода, лог редактируется до записи;
+trace/video/автоснимки выключены. Логи /tmp/health-T265-*.log вне Git.
+
+API/БД/SMTP в этой очереди не менялись: отдельный API artifact/миграции не
+доставлялись. Development SSH helper остаётся отдельно установленным T264a/c.
+Реальные пользовательские данные не читались. Unchanged local full check,
+build:api и Python95/verify_build из T264 не повторялись; CI gates прошли заново.
+Приёмка добавлена в DEPLOYMENT. Этот один docs checkpoint публикуется в feature
+без повторного frontend deployment; dev/release остаются на точном93fa0d4.
+
 ## T264c — Чистый setup без локального SOPS и age key
 
 Чистый clone --no-local в /tmp/health-T264c-clean-* использовал только tracked
