@@ -171,11 +171,12 @@ push и frontend-релиз в него не входят.
 | T260b | done | [Стабилизировать тестовые зависимости gate](docs/tasks/T260b.md) | T260a |
 | T260 | done | [Итоговая приёмка и доставка](docs/tasks/T260.md) | T260a |
 | T261 | done | [Повторная приёмка после деплоя](docs/tasks/T261.md) | T260 |
-| T262 | blocked | [SMTP второго VPS: выбран relay, нужны параметры/receipt](docs/tasks/T262.md) | T252a |
+| T262 | blocked | [SMTP второго VPS: настройка отложена пользователем](docs/tasks/T262.md) | T252a |
 | T254d | done | [State/delivery offsite monitor](docs/tasks/T254d.md) | T254b, T252a |
 | T262a | done | [Подтверждение DNS и PTR-блокера](docs/tasks/T262a.md) | T252a |
 | T262b | done | [Отказ в PTR и варианты продолжения](docs/tasks/T262b.md) | T262a |
-| T262c | done | [Выбран существующий внешний SMTP](docs/tasks/T262c.md) | T262b |
+| T262c | done | [Выбор внешнего SMTP: отменён в T262d](docs/tasks/T262c.md) | T262b |
+| T262d | done | [Сохранить текущую конфигурацию](docs/tasks/T262d.md) | T262c |
 
 ## Подготовка
 

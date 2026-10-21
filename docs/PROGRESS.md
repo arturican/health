@@ -4173,3 +4173,24 @@ DKIM; нельзя предполагать re-signing provider. Реальны�
 
 Check:docs359 Markdown/1616 local links/11 Mermaid syntax PASS. Схемы
 не менялись, rendering не повторён. Diff/staged/secret checks PASS.
+
+## T262d — Настройка остановлена по просьбе пользователя
+
+21.10.2026 пользователь уточнил: внешнего SMTP нет, «давай оставим так».
+Выбор T262c отменён; настройка relay/AUTH/независимых alerts отложена до
+нового запроса. Удалены только свои незакоммиченные card/test заготовки auth
+privacy и их строка TASKS, проверенные как untracked. Реализация и remote
+изменения ещё не начинались, baseline tests/конфигурация не менялись.
+Начатая synthetic regression была ожидаемым FAIL для будущего AUTH; она не
+выдаётся за PASS и не относится к включённой функции. Ранее сохранённые
+мониторы/артефакты/история Git сохранены без reset/amend или удаления.
+
+Документы показывают текущее состояние: data SMTP прежний, frontend defer/AUTHno
+и новые timers не активированы по последнему preflight T262c; эта задача не
+выполняла remote команд и ничего не включала/удаляла на VPS. Независимого
+оповещения при полном отказе data VPS пока нет, AUD-011/T262/T253a/T254c открыты.
+Новый push/deploy не запускается по решению об остановке; live остаётся da764f0,
+локальный T262c5806d73 и текущий docs checkpoint не опубликованы.
+
+Check:docs360 Markdown/1620 local links/11 Mermaid syntax PASS. Схемы
+не менялись, rendering не повторён. Diff/staged/secret checks PASS.
