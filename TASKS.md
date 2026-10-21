@@ -24,6 +24,7 @@ production/VPS/deploy не входят в работу.
 | [T263a](docs/tasks/T263a.md) | done | Зашифрованные общие секреты разработки | — |
 | [T263b](docs/tasks/T263b.md) | done | Повторяемая локальная среда и команды | T263a |
 | [T263c](docs/tasks/T263c.md) | done | Инструкция, чистая копия и безопасный push | T263b |
+| [T264a](docs/tasks/T264a.md) | done | Ограниченный SSH helper для development secrets | T263c |
 
 ## Настройка рабочего процесса Codex
 

@@ -1,5 +1,27 @@
 # Прогресс
 
+## T264a — Development secrets через ограниченный SSH
+
+По уточнению пользователя создан отдельный health-dev-secrets на frontend VPS.
+Текущий development age key переиспользован в /var/lib/health-dev-secrets/private/keys.txt
+(user600/private700); home root:dedicated750, .ssh root755 и authorized_keys root644.
+У существующего пользовательского RSA public key только restrict/forced command.
+Root/admin/production авторизация, SSH daemon config и сервисы не менялись.
+SOPS 3.13.3 установлен в отдельный /usr/local/lib/health-dev-secrets после SHA256.
+Helper принимает только development encrypt/decrypt, четыре DEV-поля, ожидаемый
+age recipient и metadata; cloud/Vault/прочие поля отвергаются до SOPS. Тайм-аут
+и лимиты ввода, stderr/partial output не передаются. Новые ПК не получают age key.
+
+Четыре Python unit tests и live restricted SSH roundtrip PASS: открытые значения
+совпадают с исходными, запрещённая команда/повреждённый ввод не дают stdout.
+Повторная установка с тем же ключом PASS. Live тест выявил обязательный
+filename-override для SOPS encrypt stdin: исправлено, тест и live rerun PASS.
+Review исправил права authorized_keys, writable home и allowlist metadata/auth.
+Публичный host key закреплён из ранее доверенного root SSH соединения.
+Действующие production env/БД/релизы и recovery GPG key не переносились.
+Локальный development key сохранён для offline fallback; offline backup не создан.
+Финальные CI/full check и команды пользователя — следующие этапы T264b/c.
+
 ## T263c — Проверка переноса в чистом клоне
 
 В отдельном git clone --no-local установлен npm ci (0 advisory), восстановлен
