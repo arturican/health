@@ -1,5 +1,15 @@
 # Версии и совместимость T001
 
+## Перенос разработки, T263a–T263c
+
+SOPS 3.13.3 и age 1.3.2 — пользовательские CLI, не npm dependencies.
+21.10.2026 Linux amd64 release assets проверены по SHA256 release API:
+[SOPS](https://github.com/getsops/sops/releases/tag/v3.13.3),
+[age](https://github.com/FiloSottile/age/releases/tag/v1.3.2).
+Установка/ключ — [DEVELOPMENT](DEVELOPMENT.md). Docker с postgres:18.3 уже
+требуется существующим backup-тестам; local:* использует тот же образ без Compose.
+Новых зависимостей в package-lock нет. Node/npm/engine-strict не менялись.
+
 ## SMTP, T189–T195
 
 Nodemailer 10.1.1 закреплён точно; npm registry подтверждает Node >=20,

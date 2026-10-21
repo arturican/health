@@ -28,28 +28,43 @@
 Совместного доступа и AI нет. Приложение не даёт медицинских рекомендаций.
 
 Демонстрационный логин: health-demo. Пароль находится в закрытом локальном
-/home/artur/.config/health-diary/demo-credentials.json (WSL, права 600), не в Git.
+~/.config/health-diary/demo-credentials.json исходного компьютера (WSL, права 600), не в Git.
 После входа доступны 90 дней вымышленных записей, графики и учебные вложения.
 
 Сервер ежедневно создаёт зашифрованную копию на втором VPS.
 [BACKUPS.md](docs/BACKUPS.md) описывает расписание, ручной запуск и восстановление;
 реальное восстановление в отдельную БД проверено. Recovery key находится в
-/home/artur/.config/health-diary/recovery-secret.asc: сохраните защищённую
+~/.config/health-diary/recovery-secret.asc исходного компьютера: сохраните защищённую
 офлайн-копию, не передавайте ключ на VPS или в чат.
 
 ## Запуск в WSL / Linux
 
-В существующей папке проекта обнови ветку `dev`:
+Поддерживается Ubuntu 24.04 x86_64; на Windows нужен WSL2, проект храните
+в Linux home. Node 24.22.0, npm 11.19.1, PostgreSQL 18.3, Docker Engine,
+Git, GPG, SOPS 3.13.3 и age 1.3.2. Подготовка инструментов, перенос ключа,
+обновления и данные — [DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+## Первый запуск на новом компьютере
+
+После установки инструментов и переноса age-ключа по DEVELOPMENT:
 
 ```bash
-cd ~/health
-git fetch origin
-git switch dev
-git pull --ff-only
+git clone --branch chore/portable-development git@github.com:arturican/health.git
+cd health
+source ~/.nvm/nvm.sh
 nvm install
 nvm use
 npm ci
-npm run dev -- --host 127.0.0.1
+export PATH="$PATH:$HOME/.local/bin"
+npm run secrets:restore
+docker pull postgres:18.3
+npm run local:doctor
+npm run local:setup
+npx playwright install --with-deps chromium
+npm run local:check
+npm run local:api
+# Во втором терминале, из той же папки после nvm use:
+npm run local:ui
 ```
 
 Нужен установленный nvm. Версия Node закреплена в [.nvmrc](.nvmrc): **24.22.0**,
@@ -58,7 +73,10 @@ npm — **11.19.1**. Если nvm отсутствует, установи эт�
 что сначала нужно переключить Node/npm и повторить `npm ci`; без успешной установки
 зависимостей команда запуска не найдёт Vite. Проверку engines отключать не нужно.
 
-Сначала настрой БД и запусти API по инструкции ниже. Открой
+Setup создаёт отдельный локальный контейнер/том, роли, БД health/health_test,
+применяет миграции и заполняет синтетический local-demo; повтор сохраняет данные.
+Войти можно логином local-demo и значением DEV_DEMO_PASSWORD из приватного .env.
+Секреты не печатайте в терминал/чат. Открой
 [http://127.0.0.1:5173](http://127.0.0.1:5173).
 Оставь терминал работающим. Для просмотра production-сборки выполни
 `npm run build`, затем `npm run preview` и открой напечатанный адрес
@@ -68,9 +86,12 @@ npm — **11.19.1**. Если nvm отсутствует, установи эт�
 
 API после создания ролей/БД, миграций и аккаунта: `npm run dev:api`.
 Для production: `npm run build:api`, затем `npm run start:api`.
-Настройки NODE_ENV, API_HOST и API_PORT — в [.env.example](.env.example).
-Скопируйте его в закрытый `.env` (`chmod 600 .env`); секреты никогда не задаются
-через VITE_*. По умолчанию API слушает `127.0.0.1:3001`;
+Для нового компьютера используйте local:* выше. [.env.example](.env.example)
+описывает четыре общих DEV_* секрета; .env восстанавливается через SOPS.
+[.env.local.example](.env.local.example) описывает необязательные машинные порты.
+Прямые dev:api/db:migrate/db:seed команды ниже — ручной серверный режим:
+они требуют полного закрытого env из DEPLOYMENT, не DEV_* шаблон.
+Секреты никогда не задаются через VITE_*. По умолчанию API слушает `127.0.0.1:3001`;
 `GET /api/v1/health` возвращает liveness, без проверки БД.
 SIGINT/SIGTERM корректно закрывают listener. Неверные настройки и занятый порт
 завершают процесс с кодом 1. Серверная сборка находится в `build-api`, отдельно
@@ -216,6 +237,7 @@ Linux-зависимости браузера, отдельные команды
 
 ## Документы
 
+- [DEVELOPMENT.md](docs/DEVELOPMENT.md) — перенос разработки, ключа и локальных данных.
 - [MVP.md](docs/MVP.md) — реализованный объём и принятые решения.
 - [AGENTS.md](AGENTS.md) и [WORKFLOW.md](docs/WORKFLOW.md) — порядок задач и Git.
 - [PROJECT_MAP.md](docs/PROJECT_MAP.md) — точки входа, маршруты поиска и проверки по типу изменения.

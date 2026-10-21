@@ -44,8 +44,9 @@ UI по-русски, идентификаторы по-английски. AI �
   агента или подключения. После коммита сообщи фактический hash.
 - WSL/Linux: source ~/.nvm/nvm.sh; nvm use. Версии: .nvmrc/package.json.
   npm ci — при первой установке/изменении lock, не перед каждой задачей.
-  В PowerShell запускай команды через WSL в /home/artur/health.
-- UI: npm run dev; API: npm run dev:api. БД/роли/env — [README](README.md).
+  В PowerShell запускай команды через WSL в каталоге клона внутри Linux home.
+- Локально: local:setup, затем npm run local:ui и local:api — [DEVELOPMENT](docs/DEVELOPMENT.md).
+  Ручной UI: npm run dev; API: npm run dev:api с полным серверным env — [README](README.md).
   Между этапами — связанные тесты; перед push после последних изменений —
   npm run check и build:api, соответствующие deploy gates из карты.
   Только документы: check:docs + diff --check. Не повторяй успешные неизменённые
@@ -59,6 +60,11 @@ UI по-русски, идентификаторы по-английски. AI �
 
 ## Качество и данные
 
+- Перенос разработки — [DEVELOPMENT](docs/DEVELOPMENT.md): общие DEV_* секреты
+  только в SOPS ciphertext, ключ вне Git; .env/.env.local не коммитить.
+  Перед сменой компьютера commit/push, на другом pull --ff-only до работы.
+  Feature push не деплоит; push dev запускает deploy. Не переносить VPS env,
+  реальные данные или машинные настройки в общие development secrets.
 - [CODING_STANDARDS](docs/CODING_STANDARDS.md): strict, без any/@ts-ignore/
   as unknown as; внешний ввод unknown + runtime-схема, расчёты вне JSX,
   без производных сумм в state и абстракций на будущее.

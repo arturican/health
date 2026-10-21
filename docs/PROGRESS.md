@@ -1,5 +1,36 @@
 # Прогресс
 
+## T263c — Проверка переноса в чистом клоне
+
+В отдельном git clone --no-local установлен npm ci (0 advisory), восстановлен
+.env только через явно предоставленный внешний SOPS_AGE_KEY_FILE. Исходные
+.env/node_modules/машинные файлы не копировались. Заново создана .env.local:
+health-dev-smoke-clean, DB 55435/API 23002/UI 25174, отдельный Docker том.
+Doctor/setup, test:local (2), smoke (1) PASS; повтор сохраняет все 20 таблиц,
+readiness/UI/auth работают. Проверка только на текущем компьютере в WSL2.
+
+Первый check остановился на отсутствующих libnspr4/libnss3/libasound у Chromium;
+sudo без пароля недоступен. Пакеты получены через apt-get download и распакованы
+во временный каталог; LD_LIBRARY_PATH задан только терминалу проверки.
+Этот явный no-sudo способ добавлен в DEVELOPMENT. После исправления окружения
+итоговый npm run local:check целиком PASS: 1726 unit/API, 92 Browser, 100 E2E;
+build:api PASS. Gates не ослаблялись. Полные логи /tmp/health-T263c-*.log вне Git.
+
+README/DEVELOPMENT описывают пять запрошенных разделов, инструменты и точные
+команды, отдельные машинные параметры, отказ при stale secrets и ручное
+разрешение ciphertext-конфликта. -merge предотвращает построчное объединение.
+Review исправил порядок reconcile после включения upstream в HEAD и исключил
+несуществующую UI-смену пароля local-demo. Bash syntax всех 6 блоков PASS.
+Шаблоны/ciphertext отслеживаются; env/state/key исключены. Staged blobs и
+24 task logs проверены на совпадение с открытыми DEV passwords — нет.
+Ключ ~/.config/sops/age/keys.txt остаётся 600; резервная копия не создавалась.
+Существующие production env/данные/доступы и исходный test container не менялись.
+
+Финальный docs/diff/staged scan обязателен перед этим коммитом. Push разрешён
+только chore/portable-development в существующий origin, без force; его
+фактический результат/hash сообщаются после выполнения. Этот feature push
+не запускает CI по текущим branch filters и не запускает production deploy.
+
 ## T263b — Повторяемые локальные сервисы
 
 Добавлены npm local:doctor/setup/api/ui/check и secrets:*; четыре общих

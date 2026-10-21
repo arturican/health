@@ -23,12 +23,13 @@ CRUD, графики, фото/документы, ручные показате
 
 В WSL/Linux: `nvm use` (Node 24.22.0), npm 11.19.1; `npm ci` при первичной
 установке или изменении lock-файла. Версии — .nvmrc/package.json.
-В PowerShell запускай команды через WSL в /home/artur/health; при отсутствии
+В PowerShell запускай команды через WSL в каталоге клона внутри Linux home; при отсутствии
 node подключи nvm в Linux shell (`. ~/.nvm/nvm.sh`), затем `nvm use`.
 
 | Когда | Команда / условия |
 |---|---|
-| Разработка UI/API | `npm run dev` и в другом терминале `npm run dev:api`; Vite проксирует /api/ на 127.0.0.1:3001. БД/роли/миграции/аккаунт — раздел «Первое использование» README |
+| Разработка UI/API | После local:setup: `npm run local:ui` и в другом терминале `npm run local:api`. Ручные dev/dev:api требуют полного серверного env по README; Vite проксирует /api/ на 127.0.0.1:3001 |
+| Новый компьютер / локальная среда | [DEVELOPMENT](DEVELOPMENT.md): secrets:restore → local:doctor → local:setup; local:api/local:ui, local:check; скрипты scripts/secrets.mjs и scripts/local.mjs, SOPS ciphertext в secrets |
 | Только документация | `npm run check:docs` + `git diff --check`; тесты приложения не нужны |
 | Перед push после изменений приложения | `npm run check`: docs → lint → typecheck → coverage → browser → build → E2E. Нужны выделенная TEST_DATABASE_URL и Chromium; подробности — TESTING |
 | Целевая проверка в ходе работы | `npm test -- src/domain/bmi.test.ts`; `npm run test:browser:run -- src/App.browser.test.tsx`; `npm run build` и `npm run test:e2e -- profile-weight.spec.ts`. Не заменяют обязательный check |

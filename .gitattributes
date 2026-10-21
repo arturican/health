@@ -1,0 +1,2 @@
+# A SOPS MAC covers the whole document: never auto-merge individual ciphertext lines.
+secrets/development.enc.env -merge
