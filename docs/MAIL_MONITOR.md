@@ -1,7 +1,8 @@
 # Независимая почта второго VPS — T262
 
 Состояние на 21.10.2026 (Europe/Moscow): SMTP установлен на frontend
-159.194.208.200, но **внешняя отправка отложена до DNS/PTR и проверки получения**.
+159.194.208.200, но **внешняя отправка отложена: отсутствует PTR**.
+Прямые DNS подтверждены в T262a. После PTR нужны включение и проверка получения.
 Новые watchdog/offsite timers не включены. Data SMTP на 2.26.54.81 продолжает
 работать без изменения ключа или конфигурации приложения. Общий AUD-011 открыт.
 
@@ -41,15 +42,21 @@ WSL, AI или передавать в поддержку. Копии БД эт�
 syslog:adm0640, штатные правила не переписаны. Повторная проверка прошла.
 Это не тест доставки в почтовый ящик. Реальных писем с frontend ещё не было.
 
-## Требуемые изменения DNS
+## DNS-записи и их состояние
 
 Доступа к кабинету домена/провайдера в текущем окружении нет. Публичный DoH
-подтвердил отсутствие нового A/PTR/selector и auth SPF только для data IP.
-WSL UDP DNS timeout не принят за NXDOMAIN. Проверьте зону arturican.com
+подтвердил новые A/HELO SPF/DKIM и shared auth SPF после ответа пользователя
+«Записи внесены» (T262a). Только PTR остаётся NXDOMAIN. Прямые TCP DNS
+к ns1.beget.com и ns2.beget.com дали authoritative=true/rcode3/PTR=[];
+Google/Cloudflare подтвердили отсутствие записи, negative TTL300.
+WSL UDP DNS timeout не принят за NXDOMAIN. Зона arturican.com
 на ns1.mitelis.cc/ns2.mitelis.cc; смена NS не нужна. Имена ниже относительные,
 TTL300 или минимальный доступный.
 
-| Действие | Тип | Имя в зоне arturican.com | Значение |
+Все четыре записи таблицы опубликованы и проверены; она сохранена как
+справочник для сопровождения. Повторно добавлять их не требуется.
+
+| Действие при первичной настройке | Тип | Имя в зоне arturican.com | Значение |
 |---|---|---|---|
 | Добавить | A | mail-monitor | 159.194.208.200 |
 | Добавить | TXT | mail-monitor | v=spf1 ip4:159.194.208.200 -all |
@@ -68,25 +75,31 @@ v=DKIM1; h=sha256; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu4WyKHLp
 
 После создания A задайте PTR **IP159.194.208.200** у VPS-провайдера:
 mail-monitor.arturican.com. Обратная запись не задаётся в прямой зоне домена.
+На момент T262a PTR не задан в авторитативной обратной зоне.
+По [официальной инструкции Beget](https://beget.com/ru/kb/how-to/vps/mailu-pochtovyj-server-sozdanie-i-nastrojka)
+PTR настраивается через тикет: [панель](https://cp.beget.com/) → «Помощь и поддержка».
+Если VPS приобретён через другого провайдера, обратиться в его поддержку.
+Делегация обратной зоны на Beget не подтверждает, в каком кабинете оплачен VPS.
 Готовый текст для поддержки:
 
-> Прошу установить PTR/rDNS для моего VPS159.194.208.200 в
-> mail-monitor.arturican.com. Прямая A-запись указывает на159.194.208.200.
+> Прошу установить PTR/rDNS для моего VPS 159.194.208.200 в
+> mail-monitor.arturican.com. Прямая A-запись указывает на 159.194.208.200.
 > Сервер используется для исходящих служебных оповещений приложения.
-> PTR2.26.54.81/mail.arturican.com изменять не требуется.
+> PTR 2.26.54.81/mail.arturican.com изменять не требуется.
 
 ## Проверка и активация после DNS
 
 1. На frontend выполнить `python3 /usr/local/libexec/health-mail-check.py --host monitor --dns`.
    До всех A/SPF/DKIM/DMARC/PTR и matching private key gate должен завершаться
-   ошибкой. На момент подготовки: DNS pending — ожидаемый блокер, не PASS.
-2. На data установить актуальный [check_mail.py](../deploy/check_mail.py),
-   предварительно сохранив прежний helper. В его root0600 mail-dns.json
-   сохранить data dkim_name/dkim_value и добавить
-   `"sender_ips":["2.26.54.81","159.194.208.200"]`. Выполнить
-   `python3 /usr/local/libexec/health-mail-check.py --dns`. По умолчанию это
-   data profile; selector/private key data не менять. До замены SPF старые
-   metadata продолжают описывать фактическую data-only запись.
+   ошибкой. Сейчас DNS pending только для PTR — ожидаемый блокер, не PASS.
+2. Выполнено в T262a: data helper [check_mail.py](../deploy/check_mail.py)
+   обновлён из текущего source, root0600 mail-dns.json содержит
+   `"sender_ips":["2.26.54.81","159.194.208.200"]`. Прежние
+   host/ip/sender/dkim_name/dkim_value сохранены; data --dns PASS.
+   MTA configs SHA256 прежние, services active без restart.
+   Before копии — /root/health-T262/before на data; повторная установка не нужна.
+   Безопасная read-only проверка: `python3 /usr/local/libexec/health-mail-check.py --dns`.
+   По умолчанию это data profile; selector/private key data не менять.
 3. На frontend повторить deferred local gate:
    `python3 /usr/local/libexec/health-mail-check.py --host monitor`.
    Он не использует локальные API/БД data. Команду без --dns не запускать после
@@ -98,7 +111,10 @@ mail-monitor.arturican.com. Обратная запись не задаётся 
 5. Отправить одно согласованное synthetic operational сообщение прежнему
    recipient из закрытого конфига, без health data/вложений/ссылок/токенов.
    Не печатать recipient, postqueue/postcat или сырые SMTP errors. Зафиксировать
-   отдельно SMTP acceptance, статус доставки и подтверждение получателя.
+   отдельно local SMTP acceptance, queue pending/absent и подтверждение
+   получателя по уникальному несекретному маркеру. Исчезнувший queue id не
+   доказывает remote250/inbox (возможен bounce/expiry). Postfix status=sent
+   содержит адрес и намеренно отфильтрован; ради proof фильтры не ослаблять.
 6. После receipt продолжить [T253a](tasks/T253a.md) и [T254c](tasks/T254c.md):
    isolated alert/recovery без остановки рабочего API/БД, затем timers.
    Одно настроенное MTA не закрывает независимые watchdog/offsite alerts.

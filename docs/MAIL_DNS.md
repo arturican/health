@@ -1,9 +1,10 @@
 # Почта приложения — DNS и активация
 
-На21.10.2026 data SMTP активен. Независимый SMTP frontend установлен, но
-отправка отложена до DNS/PTR/receipt: [точные записи и порядок](MAIL_MONITOR.md).
-Таблица ниже описывает прежнюю data-only настройку; расширение auth SPF
-до двух IP выполняется заменой единственного SPF по MAIL_MONITOR.
+На21.10.2026 data SMTP активен. Shared auth SPF с двумя IP опубликован,
+оба DKIM ключа сверены с DNS, data --dns PASS (T262a). SMTP frontend установлен,
+отправка отложена до PTR/receipt: [состояние и порядок](MAIL_MONITOR.md).
+Таблица ниже описывает прежнюю data-only настройку; актуальный единственный
+SPF с обоими IP приведён в MAIL_MONITOR.
 
 Postfix/OpenDKIM установлены на VPS БД 2.26.54.81, отправитель:
 no-reply@auth.arturican.com. SMTP доступен только локальным процессам на этом VPS:

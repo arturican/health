@@ -501,8 +501,9 @@ offsite_check
 допустим лишь по тому же имени и совпавшему SHA ещё сохранённого source.
 Исчезновение всей прежней пары без исторического ledger не обнаруживается.
 T252a выбрал самостоятельный frontend SMTP; T262 установил Postfix/OpenDKIM
-с отдельным ключом, без data relay. Локальные gates PASS, отправка deferred
-до DNS/PTR/receipt; T262/T253a/T254c blocked. [MAIL_MONITOR](MAIL_MONITOR.md)
+с отдельным ключом, без data relay. Локальные gates PASS; T262a подтвердил
+прямые A/SPF/DKIM и data --dns. Отправка deferred до PTR/receipt;
+T262/T253a/T254c blocked. [MAIL_MONITOR](MAIL_MONITOR.md)
 описывает точные записи. Артефакты не доказывают независимую доставку.
 
 Private key остаётся вне VPS. Synthetic dump→GPG→restore текущих 20 таблиц,

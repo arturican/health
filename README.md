@@ -107,7 +107,7 @@ Secure/HttpOnly cookie. Скрытие разделов — только нас�
 
 При MAIL_ENABLED=true доступна email-регистрация с подтверждением, вход
 и восстановление. Служебный SMTP настраивается по [MAIL_DNS](docs/MAIL_DNS.md);
-независимый SMTP второго VPS и ожидающие DNS/PTR — [MAIL_MONITOR](docs/MAIL_MONITOR.md);
+независимый SMTP второго VPS и ожидающий PTR — [MAIL_MONITOR](docs/MAIL_MONITOR.md);
 локально без SMTP можно создать синтетический аккаунт CLI. Никакие настоящие
 письма для автоматических тестов не нужны.
 

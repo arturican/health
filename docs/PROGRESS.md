@@ -4089,3 +4089,32 @@ T262 public health/release/readiness/unauthorized+gzip proof PASS без private
 body/CRUD; native mail helper SHA совпадает с committed source. T262 DNS gate
 остаётся ожидаемым FAIL до внешних записей, письма/новые timers не включены.
 После commit остаются push/CI/public smoke; это не доказательства receipt.
+
+## T262a — Прямые DNS подтверждены, PTR ещё отсутствует
+
+21.10.2026, dev239b9ac clean; ответ пользователя «Записи внесены». A/HELO SPF/
+shared auth SPF/new DKIM TXT видны, frontend opendkim-testkey PASS.
+Повторный native deferred fixture/DKIM RSA/body/journal/ownqueue cleanup и
+rsyslog positive/negative обоих sinks PASS, реальные письма не отправлялись.
+
+Data helper совпал с известным source185754f; до замены сохранены helper и
+metadata в root0700 /root/health-T262/before. Установлен текущий проверенный
+check_mail.py, sender_ips дополнен обоими IP, прежние metadata поля сохранены.
+Первая защитная проверка installer отвергла дополнительные host/ip/sender до
+записи; после учёта полей upgrade PASS. Data --dns PASS, Postfix/OpenDKIM config
+SHA прежние, API/Postfix/OpenDKIM active, restart не выполнялся. Ключ не переносился.
+
+Frontend --dns FAIL только PTR. Google и Cloudflare NXDOMAIN/negativeTTL300;
+прямой TCP DNS к ns1/ns2.beget.com: authoritative=true/rcode3/PTR=[].
+Это не только кэш. По вопросу пользователя «где поменять» проверена официальная
+инструкция Beget: тикет из панели «Помощь и поддержка» владельцу IP/VPS.
+Дан готовый текст, тикет инструментами не отправлялся. Кабинет недоступен,
+PTR/receipt остаются внешним блокером T262/T253a/T254c; defer и timers прежние.
+
+Документы синхронизированы с этим состоянием. Код приложения/инфраструктурные
+исходники Git не изменены; T254d full check/build:api/91 deploy tests остаются
+актуальными. Privacy review подтвердил: queue drain не доказывает delivery,
+status=sent намеренно фильтруется; нужен receipt уникального маркера, без
+ослабления логов. Полные native probe scripts/before вне Git.
+Check:docs357 Markdown/1607 local links/11 Mermaid syntax PASS; rendering
+не повторялся для неизменённых схем. Diff/staged/secret checks PASS.
