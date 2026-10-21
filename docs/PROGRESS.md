@@ -4143,3 +4143,33 @@ read-only review без изменения кода или production.
 Native frontend --dns по-прежнему FAIL только PTR; обязательный gate не обойдён.
 Check:docs358 Markdown/1614 local links/11 Mermaid syntax PASS, rendering
 не повторялся для прежних схем. Diff/staged/secret checks PASS.
+
+## T262c — Выбран существующий независимый SMTP
+
+21.10.2026, devda764f0 clean. Пользователь выбрал существующий внешний SMTP,
+provider/host/port/TLS/allowed From запрошены, не получены. Credentials в чат
+не запрашивались, сервис не угадывался по приватному recipient.
+Read-only frontend preflight: Cyrus SASL и libsasl2-2/modules/modules-db
+2.1.28+dfsg1-5ubuntu3.1 уже есть; TLSverify, wrapperno, AUTHno, defersmtp.
+Новые пакеты/конфигурация не устанавливались. Официальные Postfix SASL/TLS
+сверены; параметры конкретного сервиса остаются неизвестны.
+
+Review fixed From/envelope и strict config: при допустимом прежнем sender можно
+сохранить Python/units; иначе отдельный sender/rewrite шаг без изменения data MTA.
+Записаны relay-only/no direct fallback, strict TLS/name/AUTH/privacy gates,
+закрытый операторский stdin-путь credentials и synthetic state/receipt.
+State не зависит от relay/From/port, не очищается при смене транспорта.
+Транспорт не переключён, процедуры ввода ещё нет, AUTH/письма не отправлялись.
+Docs/evidence choice — отдельный результат, T262/T253a/T254c blocked до
+параметров/доступа/acceptance. Неизменённые app/deploy suites повторно не нужны.
+
+Review выявил обязательные условия будущей реализации: file-backed maps0600
+с exact host:port, отсутствие static password/debug; auth diagnostics могут
+содержать non-email username и обходить прежний @-filter — нужны synthetic
+regression и защита обоих sinks до AUTH. Rewriting signed From может сломать
+DKIM; нельзя предполагать re-signing provider. Реальные wrong-password тесты
+не выполняются из-за риска блокировки account. Это риски нового транспорта,
+не уже включённый AUTH (он выключен).
+
+Check:docs359 Markdown/1616 local links/11 Mermaid syntax PASS. Схемы
+не менялись, rendering не повторён. Diff/staged/secret checks PASS.
