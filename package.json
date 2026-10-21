@@ -9,6 +9,18 @@
     "npm": ">=11.19.1 <12"
   },
   "scripts": {
+    "secrets:init": "node scripts/secrets.mjs init",
+    "secrets:restore": "node scripts/secrets.mjs restore",
+    "secrets:refresh": "node scripts/secrets.mjs refresh",
+    "secrets:encrypt": "node scripts/secrets.mjs encrypt",
+    "secrets:reconcile": "node scripts/secrets.mjs reconcile",
+    "local:doctor": "node scripts/local.mjs doctor",
+    "local:setup": "npm run secrets:restore && node scripts/local.mjs setup",
+    "local:api": "node scripts/local.mjs api",
+    "local:ui": "node scripts/local.mjs ui",
+    "local:check": "node scripts/local.mjs check",
+    "test:local": "node --test scripts/secrets.test.mjs scripts/local.test.mjs",
+    "test:local:smoke": "node --test scripts/local-smoke.test.mjs",
     "db:seed": "npm run build:api && node --env-file-if-exists=.env build-api/seedDemo.js",
     "account:create": "npm run build:api && node build-api/createAccount.js",
     "db:migrate": "npm run build:api && node --env-file-if-exists=.env build-api/migrate.js",
