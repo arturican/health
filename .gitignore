@@ -12,4 +12,10 @@ test-results/
 .env
 .env.*
 !.env.example
+!.env.local.example
+!secrets/development.enc.env
+.secrets-*
+.secrets.lock/
+*.agekey
+keys.txt
 .DS_Store
