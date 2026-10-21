@@ -4026,3 +4026,16 @@ release+registration tests4PASS (5.6s), POST0/pageerror0. Production CRUD,
 [карточке T261](tasks/T261.md). Только3docsфайла, API/infra не менялись.
 Протокол отправляется штатным docs-only commit/CI в разрешённой очереди;
 фактические hash/CI/live release сообщаются после выполнения.
+
+## T252a — Выбран независимый SMTP
+
+21.10.2026 (Europe/Moscow) пользователь разрешил frontend SMTP прежнему
+получателю и проверку доступного provider окружения. Исходный dev4a84ac1 clean.
+Read-only: frontend MTA отсутствует; guest/cloud-init units не подтверждают
+внешний мониторинг, кабинет/целевые DNS credentials недоступны. Provider
+monitor остаётся unknown. Public DoH подтвердил отсутствующие A/PTR/новыйselector
+и auth SPF толькоdata; WSL UDP timeout не принят за NXDOMAIN.
+С frontend TCP25/verified STARTTLS/EHLO/QUIT до2MX PASS, писем не отправляли.
+Выбран отдельный Postfix/OpenDKIM/selector/privatekey frontend без data relay.
+Установка/rollback/gates выделены T262. T253a/T254c требуют T262 и receipt;
+выбор канала не закрывает AUD011 и не включает timers.

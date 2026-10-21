@@ -200,3 +200,14 @@ fresh, verified7/unattested7/failed0; offsite_check правильно даёт 
 Availability readonly probe healthy; независимый SMTP/channel и новые timers
 не активированы. T252a/T253a/T254c остаются blocked.
 Подробные source SHA/gates/rollback — [DEPLOYMENT](DEPLOYMENT.md#приёмка-t260-20102026).
+
+## Выбор канала 21.10.2026 — T252a
+
+Пользователь выбрал самостоятельный SMTP на frontend для прежнего получателя.
+Существующего provider-monitor в доступном окружении не подтверждено:
+guest/cloud-init units не являются внешним мониторингом, доступа к кабинету нет.
+Frontend TCP25/verified TLS до двух публичных MX проверен без отправки письма.
+Для mail-monitor.arturican.com отсутствуют A/PTR и отдельный DKIM selector;
+auth SPF пока разрешает только data IP. Установка/точные DNS/отложенная
+отправка — [T262](tasks/T262.md). T253a/T254c остаются blocked до SMTP/receipt;
+предыдущие записи о невыбранном канале относятся к состоянию до ответа.

@@ -151,15 +151,15 @@ push и frontend-релиз в него не входят.
 | T251a | done | [IMP-020: локальный Blob на время просмотра](docs/tasks/T251a.md) | T251 |
 | T251b | done | [IMP-020: очистка Blob после подтверждённого удаления](docs/tasks/T251b.md) | T251a |
 | T252 | done | [IMP-021: независимый контроль резервирования](docs/tasks/T252.md) | T251b |
-| T252a | blocked | [Независимый канал оповещений](docs/tasks/T252a.md) | T252 |
+| T252a | done | [Независимый канал оповещений](docs/tasks/T252a.md) | T252 |
 | T253 | done | [IMP-022: независимый availability probe](docs/tasks/T253.md) | T252 |
 | T253b | done | [IMP-022: состояние и доставка watchdog](docs/tasks/T253b.md) | T253 |
-| T253a | blocked | [Активация watchdog и доставка](docs/tasks/T253a.md) | T253b, T252a |
+| T253a | blocked | [Активация watchdog и доставка](docs/tasks/T253a.md) | T253b, T252a, T262 |
 | T254 | done | [IMP-023: сохранять подтверждённый SHA копии](docs/tasks/T254.md) | T253 |
 | T254a | done | [IMP-023: независимая проверка offsite](docs/tasks/T254a.md) | T254 |
 | T254b | done | [IMP-023: синтетическое восстановление](docs/tasks/T254b.md) | T254a |
 | T254b1 | done | [Уточнить aggregate cleanup proof](docs/tasks/T254b1.md) | T254b |
-| T254c | blocked | [Активация offsite alerts](docs/tasks/T254c.md) | T254b, T252a |
+| T254c | blocked | [Активация offsite alerts](docs/tasks/T254c.md) | T254b, T252a, T262 |
 | T255 | done | [IMP-024: проверка anchors и design docs](docs/tasks/T255.md) | T254b |
 | T256 | done | [IMP-025: выбрать Mermaid tooling](docs/tasks/T256.md) | T255 |
 | T256a | done | [IMP-025: pinned Mermaid syntax gate](docs/tasks/T256a.md) | T256 |
@@ -171,6 +171,7 @@ push и frontend-релиз в него не входят.
 | T260b | done | [Стабилизировать тестовые зависимости gate](docs/tasks/T260b.md) | T260a |
 | T260 | done | [Итоговая приёмка и доставка](docs/tasks/T260.md) | T260a |
 | T261 | done | [Повторная приёмка после деплоя](docs/tasks/T261.md) | T260 |
+| T262 | todo | [SMTP второго VPS](docs/tasks/T262.md) | T252a |
 
 ## Подготовка
 
