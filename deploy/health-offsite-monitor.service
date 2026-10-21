@@ -1,0 +1,20 @@
+[Unit]
+Description=Independent Health Diary offsite integrity monitor
+After=network-online.target postfix.service opendkim.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/python3 -B /usr/local/libexec/offsite_monitor.py --config /etc/health-diary/offsite-monitor.json --send
+TimeoutStartSec=90
+UMask=0077
+StateDirectory=health-offsite-monitor
+StateDirectoryMode=0700
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_UNIX AF_INET
+IPAddressDeny=any
+IPAddressAllow=localhost

@@ -1,0 +1,11 @@
+[Unit]
+Description=Health Diary offsite integrity every hour
+
+[Timer]
+OnBootSec=3m
+OnUnitActiveSec=1h
+RandomizedDelaySec=60s
+Unit=health-offsite-monitor.service
+
+[Install]
+WantedBy=timers.target

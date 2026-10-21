@@ -159,7 +159,7 @@ push и frontend-релиз в него не входят.
 | T254a | done | [IMP-023: независимая проверка offsite](docs/tasks/T254a.md) | T254 |
 | T254b | done | [IMP-023: синтетическое восстановление](docs/tasks/T254b.md) | T254a |
 | T254b1 | done | [Уточнить aggregate cleanup proof](docs/tasks/T254b1.md) | T254b |
-| T254c | blocked | [Активация offsite alerts](docs/tasks/T254c.md) | T254b, T252a, T262 |
+| T254c | blocked | [Активация offsite alerts](docs/tasks/T254c.md) | T254b, T254d, T252a, T262 |
 | T255 | done | [IMP-024: проверка anchors и design docs](docs/tasks/T255.md) | T254b |
 | T256 | done | [IMP-025: выбрать Mermaid tooling](docs/tasks/T256.md) | T255 |
 | T256a | done | [IMP-025: pinned Mermaid syntax gate](docs/tasks/T256a.md) | T256 |
@@ -172,6 +172,7 @@ push и frontend-релиз в него не входят.
 | T260 | done | [Итоговая приёмка и доставка](docs/tasks/T260.md) | T260a |
 | T261 | done | [Повторная приёмка после деплоя](docs/tasks/T261.md) | T260 |
 | T262 | blocked | [SMTP второго VPS](docs/tasks/T262.md) | T252a |
+| T254d | done | [State/delivery offsite monitor](docs/tasks/T254d.md) | T254b, T252a |
 
 ## Подготовка
 

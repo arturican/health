@@ -218,3 +218,70 @@ auth SPF пока разрешает только data IP. SMTP установл
 и deferred synthetic DKIM/privacy PASS; очередь пуста, services disabled на boot.
 Точные DNS/отложенная отправка — [MAIL_MONITOR](MAIL_MONITOR.md). T253a/T254c остаются blocked до SMTP/receipt;
 предыдущие записи о невыбранном канале относятся к состоянию до ответа.
+
+## Подготовленные offsite notifications — T254d,21.10.2026
+
+[offsite_monitor.py](../deploy/offsite_monitor.py) добавляет независимую доставку
+к существующему readonly offsite_check. Артефакт **не установлен**, timers не
+активированы: сначала DNS/PTR/receipt [T262](tasks/T262.md), затем
+[T254c](tasks/T254c.md). Автотесты не доказывают получения реального письма.
+
+Без --send CLI только проверяет и печатает ограниченный JSON, без state/SMTP.
+С --send: отдельные /var/lib/health-offsite-monitor (root0700), .offsite.lock и
+offsite.json0600; owner/permissions/no-symlink validation, flock охватывает
+наблюдение, письмо и atomic fsync state. Общие private JSON/atomic helpers
+берутся из backup_monitor, но local-backup service/check не вызывается.
+Нужны sibling backup_monitor.py, backup_check.py, backup_receive.py,
+watchdog_probe.py и offsite_check.py. Не заменять существующие receiver/backup
+helpers непроверенной версией, сверять исходники/rollback перед установкой.
+
+Первый healthy не шлёт письмо; первый unhealthy шлёт, следующий такой же aggregate
+status молчит; healthy после unhealthy — recovery. Изменение причины внутри
+unhealthy сохраняется в report, но не создаёт новое письмо. Смена recipient
+считается новым адресатом; в state только SHA адреса. SMTP failure не ACK,
+следующий запуск повторит попытку. SMTP acceptance с последующей ошибкой state
+write может дать дубликат; потерянный SMTP ответ также неоднозначен. Выбран
+повтор вместо молчаливой потери. SMTP queue acceptance не равен inbox receipt.
+
+Freshness/integrity заимствуются из offsite_check без изменения правил30h/7/14.
+Child deadline60s, родитель timeout65s; malformed/large result/ошибка/timeout
+становятся unhealthy с фиксированными unknown, не произвольным exception text.
+Busy receiver тоже unhealthy: возможен одиночный alert при совпадении hourly
+проверки с передачей. Это консервативная policy, без бесконечного pending/healthy
+при зависшем lock. Проверка всех retained ciphertext не расшифровывает данные
+и не доказывает restore; старые unattested не становятся verified сами.
+
+[service](../deploy/health-offsite-monitor.service) разрешает только loopback
+SMTP, запись только StateDirectory, timeout90s против CLI80s.
+[timer](../deploy/health-offsite-monitor.timer): boot+3min, затем1h с jitter≤60s.
+Текст email: только status/freshness/integrity и инструкция BACKUPS, без имён
+архивов/hash/путей/health data. Config root0600 имеет прежние пять полей:
+directory=/var/backups/health-diary/offsite,
+state_directory=/var/lib/health-offsite-monitor, max_age_hours=30,
+recipient=прежний закрытый адрес, smtp_port=25. Не вставлять реальный адрес в Git.
+
+Порядок T254c после working independent SMTP:
+1. Сохранить текущие remote scripts/units/config; проверить точный commit SHA.
+   Поставить offsite_monitor/units и matching imports, без enable timer.
+2. Создать state0700 и config0600 приватным потоком из существующего
+   mail-monitor.json; не печатать адрес. Native unit verify и healthy либо
+   честный unhealthy dry-run на рабочем ciphertext, без изменения архивов.
+3. В отдельном root0700 synthetic directory/state выполнить missing→corrupt→
+   repaired, с явными sample bytes/manifest; получить одно alert и recovery,
+   повтор не отправляет. Рабочие копии/API/БД не изменять.
+4. После inbox receipt включить только health-offsite-monitor.timer.
+   Проверить list-timers, fixed status journal, права state и дедупликацию.
+   Начальная рабочая integrity может оставаться unhealthy из-за unattested:
+   не объявлять recovery и не удалять архивы ради green.
+5. Откат: disable --now только новый timer, stop service, сохранить state/config,
+   восстановить сохранённые версии. Receiver/retention/DNS/data SMTP не менять.
+
+Проверено:11 новых tests и91 полных deploy tests PASS; unit syntax проверен
+локально и native systemd255 frontend VPS на staging-копиях без установки.
+В тестах реальные synthetic missing/corrupt/repaired inventory, параллельные
+запуски, SMTP refusal/error/retry, recipient change, private/corrupt/symlink
+state/lock, timeout/schema/redaction. Первая попытка двух тестов ошибочно вызывала
+замоканные функции; исправлены привязки тестов, выполняется настоящий код SMTP/
+subprocess boundary с изолированными mocks. Внешней сети в автотестах нет.
+CI native gate теперь проверяет также watchdog/offsite units. Native выполнение
+этого service на VPS и доставка остаются непроверенными до T254c.

@@ -58,7 +58,7 @@ Decision/measurement steps имеют самостоятельный прове�
 |020 | T251/a/b | mounted positive cache+подтверждённое DELETE; без глобального cache |
 |021 | T252/T252a/T262 | канал выбран; SMTP установлен, native gates PASS; DNS/PTR/receipt blocked |
 |022 | T253/T253b/T253a | probe/state/units готовы, activation+receipt blocked |
-|023 | T254/T254a/T254b/T254c | receiver/probes установлены, synthetic restore PASS; 7 старых unattested, alerts blocked |
+|023 | T254/T254a/T254b/T254d/T254c | receiver/probes установлены, synthetic restore PASS; 7 старых unattested, alerts blocked |
 |024–026 | T255/T256/a/T257 | anchors/parser/render/fixture cleanup проверены |
 |027 | T258 |пять controlled points на режим, результаты в COLD_LOAD |
 |028 | T259 | решение done; lazy implementation условно отложена |

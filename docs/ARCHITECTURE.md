@@ -493,7 +493,9 @@ monitor на data VPS проверяет свежесть/результат и 
 состояния; он не переживает исчезновение этого VPS.
 
 watchdog_probe проверяет health/readiness через фиксированный туннель второго
-VPS; watchdog_monitor готовит state/dedup/SMTP policy и units. offsite_check
+VPS; watchdog_monitor готовит state/dedup/SMTP policy и units. offsite_monitor
+(T254d) добавляет отдельные state/dedup/email и hourly units, ещё не установлен.
+offsite_check
 сверяет найденные ciphertext с receiver-attested SHA без расшифровки.
 Отсутствующий manifest — unattested, не healthy. Старым архивам backfill
 допустим лишь по тому же имени и совпавшему SHA ещё сохранённого source.

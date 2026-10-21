@@ -4062,3 +4062,30 @@ DNS gate ожидаемо FAIL: новые A/HELO SPF/DKIM/PTR и shared auth SP
 rollback и порядок. Запрошено действие оператора, т.к. панели DNS/PTR недоступны.
 T262 blocked до DNS/receipt; watchdog/offsite timers не включены, AUD-011 открыт.
 Provider monitoring в кабинете остаётся неизвестным.
+
+## T254d — Offsite notification артефакт проверен
+
+21.10.2026, после b9782a3, согласованная очередь AUD-011. Добавлены
+offsite_monitor.py, hourly service/timer и CI unit gate: четыре implementation
+files/151 changed lines. Только артефакты, не remote activation.
+CLI dry-run/state/SMTP разделены; private owner/no-follow/flock/atomic state
+helpers общие с local backup, но его service не вызывается. Fixed sibling
+offsite_check timeout65s, CLI80s/unit90s. Unknown/busy не healthy. Initial
+healthy молчит, aggregate status dedup/recovery, recipient hash, SMTP failure
+не ACK. Payload только fixed technical statuses, без имён/hash/health data.
+At-least-once дубликат после SMTP acceptance/state failure явно документирован.
+
+11 новых tests/91 полный Python suite PASS; до модуля RED, исправлена ошибочная
+привязка двух boundary-тестов к mock. Реальный synthetic missing/corrupt/
+repaired, race6, refusal/retry/deadline/privacy/schema проверены без внешней сети.
+Read-only review без существенных замечаний. Unit syntax локально и staging
+systemd255 frontend PASS, service/timer не установлены.
+
+Полный check PASS:1726 unit/API,92 browser,100 E2E desktop/mobile; coverage
+95.36/93.11/97.03/97.44%. Build:api/verify_build/API units/all monitor units PASS.
+Изолированный PostgreSQL18.3 loopback55432/UUID fixtures; Node24.22.0/npm11.19.1,
+affinity4 CPU без ослабления gates/timeouts, логи /tmp/health-T254d-* вне Git.
+T262 public health/release/readiness/unauthorized+gzip proof PASS без private
+body/CRUD; native mail helper SHA совпадает с committed source. T262 DNS gate
+остаётся ожидаемым FAIL до внешних записей, письма/новые timers не включены.
+После commit остаются push/CI/public smoke; это не доказательства receipt.

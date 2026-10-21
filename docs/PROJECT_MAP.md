@@ -35,7 +35,8 @@ node подключи nvm в Linux shell (`. ~/.nvm/nvm.sh`), затем `nvm us
 | Сборки | `npm run build` → dist; `npm run build:api` → build-api (проверка серверных типов и сборка API); `npm run preview` — просмотр frontend |
 | Deploy/упаковка | `python3 -B -m unittest discover -s deploy -p 'test_*.py' -v`; после актуального build — `python3 -B deploy/verify_build.py dist` |
 | API unit/journal policy | `python3 -B deploy/verify_api_units.py`; positive/negative cases включены в Python deploy tests; parser использует временный executable, фактические namespace/Node проверяются при релизе |
-| Nginx static compression | На native Nginx: python3 -B deploy/verify_static_compression.py --config deploy/nginx.conf; isolated synthetic process, manual deployment gate, не unittest/CI |\n| Backup monitor units | `systemd-analyze verify deploy/health-backup-monitor.service deploy/health-backup-monitor.timer`; подготовка установки/отката — BACKUPS |
+| Nginx static compression | На native Nginx: python3 -B deploy/verify_static_compression.py --config deploy/nginx.conf; isolated synthetic process, manual deployment gate, не unittest/CI |
+| Backup monitor units | `systemd-analyze verify deploy/health-backup-monitor.service deploy/health-backup-monitor.timer deploy/health-watchdog.service deploy/health-watchdog.timer deploy/health-offsite-monitor.service deploy/health-offsite-monitor.timer`; подготовка установки/отката — BACKUPS/BACKUP_CONTROL |
 
 CI выполняет все фазы check параллельными jobs: static, coverage/API, browser,
 build с Python deploy-тестами/verify_build/monitor units; два E2E jobs проверяют
