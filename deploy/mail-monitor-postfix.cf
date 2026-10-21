@@ -1,0 +1,9 @@
+# Apply after mail-postfix.cf; keep transport deferred until public DNS passes.
+myhostname = mail-monitor.arturican.com
+defer_transports = smtp
+relayhost =
+transport_maps =
+sender_dependent_relayhost_maps =
+sender_dependent_default_transport_maps =
+smtp_fallback_relay =
+default_transport = smtp

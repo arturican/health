@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Run as root on the mail VPS; sends only a reserved .invalid fixture."""
+import argparse
 import base64
 import hashlib
 import json
@@ -9,11 +10,33 @@ import smtplib
 import subprocess
 import tempfile
 import time
-import sys
 import urllib.parse
 import urllib.request
 from email.parser import BytesParser
 from email.policy import default
+
+
+PROFILES = {
+    'data': ('mail.arturican.com', '2.26.54.81', 'health2026'),
+    'monitor': ('mail-monitor.arturican.com', '159.194.208.200', 'healthmonitor2026'),
+}
+
+
+def identity(host):
+    hostname, address, selector = PROFILES[host]
+    return hostname, address, selector, '/etc/opendkim/keys/auth.arturican.com/' + selector + '.private'
+
+
+def records_for(host):
+    records = json.loads(Path('/etc/health-diary/mail-dns.json').read_text())
+    selector = identity(host)[2]
+    if records['dkim_name'] != selector + '._domainkey.auth.arturican.com':
+        raise ValueError('Wrong DKIM identity')
+    ips = records.get('sender_ips', ['2.26.54.81'])
+    allowed = (['2.26.54.81'], ['2.26.54.81', '159.194.208.200'])
+    if ips not in allowed or (host == 'monitor' and ips != allowed[1]):
+        raise ValueError('Wrong sender IP authorization')
+    return records, 'v=spf1 ' + ' '.join('ip4:' + ip for ip in ips) + ' -all'
 
 
 def command(*args, data=None):
@@ -24,12 +47,12 @@ def relaxed_header(name, value):
     return name.lower() + ':' + re.sub(r'\s+', ' ', value).strip() + '\r\n'
 
 
-def verify_signature(raw):
+def verify_signature(raw, host="data"):
     message = BytesParser(policy=default).parsebytes(raw)
     signature = str(message['DKIM-Signature'])
     tags = dict(part.strip().split('=', 1) for part in signature.split(';') if '=' in part)
     assert tags['d'] == 'auth.arturican.com'
-    assert tags['s'] == 'health2026'
+    assert tags['s'] == identity(host)[2]
     assert tags['a'] == 'rsa-sha256' and tags['c'] == 'relaxed/relaxed'
     body = message.get_payload(decode=True)
     assert isinstance(body, bytes)
@@ -46,7 +69,7 @@ def verify_signature(raw):
     original = next(value for name, value in message.raw_items() if name.lower() == 'dkim-signature')
     unsigned = re.sub(r'\bb=[^;]*', 'b=', original)
     signed += relaxed_header('DKIM-Signature', unsigned).removesuffix('\r\n')
-    dns = json.loads(Path('/etc/health-diary/mail-dns.json').read_text())
+    dns, _spf = records_for(host)
     public = re.search(r'\bp=([A-Za-z0-9+/=]+)', dns['dkim_value'])
     assert public is not None
     public_pem = command('openssl', 'pkey', '-pubin', '-inform', 'DER', data=base64.b64decode(public[1]))
@@ -57,10 +80,13 @@ def verify_signature(raw):
         assert b'Verified OK' in command('openssl', 'dgst', '-sha256', '-verify', str(key), '-signature', str(encoded), data=signed.encode())
 
 
-def check():
-    for key, expected in [('inet_interfaces', '127.0.0.1'), ('mynetworks', '127.0.0.1/32'),
+def check(host="data"):
+    identity(host)
+    for key, expected in [('myhostname', identity(host)[0]), ('inet_interfaces', '127.0.0.1'), ('mynetworks', '127.0.0.1/32'),
                           ('smtp_tls_security_level', 'verify'), ('milter_default_action', 'tempfail'),
-                          ('defer_transports', 'smtp')]:
+                          ('defer_transports', 'smtp'), ('relayhost', ''), ('transport_maps', ''),
+                          ('sender_dependent_relayhost_maps', ''), ('smtp_fallback_relay', ''),
+                          ('sender_dependent_default_transport_maps', ''), ('default_transport', 'smtp')]:
         assert command('postconf', '-h', key).decode().strip() == expected
     listeners = command('ss', '-lntH').decode().splitlines()
     for port in ['25', '8891']:
@@ -86,7 +112,7 @@ def check():
             match = re.search(rb'queued as ([A-F0-9]+)', response)
             assert match is not None
             queue_id = match[1].decode()
-        verify_signature(command('postcat', '-bhq', queue_id))
+        verify_signature(command('postcat', '-bhq', queue_id), host)
     finally:
         if queue_id:
             assert re.fullmatch(r'[A-F0-9]{5,20}', queue_id)
@@ -94,21 +120,24 @@ def check():
     command('journalctl', '--sync')
     journal = command('journalctl', '--since', '@' + started, '--no-pager', '-o', 'cat')
     assert recipient.encode() not in journal and b'forged@example.invalid' not in journal
-    assert b'"status":"ok"' in command('curl', '--fail', '--silent', 'http://127.0.0.1:3101/api/v1/health')
-    command('docker', 'exec', 'remnawave-db', 'pg_isready', '-U', 'postgres', '-d', 'health')
-    print('PASS: loopback, sender restriction, mandatory TLS, DKIM RSA/body hash, queue cleanup, log privacy, API and PostgreSQL')
+    if host == 'data':
+        assert b'"status":"ok"' in command('curl', '--fail', '--silent', 'http://127.0.0.1:3101/api/v1/health')
+        command('docker', 'exec', 'remnawave-db', 'pg_isready', '-U', 'postgres', '-d', 'health')
+    print('PASS: loopback, sender restriction, mandatory TLS, DKIM RSA/body hash, queue cleanup, log privacy'
+          + (', API and PostgreSQL' if host == 'data' else ', independent frontend SMTP'))
 
 
-def check_dns():
-    records = json.loads(Path('/etc/health-diary/mail-dns.json').read_text())
+def check_dns(host='data'):
+    hostname, address, selector, private_key = identity(host)
+    records, sender_spf = records_for(host)
     expected = [
-        ('mail.arturican.com', 'A', '2.26.54.81'),
+        (hostname, 'A', address),
         ('auth.arturican.com', 'A', '2.26.54.81'),
-        ('mail.arturican.com', 'TXT', 'v=spf1 ip4:2.26.54.81 -all'),
-        ('auth.arturican.com', 'TXT', 'v=spf1 ip4:2.26.54.81 -all'),
+        (hostname, 'TXT', 'v=spf1 ip4:' + address + ' -all'),
+        ('auth.arturican.com', 'TXT', sender_spf),
         ('_dmarc.auth.arturican.com', 'TXT', 'v=DMARC1; p=reject; adkim=s; aspf=s'),
         (records['dkim_name'], 'TXT', records['dkim_value']),
-        ('81.54.26.2.in-addr.arpa', 'PTR', 'mail.arturican.com'),
+        ('.'.join(reversed(address.split('.'))) + '.in-addr.arpa', 'PTR', hostname),
     ]
     missing = []
     for name, kind, value in expected:
@@ -118,19 +147,22 @@ def check_dns():
         answers = [entry['data'] for entry in data.get('Answer', [])]
         if kind == 'TXT':
             answers = [''.join(re.findall(r'"([^\"]*)"', answer)) if answer.startswith('"') else answer for answer in answers]
-        if value not in [answer.rstrip('.') for answer in answers]:
+        spf = [answer for answer in answers if answer.lower().startswith('v=spf1')]
+        duplicate_spf = kind == 'TXT' and value.startswith('v=spf1') and len(spf) != 1
+        if duplicate_spf or value not in [answer.rstrip('.') for answer in answers]:
             missing.append(name + ' ' + kind)
     if missing:
         raise SystemExit('DNS pending: ' + ', '.join(missing))
-    command('opendkim-testkey', '-d', 'auth.arturican.com', '-s', 'health2026',
-            '-k', '/etc/opendkim/keys/auth.arturican.com/health2026.private')
+    command('opendkim-testkey', '-d', 'auth.arturican.com', '-s', selector, '-k', private_key)
     print('PASS: public A/SPF/DKIM/DMARC/PTR and matching signing key')
 
 
 if __name__ == '__main__':
-    if sys.argv[1:] == ['--dns']:
-        check_dns()
-    elif not sys.argv[1:]:
-        check()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--host', choices=tuple(PROFILES), default='data')
+    parser.add_argument('--dns', action='store_true')
+    args = parser.parse_args()
+    if args.dns:
+        check_dns(args.host)
     else:
-        raise SystemExit('Usage: check_mail.py [--dns]')
+        check(args.host)

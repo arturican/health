@@ -1,5 +1,11 @@
 # Независимый контроль копий
 
+Актуально на21.10.2026: выбран и установлен самостоятельный frontend SMTP,
+локальные gates PASS, внешняя отправка отложена до DNS/PTR/receipt.
+[MAIL_MONITOR](MAIL_MONITOR.md) содержит точные записи и доказательства.
+T253a/T254c не активированы; provider monitoring остаётся unknown.
+Ниже снимки T252/T260 сохранены с их датами.
+
 Решение T252 / AUD-011,20.10.2026, после19c389b.
 Проверено readonlySSH с BatchMode/StrictHostKeyChecking; данные дневника,
 секреты, расшифрованные архивы и адрес получателя не выводились.
@@ -208,6 +214,7 @@ Availability readonly probe healthy; независимый SMTP/channel и но
 guest/cloud-init units не являются внешним мониторингом, доступа к кабинету нет.
 Frontend TCP25/verified TLS до двух публичных MX проверен без отправки письма.
 Для mail-monitor.arturican.com отсутствуют A/PTR и отдельный DKIM selector;
-auth SPF пока разрешает только data IP. Установка/точные DNS/отложенная
-отправка — [T262](tasks/T262.md). T253a/T254c остаются blocked до SMTP/receipt;
+auth SPF пока разрешает только data IP. SMTP установлен в T262, native gates
+и deferred synthetic DKIM/privacy PASS; очередь пуста, services disabled на boot.
+Точные DNS/отложенная отправка — [MAIL_MONITOR](MAIL_MONITOR.md). T253a/T254c остаются blocked до SMTP/receipt;
 предыдущие записи о невыбранном канале относятся к состоянию до ответа.

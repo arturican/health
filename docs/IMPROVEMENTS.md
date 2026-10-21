@@ -24,8 +24,10 @@ Decision/measurement steps имеют самостоятельный прове�
 
 После успешной доставки T260 остаются следующие действия; статусы — [TASKS](../TASKS.md).
 
-1. **T252a:** выбрать независимый путь доставки. На frontend нет SMTP;
-   relay через исчезнувший data VPS не решает его отказ. Нужен ответ оператора.
+1. **T262:** опубликовать DNS/PTR и подтвердить получение письма.
+   Канал выбран: отдельный frontend SMTP установлен, локальные gates PASS.
+   Нужны DNS/PTR по [MAIL_MONITOR](MAIL_MONITOR.md), затем receipt. Data relay
+   не используется; T262 blocked до внешних записей.
 2. **T253a:** активировать availability watchdog после выбора канала и доказать
    получение alert/recovery, включая недоступность data VPS.
 3. **T254c:** подключить независимую доставку offsite freshness/integrity,
@@ -54,7 +56,7 @@ Decision/measurement steps имеют самостоятельный прове�
 |014–016 | T245/T246/T247 | один Blob, явное открытие,шесть gallery cards готовы |
 |017–019 | T248/T249/a/T250/a | измерение, ReadScope/общий Today; request budget подтверждён |
 |020 | T251/a/b | mounted positive cache+подтверждённое DELETE; без глобального cache |
-|021 | T252/T252a | inventory готов, channel choice blocked |
+|021 | T252/T252a/T262 | канал выбран; SMTP установлен, native gates PASS; DNS/PTR/receipt blocked |
 |022 | T253/T253b/T253a | probe/state/units готовы, activation+receipt blocked |
 |023 | T254/T254a/T254b/T254c | receiver/probes установлены, synthetic restore PASS; 7 старых unattested, alerts blocked |
 |024–026 | T255/T256/a/T257 | anchors/parser/render/fixture cleanup проверены |

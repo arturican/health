@@ -61,7 +61,7 @@ build с Python deploy-тестами/verify_build/monitor units; два E2E job
   [SERVER_COMPLETION](SERVER_COMPLETION.md) — схема и исторические решения перехода;
   текущие маршруты проверяй по контракту и коду.
 - Доставка/копии/почта: [DEPLOYMENT](DEPLOYMENT.md), [BACKUPS](BACKUPS.md),
-  [MAIL_DNS](MAIL_DNS.md) по изменяемому контуру. Зависимости — [DEPENDENCIES](DEPENDENCIES.md).
+  [MAIL_DNS](MAIL_DNS.md), [MAIL_MONITOR](MAIL_MONITOR.md) по изменяемому контуру. Зависимости — [DEPENDENCIES](DEPENDENCIES.md).
 - Идеи: [IDEAS](../IDEAS.md). Старые review/журнал — только по связанному вопросу.
 
 ## Codex и инструменты

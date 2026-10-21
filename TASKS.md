@@ -171,7 +171,7 @@ push и frontend-релиз в него не входят.
 | T260b | done | [Стабилизировать тестовые зависимости gate](docs/tasks/T260b.md) | T260a |
 | T260 | done | [Итоговая приёмка и доставка](docs/tasks/T260.md) | T260a |
 | T261 | done | [Повторная приёмка после деплоя](docs/tasks/T261.md) | T260 |
-| T262 | todo | [SMTP второго VPS](docs/tasks/T262.md) | T252a |
+| T262 | blocked | [SMTP второго VPS](docs/tasks/T262.md) | T252a |
 
 ## Подготовка
 

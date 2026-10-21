@@ -4039,3 +4039,26 @@ monitor остаётся unknown. Public DoH подтвердил отсутст
 Выбран отдельный Postfix/OpenDKIM/selector/privatekey frontend без data relay.
 Установка/rollback/gates выделены T262. T253a/T254c требуют T262 и receipt;
 выбор канала не закрывает AUD011 и не включает timers.
+
+## T262 — Локальный frontend SMTP готов, DNS блокирует активацию
+
+21.10.2026, исходный dev185754f; предыдущие изменения сохранены.
+check_mail поддерживает data/monitor profiles: data default совместим,
+monitor требует явный shared SPF, свой A/PTR/selector/key и отсутствие relay/
+transport/fallback до SMTP fixture. Добавлены Postfix/OpenDKIM overrides и
+ранний mail-only rsyslog privacy filter; четыре implementation files в бюджете.
+Регрессии сначала FAIL, полные80Python tests PASS. Native Postfix/OpenDKIM/
+rsyslog/systemd checks, loopback/tls/From/tempfail, deferred .invalid DKIM RSA/
+body и ownqueue cleanup PASS. Первый rsyslog контроль FAIL из-за отсутствующих
+mail.log/mail.err; созданы только новые штатные файлы syslog:adm0640,
+positive/negative в обоих sinks повторно PASS. Очередь пуста.
+
+Frontend установлено16 новых точных packages, без upgrade. Autostart запрещён
+на установке, временная policy удалена. Services active/deferred и disabled
+на boot. Отдельный private key толькоfrontend, recipient приватно root0600;
+писем реальному получателю нет. Data SMTP/ключ/API/БД, nginx/tunnel прежние.
+DNS gate ожидаемо FAIL: новые A/HELO SPF/DKIM/PTR и shared auth SPF ещё не
+опубликованы. [MAIL_MONITOR](MAIL_MONITOR.md) содержит точные public records,
+rollback и порядок. Запрошено действие оператора, т.к. панели DNS/PTR недоступны.
+T262 blocked до DNS/receipt; watchdog/offsite timers не включены, AUD-011 открыт.
+Provider monitoring в кабинете остаётся неизвестным.

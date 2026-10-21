@@ -498,8 +498,10 @@ VPS; watchdog_monitor готовит state/dedup/SMTP policy и units. offsite_c
 Отсутствующий manifest — unattested, не healthy. Старым архивам backfill
 допустим лишь по тому же имени и совпавшему SHA ещё сохранённого source.
 Исчезновение всей прежней пары без исторического ledger не обнаруживается.
-T252a/T253a/T254c blocked: на frontend нет SMTP, data SMTP не покрывает
-полный отказ data-host. Артефакты не доказывают независимую доставку.
+T252a выбрал самостоятельный frontend SMTP; T262 установил Postfix/OpenDKIM
+с отдельным ключом, без data relay. Локальные gates PASS, отправка deferred
+до DNS/PTR/receipt; T262/T253a/T254c blocked. [MAIL_MONITOR](MAIL_MONITOR.md)
+описывает точные записи. Артефакты не доказывают независимую доставку.
 
 Private key остаётся вне VPS. Synthetic dump→GPG→restore текущих 20 таблиц,
 файлов/ACL/RLS/отзыва auth проверен; это не расшифровка каждого рабочего архива.
