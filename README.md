@@ -4,6 +4,8 @@
 [Иллюстрированный обзор и план итоговой версии](docs/APP_GUIDE.md) ·
 [Как сопровождать проект](docs/MAINTAINER_GUIDE.md)
 
+[Пошаговый план до итогового выпуска](docs/RELEASE_PLAN.md)
+
 Развёрнутое приложение: <https://dev.arturican.com>.
 Развёртывание и перенос прежнего дневника: [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
