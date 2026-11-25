@@ -1,5 +1,7 @@
 # Дневник здоровья
 
+[Иллюстрированный обзор и план итоговой версии](docs/APP_GUIDE.md)
+
 Развёрнутое приложение: <https://dev.arturican.com>.
 Развёртывание и перенос прежнего дневника: [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
@@ -233,7 +235,7 @@ Linux-зависимости браузера, отдельные команды
 ## Документы
 
 - [DEVELOPMENT.md](docs/DEVELOPMENT.md) — перенос разработки, ключа и локальных данных.
-- [MVP.md](docs/MVP.md) — реализованный объём и принятые решения.
+- [MVP.md](docs/MVP.md) — исторический объём локального MVP и принятые решения.
 - [AGENTS.md](AGENTS.md) и [WORKFLOW.md](docs/WORKFLOW.md) — порядок задач и Git.
 - [PROJECT_MAP.md](docs/PROJECT_MAP.md) — точки входа, маршруты поиска и проверки по типу изменения.
 - [CODING_STANDARDS.md](docs/CODING_STANDARDS.md) — структура и правила кода.
