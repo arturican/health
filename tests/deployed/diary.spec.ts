@@ -1,11 +1,13 @@
 import { readFile } from 'node:fs/promises'
-import { randomUUID } from 'node:crypto'
+import { randomUUID, createHash } from 'node:crypto'
 import { expect, test } from '@playwright/test'
 import { z } from 'zod'
 import axe from 'axe-core'
 import { weightSchema } from '../../src/domain/profile'
 import { sessionSchema } from '../../src/domain/session'
 import { verifyWorkoutSmoke } from '../workoutSmoke'
+import { readFullBackup } from '../../src/domain/fullBackup'
+import { verifyAttachmentSmoke } from './attachmentSmoke'
 
 const weightsSchema = z.object({ items: z.array(z.object({ value: weightSchema, revision: z.number() })) })
 const attachmentsSchema = z.object({ items: z.array(z.object({ value: z.object({ fileId: z.uuid() }) })) })
@@ -41,6 +43,14 @@ test('HTTPS дневник: вход, восемь экранов, вложен�
     const raw: unknown = await response.json()
     return weightsSchema.parse(raw).items
   }
+  const readSnapshotHash = async () => {
+    const response = await context.request.get('/api/v1/backup/full')
+    expect(response.status()).toBe(200)
+    const backup = readFullBackup(await response.json())
+    backup.text.exportedAt = ''
+    return createHash('sha256').update(JSON.stringify(backup)).digest('hex')
+  }
+  const originalSnapshot = await readSnapshotHash()
   const original = await readWeights()
   expect(original).toHaveLength(31)
   const today = original[0]?.value.date
@@ -110,6 +120,11 @@ test('HTTPS дневник: вход, восемь экранов, вложен�
   await verifyWorkoutSmoke(page, context, headers)
   await page.getByLabel('День дневника', { exact: true }).fill(today)
   await page.getByRole('button', { name: 'Открыть день', exact: true }).click()
+  try {
+    await verifyAttachmentSmoke(page, context, headers, today, info)
+  } finally {
+    expect(await readSnapshotHash()).toBe(originalSnapshot)
+  }
   const denied = await context.request.post('/api/v1/weights', { headers: { Origin: baseURL ?? '' }, data: {} })
   expect(denied.status()).toBe(403)
   await page.getByRole('link', { name: 'Сегодня', exact: true }).click()
