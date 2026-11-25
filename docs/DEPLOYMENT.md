@@ -606,3 +606,42 @@ api_internal_error/email_delivery_failed/email_binding_failed — по 0.
 Для отката API атомарно верните current на T260-b58094a19844, перезапустите
 health-api и выполните health/readiness/401 по этому регламенту.
 Автоматическая ветка отката подготовлена. При успешной доставке она не запускалась.
+
+
+## Приёмка frontend T281 — 25.11.2026
+
+По явному разрешению владельца выполнен fast-forward push в dev на
+`2a6e300aec50ff23cfe904571a7714c5d8a56ee1`. Рабочая ветка
+chore/portable-development опубликована тем же atomic push. Код приложения,
+зависимости и конфигурация CI совпадают с проверенным кандидатом
+`91965fcb4302302d778b5650692f187cfeb7fe7f`. Более новые коммиты содержат
+отчёты приёмки T279 и доставки API T280.
+
+[CI run 45615604443](https://github.com/arturican/health/actions/runs/45615604443)
+завершился success в первой попытке. Static, coverage, build, browser,
+E2E Chromium и mobile-chromium, итоговый check и deploy получили success.
+Сборка сохранена как
+`health-dist-2a6e300aec50ff23cfe904571a7714c5d8a56ee1-1`, artifact ID
+`15022201699`. Workflow передаёт этот артефакт по ID в E2E и deploy.
+Digest из metadata GitHub —
+`sha256:d703d738aae09e0ff8b8988f75b643ef0c2e16418c3700881b9dc264f00a7a87`.
+
+Фактический frontend current —
+`/var/www/health/releases/2a6e300aec50ff23cfe904571a7714c5d8a56ee1`.
+HTTPS release.txt и файл внутри установленного релиза совпали с полным SHA.
+Главная, health и readiness вернули 200, JSON проб совпал с ожидаемым.
+Приватный профиль без сессии вернул 401. Первый запрос urllib завершился
+сетевым тайм-аутом, повторные публичные проверки через curl IPv4 прошли.
+
+Живые release.spec.ts и registration.spec.ts прошли 4/4 на Desktop Chromium
+и в эмуляции Pixel 7. Проверены SHA, HTTPS, redirect, CSP, формы регистрации
+и восстановления, client validation и закрытость test routes. API current
+и cwd процесса совпали с принятым `/opt/health-api/releases/T280-91965fcb4302`.
+
+Предыдущий frontend
+`/var/www/health/releases/93fa0d48799e0c9c859e3ed39b0c8d5291315f51`
+сохранён для совместимого отката по этому регламенту.
+Полная браузерная приёмка с синтетическим аккаунтом относится к T282.
+
+Коммит отчёта T281 сохраняется в chore/portable-development.
+Опубликованный в dev SHA указан выше.

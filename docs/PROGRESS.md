@@ -1,5 +1,18 @@
 # Прогресс
 
+## T281 — Frontend опубликован штатным CI
+
+25.11.2026 fast-forward push dev опубликовал
+`2a6e300aec50ff23cfe904571a7714c5d8a56ee1`. Код совпадает с кандидатом
+`91965fc`. Все gates и deploy в
+[CI 45615604443](https://github.com/arturican/health/actions/runs/45615604443)
+завершились success. HTTPS release.txt и серверный current совпали с SHA.
+
+Публичные главная/health/readiness — 200, профиль без входа — 401. Четыре
+живых smoke-теста Desktop/Pixel 7 прошли. API остался на принятом релизе T280.
+Предыдущий frontend сохранён для отката. Артефакт и границы проверки записаны
+в [DEPLOYMENT](DEPLOYMENT.md#приёмка-frontend-t281--25112026).
+
 ## T280 — Проверенная доставка API
 
 25.11.2026 установлен API `91965fcb4302302d778b5650692f187cfeb7fe7f` в новый
