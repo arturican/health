@@ -5,12 +5,12 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { parseEnv } from 'node:util'
 import { fileURLToPath } from 'node:url'
+import { developmentSecretNames as names, readDevelopmentSecrets } from './development-env.mjs'
 
 process.chdir(fileURLToPath(new URL('..', import.meta.url)))
 process.umask(0o077)
 const cipher = 'secrets/development.enc.env'
 const stateFile = '.secrets-state.json'
-const names = ['DEV_POSTGRES_PASSWORD', 'DEV_APP_PASSWORD', 'DEV_MIGRATOR_PASSWORD', 'DEV_DEMO_PASSWORD']
 const key = resolve(process.env.SOPS_AGE_KEY_FILE ?? join(homedir(), '.config/sops/age/keys.txt'))
 const hash = value => createHash('sha256').update(value).digest('hex')
 const read = path => readFileSync(path, 'utf8')
@@ -58,11 +58,7 @@ function requireKey() {
 }
 
 function validate(value) {
-  const env = parseEnv(value)
-  if (Object.keys(env).length !== names.length || names.some(name => !/^[A-Za-z0-9_-]{15,}$/.test(env[name] ?? ''))) {
-    fail('Нужны четыре DEV_*_PASSWORD из .env.example: минимум 15 символов A-Z, a-z, 0-9, _ или -.')
-  }
-  if (Object.keys(env).some(name => !names.includes(name))) fail('В файле есть посторонние настройки; production не переносится.')
+  const env = readDevelopmentSecrets(value)
   return names.map(name => `${name}=${env[name]}`).join('\n') + '\n'
 }
 

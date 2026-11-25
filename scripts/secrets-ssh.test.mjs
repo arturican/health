@@ -25,10 +25,11 @@ test('SSH secrets work without local crypto and preserve settings on transport/s
     git(['init', '--bare', '--initial-branch=main', remote], temp)
     git(['clone', remote, work], temp)
     for (const directory of ['scripts', 'config', 'secrets']) mkdirSync(join(work, directory))
-    for (const path of ['scripts/secrets.mjs', 'config/development-secrets.json', 'config/development-secrets.known_hosts', 'secrets/development.enc.env', '.gitignore']) {
+    const files = ['scripts/secrets.mjs', 'scripts/development-env.mjs', 'config/development-secrets.json', 'config/development-secrets.known_hosts', 'secrets/development.enc.env', '.gitignore']
+    for (const path of files) {
       copyFileSync(new URL(`../${path}`, import.meta.url), join(work, path))
     }
-    git(['add', '--', 'scripts/secrets.mjs', 'config/development-secrets.json', 'config/development-secrets.known_hosts', 'secrets/development.enc.env', '.gitignore'])
+    git(['add', '--', ...files])
     git(['-c', 'user.name=Synthetic', '-c', 'user.email=synthetic@example.test', 'commit', '-m', 'fixture'])
     git(['push', '-u', 'origin', 'main'])
     const executable = (name, body) => {
@@ -60,7 +61,20 @@ process.stdout.write(process.argv.at(-1) === 'encrypt-development' ? fs.readFile
     assert.equal(failed.status, 1)
     assert.equal(failed.stderr.includes('sensitive-synthetic-error'), false)
     assert.equal(readFileSync(join(work, '.env'), 'utf8'), plain)
+    const stateFile = join(work, '.secrets-state.json')
+    const stateBefore = readFileSync(stateFile, 'utf8')
+    const template = readFileSync(new URL('../.env.example', import.meta.url), 'utf8')
+    const refusedRefresh = secrets('refresh', { FIXTURE_PLAIN: template })
+    assert.equal(refusedRefresh.status, 1)
+    assert.match(refusedRefresh.stderr, /шаблон/)
+    assert.equal(readFileSync(join(work, '.env'), 'utf8'), plain)
+    assert.equal(readFileSync(stateFile, 'utf8'), stateBefore)
     rmSync(join(work, '.env'))
+    const refusedRestore = secrets('restore', { FIXTURE_PLAIN: template })
+    assert.equal(refusedRestore.status, 1)
+    assert.match(refusedRestore.stderr, /шаблон/)
+    assert.equal(existsSync(join(work, '.env')), false)
+    assert.equal(readFileSync(stateFile, 'utf8'), stateBefore)
     assert.equal(secrets('restore', { FIXTURE_FAIL: '1' }).status, 1)
     assert.equal(existsSync(join(work, '.env')), false)
     assert.equal(secrets('restore', { FIXTURE_UNKNOWN: '1' }).status, 1)

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { parseEnv } from 'node:util'
 import { setTimeout as delay } from 'node:timers/promises'
 import { Client } from 'pg'
+import { readDevelopmentSecrets } from './development-env.mjs'
 
 process.chdir(fileURLToPath(new URL('..', import.meta.url)))
 const safeError = message => Object.assign(new Error(message), { safe: true })
@@ -22,9 +23,10 @@ function child(command, args, env = process.env) {
 }
 function settings() {
   if (!existsSync('.env')) fail('Нет .env: выполните npm run setup с SSH-доступом к development secrets.')
-  const secret = parseEnv(readFileSync('.env', 'utf8'))
-  const keys = ['DEV_POSTGRES_PASSWORD', 'DEV_APP_PASSWORD', 'DEV_MIGRATOR_PASSWORD', 'DEV_DEMO_PASSWORD']
-  if (Object.keys(secret).length !== keys.length || keys.some(key => !/^[A-Za-z0-9_-]{15,}$/.test(secret[key] ?? '') || secret[key].startsWith('REPLACE_'))) fail('Проверьте четыре DEV_* пароля в .env; шаблон не является настройкой.')
+  const text = readFileSync('.env', 'utf8')
+  let secret
+  try { secret = readDevelopmentSecrets(text) }
+  catch (error) { fail(error.message) }
   const machine = existsSync('.env.local') ? parseEnv(readFileSync('.env.local', 'utf8')) : {}
   if (Object.keys(machine).some(key => !['DEV_DB_PORT', 'DEV_API_PORT', 'DEV_UI_PORT', 'DEV_CONTAINER'].includes(key))) fail('В .env.local допустимы только параметры из .env.local.example.')
   const port = (name, fallback) => {

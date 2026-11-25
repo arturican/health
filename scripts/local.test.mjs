@@ -11,6 +11,7 @@ test('local commands reject missing, placeholder and conflicting configuration b
   try {
     mkdirSync(join(temp, 'scripts'))
     copyFileSync(new URL('./local.mjs', import.meta.url), join(temp, 'scripts/local.mjs'))
+    copyFileSync(new URL('./development-env.mjs', import.meta.url), join(temp, 'scripts/development-env.mjs'))
     symlinkSync(fileURLToPath(new URL('../node_modules', import.meta.url)), join(temp, 'node_modules'))
     const run = () => spawnSync(process.execPath, ['scripts/local.mjs', 'api'], { cwd: temp, encoding: 'utf8' })
     let result = run()
