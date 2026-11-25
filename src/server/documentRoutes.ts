@@ -1,9 +1,7 @@
-import { createHash } from 'node:crypto'
 import type { FastifyInstance } from 'fastify'
 import type { Pool } from 'pg'
 import { z } from 'zod'
 import { DOCUMENT_MAX_BYTES } from '../domain/attachment'
-import { validateServerAttachment } from './attachmentValidation.js'
 import type { registerAuthentication } from './auth.js'
 import { countDocumentRecords, createDocumentRecord, deleteDocumentRecord, getDocumentRecord, listDocumentRecords, readDocumentUpload, updateDocumentRecord } from './documentRecords.js'
 import { inputValue } from './httpErrors.js'
@@ -11,6 +9,7 @@ import { diaryDate } from './recordValidation.js'
 import type { createUploadTransport } from './uploadTransport.js'
 import { withUser } from './userTransaction.js'
 import { withCommand } from './writeCommand.js'
+import { writeAttachmentCommand } from './writeAttachmentCommand.js'
 
 const routeId = (params: unknown) => inputValue(() => z.object({ id: z.string() }).parse(params).id)
 
@@ -31,10 +30,10 @@ export function registerDocuments(app: FastifyInstance, pool: Pool, authorize: A
     return withUser(pool, account, client => countDocumentRecords(client, routeId(request.params)))
   })
   app.post('/api/v1/documents', { onRequest: uploads.onRequest, bodyLimit: DOCUMENT_MAX_BYTES }, async (request, reply) => {
-    const record = await uploads.run(request, async (account, metadata, bytes) => {
+    const record = await uploads.run(request, (account, metadata, bytes) => {
       const values = readDocumentUpload(metadata, diaryDate(account.timezone, clock()))
-      const file = await validateServerAttachment(bytes, 'document', values.mime)
-      return withCommand(pool, account, request, client => createDocumentRecord(client, account.id, values, file), { metadata, sha256: createHash('sha256').update(file.bytes).digest('hex') })
+      return writeAttachmentCommand(pool, account, request, { bytes, metadata, purpose: 'document', mime: values.mime },
+        (client, file) => createDocumentRecord(client, account.id, values, file))
     })
     return reply.code(201).send(record)
   })
