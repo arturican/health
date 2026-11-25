@@ -97,8 +97,10 @@ it('не изменяет дневник при повреждённом фай�
   const damaged = { ...backup, files: backup.files.map(file => ({ ...file, base64: Buffer.alloc(file.size, 1).toString('base64') })) }
   expect((await restore(confirmed, damaged)).statusCode).toBe(400)
   expect(canonical(await download())).toEqual(canonical(backup))
+  const beforeLimit = (await context.app.inject({ url: '/api/v1/diary-state', headers })).json<unknown>()
   const response = await context.app.inject({ method: 'POST', url: '/api/v1/backup/full', headers: { ...confirmed, 'content-length': String(FULL_BACKUP_MAX_BYTES + 1) }, payload: Buffer.from('{}') })
   expect(response.statusCode).toBe(413)
+  expect((await context.app.inject({ url: '/api/v1/diary-state', headers })).json<unknown>()).toEqual(beforeLimit)
   expect((await context.app.inject({ method: 'POST', url: '/api/v1/backup/full', headers: { origin: headers.origin, 'content-type': confirmed['content-type'] }, payload: Buffer.from('{') })).statusCode).toBe(401)
   expect((await restore({ ...confirmed, 'x-diary-revision': '0' }, backup)).statusCode).toBe(409)
   expect(canonical(await download())).toEqual(canonical(backup))
