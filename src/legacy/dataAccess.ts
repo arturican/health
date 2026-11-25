@@ -5,6 +5,7 @@ import type * as Backup from '../client/backupRepository'
 import type { prepareDiaryChange as ApiConfirmation } from '../client/confirmations'
 import * as backup from '../data/backupRepository'
 import * as fullBackup from '../data/fullBackupRepository'
+import { serializeFullBackup } from '../domain/fullBackup'
 import * as clear from '../data/clearDiary'
 import { db } from '../data/db'
 export type { DiaryConfirmation } from '../client/confirmations'
@@ -92,7 +93,9 @@ export const getFile: typeof fileApi.getFile = id => file.getFile(id)
 export const getVisibility: typeof visibilityApi.getVisibility = () => visibility.getVisibility()
 export const saveVisibility: typeof visibilityApi.saveVisibility = input => visibility.saveVisibility(input)
 export const exportTextBackup: typeof Backup.exportTextBackup = () => backup.exportTextBackup()
-export const exportFullBackup: typeof Backup.exportFullBackup = () => fullBackup.exportFullBackup()
+export const exportFullBackupBlob: typeof Backup.exportFullBackupBlob = async () => {
+  return new Blob([serializeFullBackup(await fullBackup.exportFullBackup())], { type: 'application/json' })
+}
 export const restoreTextBackup: typeof Backup.restoreTextBackup = input => backup.restoreTextBackup(input)
 export const restoreFullBackup: typeof Backup.restoreFullBackup = input => fullBackup.restoreFullBackup(input)
 export const clearDiary: typeof Backup.clearDiary = () => clear.clearDiary()

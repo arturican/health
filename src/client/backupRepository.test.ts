@@ -13,7 +13,8 @@ import { addDocument, listDocuments } from './documentRepository'
 import { getFile } from './fileRepository'
 import { getVisibility, saveVisibility } from './visibilityRepository'
 import { prepareDiaryChange } from './confirmations'
-import { clearDiary, exportFullBackup, exportTextBackup, restoreFullBackup, restoreTextBackup } from './backupRepository'
+import { clearDiary, exportFullBackupBlob, exportTextBackup, restoreFullBackup, restoreTextBackup } from './backupRepository'
+import { readFullBackup } from '../domain/fullBackup'
 import { getClientSession } from './session'
 import { getNotice } from './notices'
 
@@ -28,6 +29,12 @@ beforeEach(async () => {
 })
 afterEach(async () => { await api.close() })
 const create = () => createProfile(profile, { id: randomUUID(), date: '2026-10-15', kg: 75 })
+
+async function exportFullBackup() {
+  const file = await exportFullBackupBlob()
+  const value: unknown = JSON.parse(await file.text())
+  return readFullBackup(value)
+}
 
 it('настройки сохраняются с исходной версией и не перезаписываются старой формой', async () => {
   const original = await getVisibility()

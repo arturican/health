@@ -1,7 +1,6 @@
-import { exportFullBackup } from '../dataAccess'
-import { serializeFullBackup } from '../domain/fullBackup'
+import { exportFullBackupBlob } from '../dataAccess'
 import { localDate } from '../domain/input'
-import { downloadJson } from '../ui/download'
+import { downloadBlob } from '../ui/download'
 import { Feedback, useAction } from '../ui/actions'
 
 export function FullBackupExport() {
@@ -13,8 +12,8 @@ export function FullBackupExport() {
     <div className="actions">
       <button type="button" disabled={action.pending} onClick={() => {
         action.run(async () => {
-          const backup = await exportFullBackup()
-          downloadJson(serializeFullBackup(backup), `health-diary-full-${localDate()}.json`)
+          const backup = await exportFullBackupBlob()
+          downloadBlob(backup, `health-diary-full-${localDate()}.json`)
         }, 'Полная копия подготовлена')
       }}>{action.pending ? 'Готовим полную копию…' : 'Скачать полную копию'}</button>
     </div>

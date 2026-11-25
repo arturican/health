@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { exportFullBackup, exportTextBackup } from './backupRepository'
+import { exportFullBackupBlob, exportTextBackup } from './backupRepository'
 import { getClientSession, setClientSession } from './session'
 const account={id:'10000000-0000-4000-8000-000000000001',login:'alice',timezone:'UTC'}
 const network=vi.fn<typeof fetch>()
@@ -11,7 +11,7 @@ it('text413 предлагает явный full, не вызывает его �
   expect(network).toHaveBeenCalledTimes(1)
   expect(network.mock.calls[0]?.[0]).toBe('/api/v1/backup/text')
   expect(body).not.toHaveBeenCalled()
-  await expect(exportFullBackup()).rejects.toThrow('Обратитесь к администратору')
+  await expect(exportFullBackupBlob()).rejects.toThrow('Обратитесь к администратору')
   expect(getClientSession().session?.account).toEqual(account)
 })
 it('сохраняет401 и сбрасывает session вместо ложного size сообщения',async()=>{

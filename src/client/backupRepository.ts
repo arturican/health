@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { readTextBackup, serializeTextBackup } from '../domain/backup'
-import { readFullBackup, serializeFullBackup } from '../domain/fullBackup'
+import { FULL_BACKUP_MAX_BYTES, readFullBackup, serializeFullBackup } from '../domain/fullBackup'
 import { ApiError, requestApi, requestJSON } from './http'
 import { executeCommand } from './commands'
 import type { DiaryConfirmation } from './confirmations'
@@ -8,8 +8,8 @@ import { assertContext } from './records'
 import { diaryStateSchema, updateDiaryState } from './session'
 import { setNotice } from './notices'
 
-async function exportBackup<T>(format: 'text' | 'full', schema: z.ZodType<T>): Promise<T> {
-  try { return await requestJSON('/api/v1/backup/' + format, schema) }
+async function exportBackup<T>(format: 'text' | 'full', download: (path: string) => Promise<T>): Promise<T> {
+  try { return await download('/api/v1/backup/' + format) }
   catch (error: unknown) {
     if (error instanceof ApiError && error.status === 413) throw new Error(format === 'text'
       ? 'Текстовая копия превышает 20 MiB. Попробуйте «Скачать полную копию» в настройках; её предел — 200 MiB. Данные не изменены.'
@@ -17,8 +17,14 @@ async function exportBackup<T>(format: 'text' | 'full', schema: z.ZodType<T>): P
     throw error
   }
 }
-export const exportTextBackup = () => exportBackup('text', z.unknown().transform(value => readTextBackup(value)))
-export const exportFullBackup = () => exportBackup('full', z.unknown().transform(value => readFullBackup(value)))
+export const exportTextBackup = () => exportBackup('text', path => requestJSON(path, z.unknown().transform(value => readTextBackup(value))))
+export const exportFullBackupBlob = () => exportBackup('full', path => requestApi(path, async response => {
+  const blob = await response.blob()
+  if (blob.size > FULL_BACKUP_MAX_BYTES) throw new ApiError(413)
+  const value: unknown = JSON.parse(await blob.text())
+  readFullBackup(value)
+  return blob
+}))
 
 async function replaceDiary(path: string, body: string, confirmation: DiaryConfirmation, message: string, clear = false) {
   assertContext(confirmation.context)
