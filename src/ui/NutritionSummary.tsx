@@ -11,8 +11,9 @@ function amount(value: number | null, unit: string) {
 }
 
 type NutritionQuery = { data: Awaited<ReturnType<typeof getNutritionSummary>> | undefined; current: boolean }
-export function NutritionSummary() {
-  const shared = useTodaySummary()
+export function NutritionSummary({ query }: { query?: NutritionQuery } = {}) {
+  const today = useTodaySummary()
+  const shared = query ?? today
   return shared ? <NutritionSummaryContent query={shared} /> : <StandaloneNutritionSummary />
 }
 function StandaloneNutritionSummary() {

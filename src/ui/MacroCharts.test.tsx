@@ -5,7 +5,7 @@ import { addFood } from '../data/foodRepository'
 import { setNutritionDay } from '../data/nutritionRepository'
 import { DayProvider } from './DayContext'
 import { DayPicker } from './DayPicker'
-import { MacroCharts } from './MacroCharts'
+import { NutritionPage } from '../pages/NutritionPage'
 
 beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['Date'] })
@@ -19,8 +19,8 @@ afterEach(async () => {
 })
 
 it('отличает неизвестный день от подтверждённого нуля', async () => {
-  render(<DayProvider><MacroCharts /></DayProvider>)
-  expect(screen.getByRole('status')).toHaveTextContent('Загружаем БЖУ')
+  render(<DayProvider><NutritionPage /></DayProvider>)
+  expect(screen.getByText('Загружаем БЖУ…')).toHaveAttribute('role', 'status')
   await screen.findByRole('heading', { name: 'БЖУ по приёмам пищи' })
   expect(screen.queryByRole('meter')).not.toBeInTheDocument()
   await setNutritionDay('2026-10-14', true)
@@ -32,7 +32,7 @@ it('учитывает массу порции, неизвестный сост�
   const product = { id: '00000000-0000-4000-8000-000000000001', name: 'Синтетический продукт', source: '', kcal: 250, protein: 12, fat: null, carbs: 0, archived: false }
   await db.products.put(product)
   await addFood({ date: '2026-10-14', productId: product.id, grams: 150, meal: 'lunch', note: '' })
-  render(<DayProvider><DayPicker /><MacroCharts /></DayProvider>)
+  render(<DayProvider><DayPicker /><NutritionPage /></DayProvider>)
   expect(await screen.findByRole('meter', { name: 'Белки за день' })).toHaveAttribute('value', '18')
   expect(screen.getByRole('meter', { name: 'Обед: Белки' })).toHaveAttribute('aria-valuetext', '18 г')
   expect(screen.queryByRole('meter', { name: 'Жиры за день' })).not.toBeInTheDocument()

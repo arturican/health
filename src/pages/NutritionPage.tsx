@@ -1,4 +1,4 @@
-import { seedProducts } from '../dataAccess'
+import { getNutritionSummary, seedProducts, useDiaryQueryState } from '../dataAccess'
 import { ProductCatalog } from './ProductCatalog'
 import { Feedback, useAction } from '../ui/actions'
 import { FoodJournal } from './FoodJournal'
@@ -10,14 +10,15 @@ import '../nutrition.css'
 
 export function NutritionPage() {
   const { day } = useDay()
+  const nutrition = useDiaryQueryState(() => getNutritionSummary(day), [day])
   const action = useAction()
   return (
     <section className="page nutrition-page" aria-labelledby="nutrition-title">
       <h1 id="nutrition-title">Питание</h1>
       <p>Приёмы пищи, состав продуктов и итоги выбранного дня.</p>
-      <MacroCharts />
+      <MacroCharts result={nutrition.data} />
       <div className="nutrition-overview">
-      <NutritionSummary />
+      <NutritionSummary query={nutrition} />
       <EnergySummary />
       </div>
       <FoodJournal key={day} />

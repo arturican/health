@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { useDiaryQuery, getNutritionSummary } from '../dataAccess'
+import type { getNutritionSummary } from '../dataAccess'
 import { foodTotals, mealNames } from '../domain/nutrition'
 import { useDay } from './DayContext'
 import '../macro-charts.css'
@@ -11,10 +11,9 @@ const macros = [
 ] as const
 const grams = (value: number | null) => value === null ? 'нет данных' : `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} г`
 
-export function MacroCharts() {
+export function MacroCharts({ result }: { result: Awaited<ReturnType<typeof getNutritionSummary>> | undefined }) {
   const title = useId()
   const { day } = useDay()
-  const result = useDiaryQuery(() => getNutritionSummary(day), [day])
   const data = result?.day === day ? result : undefined
   const totals = data ? foodTotals(data.entries, data.status?.complete ?? false) : null
   const meals = (['breakfast', 'lunch', 'snack', 'dinner'] as const).map(meal => ({
